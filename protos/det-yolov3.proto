@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+service DetYOLOv3 {
+    rpc DetFrame (DetFrameRequest) returns (Score) {}
+}
+
+message DetFrameRequest {
+    bytes data = 1;
+    string name = 2;
+    string cls = 3;
+}
+
+message Score {
+    string res = 1;
+}

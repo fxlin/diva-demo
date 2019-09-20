@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+service DivaCamera {
+    rpc InitDiva (InitDivaRequest) returns (StrMsg) {}
+    rpc GetFrame (GetFrameRequest) returns (Frame) {}
+    rpc DeployOp (Chunk) returns (StrMsg) {}
+    rpc DeployOpNotify (DeployOpRequest) returns (StrMsg) {}
+}
+
+message DeployOpRequest {
+    string name = 1;
+    string crop = 2;
+}
+
+message InitDivaRequest {
+    string img_path = 1;
+}
+
+message GetFrameRequest {
+    string name = 1;
+}
+
+message Frame {
+    string name = 1;
+    bytes data = 2;
+}
+
+message StrMsg {
+    string msg = 1;
+}
+
+message Chunk {
+    bytes data = 1;
+}
