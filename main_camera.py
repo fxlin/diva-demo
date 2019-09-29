@@ -93,7 +93,7 @@ class OP_WORKER(Thread):
             for i in range(OP_BATCH_SZ):
                 heapq.heappush(self.buf, (-scores[i, 1], imgs[i].split('/')[-1]))
             # print ('Buf size: ', len(self.buf))
-            clog.print('Buf size: %d, total num: %d' % (len(self.buf), len(self.run_imgs)))
+            clog.log('Buf size: %d, total num: %d' % (len(self.buf), len(self.run_imgs)))
 
 class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
     img_dir = None

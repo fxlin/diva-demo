@@ -60,7 +60,7 @@ def runDiva():
     clog = ClockLog(5)
     for i in range(10000):
         time.sleep(0.1) # emulate network
-        clog.print('Retrieved pos num: %d' % (pos_num))
+        clog.log('Retrieved pos num: %d' % (pos_num))
         response = camStub.GetFrame(cam_cloud_pb2.GetFrameRequest(name='echo'))
         img_name = response.name
         if img_name == '':

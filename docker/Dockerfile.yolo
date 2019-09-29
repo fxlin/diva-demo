@@ -1,0 +1,14 @@
+FROM python:2.7.16-buster
+
+ENV OPENCV_VERSION 3.4.2
+
+COPY . /var/yolov3
+
+WORKDIR /var/yolov3
+
+# Install all dependencies for OpenCV
+RUN docker/install-opencv.sh 
+
+RUN pip install grpcio numpy pillow pandas keras tensorflow sklearn pickle-mixin opencv-python
+
+CMD ["python", "YOLOv3_grpc.py"]

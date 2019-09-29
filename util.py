@@ -41,7 +41,7 @@ class ClockLog():
     def __init__(self, secs):
         self.interval = secs
         self.last_log = 0
-    def print(self, msg):
+    def log(self, msg):
         now = time.time()
         if now - self.last_log > self.interval:
             print (msg)
