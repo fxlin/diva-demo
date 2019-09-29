@@ -55,8 +55,9 @@ OPENCV_CONTRIB='NO'          # Install OpenCV's extra modules (YES/NO)
  apt-get install -y libtbb-dev libeigen3-dev
 
 # Python:
-#  apt-get install -y python-dev  python-tk  pylint  python-numpy  \
-#                         python3-dev python3-tk pylint3 python3-numpy flake8
+# python-numpy  python3-numpy
+ apt-get install -y python-dev  python-tk  pylint  \
+                        python3-dev python3-tk pylint3 flake8
 
 # Java:
  apt-get install -y ant default-jdk

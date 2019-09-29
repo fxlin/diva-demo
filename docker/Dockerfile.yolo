@@ -1,6 +1,5 @@
-FROM python:2.7.16-buster
-
-ENV OPENCV_VERSION 3.4.2
+#FROM python:2.7.16-buster
+FROM nvidia/cuda:7.5
 
 COPY . /var/yolov3
 
