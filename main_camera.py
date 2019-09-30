@@ -122,7 +122,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         return cam_cloud_pb2.StrMsg(msg='OK')
     def DeployOpNotify(self, request, context):
         self.cur_op_name = request.name
-        op_fname = os.path.join(OP_DIR self.cur_op_name)
+        op_fname = os.path.join(OP_DIR, self.cur_op_name)
         with open(op_fname, 'wb') as f:
             f.write(self.cur_op_data)
         self.cur_op_data = bytearray(b'')
