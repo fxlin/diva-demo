@@ -27,12 +27,12 @@ import keras
 import keras.backend as K
 import cam_cloud_pb2
 import cam_cloud_pb2_grpc
+from variables import CAMERA_CHANNEL_PORT, OP_DIR
 
 from util import *
 
 CHUNK_SIZE = 1024 * 100
 OP_BATCH_SZ = 16
-op_dir = './result/ops'
 
 class OP_WORKER(Thread):
     def read_images(self, imgs, H, W, crop=(-1,-1,-1,-1)):
@@ -122,7 +122,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         return cam_cloud_pb2.StrMsg(msg='OK')
     def DeployOpNotify(self, request, context):
         self.cur_op_name = request.name
-        op_fname = os.path.join(op_dir, self.cur_op_name)
+        op_fname = os.path.join(OP_DIR self.cur_op_name)
         with open(op_fname, 'wb') as f:
             f.write(self.cur_op_data)
         self.cur_op_data = bytearray(b'')
@@ -145,7 +145,7 @@ def serve():
     diva_cam_servicer = DivaCameraServicer()
     cam_cloud_pb2_grpc.add_DivaCameraServicer_to_server(
             diva_cam_servicer, server)
-    server.add_insecure_port('[::]:10086')
+    server.add_insecure_port(f'[::]:{CAMERA_CHANNEL_PORT}')
     server.start()
     try:
         while True:

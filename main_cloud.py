@@ -9,15 +9,14 @@ import det_yolov3_pb2_grpc
 import cam_cloud_pb2
 import cam_cloud_pb2_grpc
 
+from variables import CAMERA_CHANNEL_ADDRESS, YOLO_CHANNEL_ADDRESS, IMAGE_PATH, OP_FNAME_PATH
+
 from util import *
 
 CHUNK_SIZE = 1024 * 100
 cls = 'bicycle'
 crop = '350,0,720,400'
 yolo_score_thre = 0.4
-img_path = '/media/teddyxu/WD-4TB/hybridvs_data/YOLO-RES-720P/jpg/chaweng-1_10FPS/'
-csv_path = '/media/teddyxu/WD-4TB/hybridvs_data/YOLO-RES-720P/out/chaweng-1_10FPS.csv'
-op_fname = '/media/teddyxu/WD-4TB/hybridvs_data/YOLO-RES-720P/exp/chaweng/models/chaweng-a3d16c61813043a2711ed3f5a646e4eb.hdf5'
 det_sz = 608
 
 
@@ -32,18 +31,18 @@ def draw_box(img, x1, y1, x2, y2):
 
 
 def runDiva():
-    camChannel =  grpc.insecure_channel('localhost:10086')
+    camChannel =  grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
     camStub = cam_cloud_pb2_grpc.DivaCameraStub(camChannel) 
-    yoloChannel =  grpc.insecure_channel('localhost:10088')
+    yoloChannel =  grpc.insecure_channel(YOLO_CHANNEL_ADDRESS)
     yoloStub = det_yolov3_pb2_grpc.DetYOLOv3Stub(yoloChannel)
 
     response = camStub.InitDiva(cam_cloud_pb2.InitDivaRequest(
-        img_path=img_path))
+        img_path=IMAGE_PATH))
     if response.msg != 'OK':
         print ('DIVA init fails!!!')
         return
 
-    f = open(op_fname, 'rb')
+    f = open(OP_FNAME_PATH, 'rb')
     op_data = f.read(CHUNK_SIZE)
     while op_data != b"":
         response = camStub.DeployOp(cam_cloud_pb2.Chunk(data=op_data))
@@ -90,7 +89,7 @@ def runDiva():
     yoloChannel.close()
 
 def testYOLO():
-    with grpc.insecure_channel('localhost:10088') as channel:
+    with grpc.insecure_channel(YOLO_CHANNEL_ADDRESS) as channel:
         stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(channel)
         with open('tensorflow-yolov3/data/demo_data/dog.jpg', 'rb') as f:
             sample_data = f.read()

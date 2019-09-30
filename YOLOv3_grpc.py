@@ -14,6 +14,9 @@ import time
 from PIL import Image
 import numpy as np
 import tensorflow as tf
+from variables import YOLO_CHANNEL_PORT
+
+# FIXME figure out a better way to manage these dependencies
 sys.path.insert(0, './tensorflow-yolov3/core')
 import utils
 import keras
@@ -62,7 +65,7 @@ def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     det_yolov3_pb2_grpc.add_DetYOLOv3Servicer_to_server(
             DetYOLOv3Servicer(), server)
-    server.add_insecure_port('[::]:10088')
+    server.add_insecure_port(f'[::]:{YOLO_CHANNEL_PORT}')
     server.start()
     try:
         while True:
