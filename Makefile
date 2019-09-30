@@ -1,11 +1,30 @@
+NETWORK_NAME=diva-network
+
+VIDEO_DATA_PATH=/media/teddyxu/WD-4TB/hybridvs_data
+VIDEO_DATA_PATH_IN_CONTAINER=/media/
+
+CAMERA_RESULT_PATH=${PWD}/result/ops
+CAMERA_RESULT_PATH_IN_CONTAINER=/var/yolov3/result/ops
+
+run-all:
+	@make run-yolo
+	@make run-camera
+	@make run-cloud
+
+start-network:
+	docker network create --subnet 172.20.0.0/16 --ip-range 172.20.240.0/20 ${NETWORK_NAME}
+
+remove-network:
+	docker network rm ${NETWORK_NAME}
+
 run-cloud:
-	docker run -d --gpus all --name cloud --mount source=/media/teddyxu/WD-4TB/,target=/media/ diva-cloud:latest
+	docker run --network=${NETWORK_NAME} -d --gpus all --name cloud -v ${VIDEO_DATA_PATH}:${VIDEO_DATA_PATH_IN_CONTAINER}:ro diva-cloud:latest
 
 run-camera:
-	docker run -d --gpus all --name camera --mount source=result/ops,target=result/ops diva-camera:latest
+	docker run --network=${NETWORK_NAME}  -d --gpus all --name camera -v ${CAMERA_RESULT_PATH}:${CAMERA_RESULT_PATH_IN_CONTAINER} diva-camera:latest
 
 run-yolo:
-	docker run -d --gpus all --rm --name=yolo diva-yolo:latest
+	docker run --network=${NETWORK_NAME}  -d --gpus all --name=yolo diva-yolo:latest
 
 build-base:
 	docker build  -t diva-base:latest -f docker/Dockerfile.base .
