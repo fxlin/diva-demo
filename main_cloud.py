@@ -54,14 +54,14 @@ def process_frame(img_name: str, img_data, det_res):
     response from YOLO agent. Draw boxes around the object of interest.
     """
     # print ('client received: ' + det_res)
-    if len(det_res) == 0:
+    if not det_res or len(det_res) == 0:
         return
 
     res_items = det_res.split('|')
     res_items = [[float(y) for y in x.split(',')] for x in res_items]
-    res_items = [x for x in res_items if x[0] > YOLO_SCORE_THRE]
+    res_items = list(filter(lambda z: z[0] > YOLO_SCORE_THRE, res_items))
 
-    if len(res_items) <= 0:
+    if not res_items or len(res_items) <= 0:
         return
 
     img = cv2.imdecode(np.fromstring(img_data, dtype=np.uint8), -1)
@@ -126,6 +126,7 @@ def testYOLO():
                                            name='dog.jpg',
                                            cls='dog'))
         print('client received: ' + response.res)
+        # client received: 0.9983274,68.61318969726562,156.36236572265625,289.6726379394531,650.7457885742188
 
 
 if __name__ == '__main__':
