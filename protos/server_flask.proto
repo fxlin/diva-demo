@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+service server_flask {
+    rpc request_dir(Server_Frame_request) returns (directory) {}
+}
+
+message Server_Frame_request {
+    string name = 1;
+}
+
+message directory {
+    string dir = 1;
+}
+
