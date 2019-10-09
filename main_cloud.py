@@ -3,6 +3,7 @@ Ingest video frames and perform object detection on frames.
 """
 
 import os
+from concurrent import futures
 import time
 import grpc
 import cv2
@@ -12,17 +13,45 @@ import det_yolov3_pb2
 import det_yolov3_pb2_grpc
 import cam_cloud_pb2
 import cam_cloud_pb2_grpc
-
-from variables import CAMERA_CHANNEL_ADDRESS, YOLO_CHANNEL_ADDRESS, IMAGE_PATH, OP_FNAME_PATH
-from constants.grpc_constant import INIT_DIVA_SUCCESS
+import server_diva_pb2_grpc
+import server_diva_pb2
 
 from util import ClockLog
+
+from variables import CAMERA_CHANNEL_ADDRESS, YOLO_CHANNEL_ADDRESS, IMAGE_PATH, OP_FNAME_PATH
+from variables import FAKE_IMAGE_DIRECTOR_PATH, DIVA_CHANNEL_ADDRESS, DIVA_CHANNEL_PORT
+
+from constants.grpc_constant import INIT_DIVA_SUCCESS
 
 CHUNK_SIZE = 1024 * 100
 OBJECT_OF_INTEREST = 'bicycle'
 CROP_SPEC = '350,0,720,400'
 YOLO_SCORE_THRE = 0.4
 DET_SIZE = 608
+
+
+class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
+    """
+    Implement server_divaServicer of gRPC
+    """
+    def __init__(self):
+        super().__init__(self)
+
+    def request_frame_path(self, request, context):
+        # FIXME should use name to find corresponding folder
+        # desired_object_name = request.name
+        return server_diva_pb2.directory(
+            directory_path=FAKE_IMAGE_DIRECTOR_PATH)
+
+
+def serve():
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    diva_servicer = DivaGRPCServer()
+    server_diva_pb2_grpc.add_server_divaServicer_to_server(
+        diva_servicer, server)
+    server.add_insecure_port(f'[::]:{DIVA_CHANNEL_PORT}')
+    server.start()
+    server.wait_for_termination()
 
 
 def draw_box(img, x1, y1, x2, y2):
@@ -132,4 +161,5 @@ def testYOLO():
 
 
 if __name__ == '__main__':
-    runDiva()
+    serve()
+    # runDiva()
