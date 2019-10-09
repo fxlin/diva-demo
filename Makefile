@@ -10,6 +10,7 @@ run-all:
 	@make run-yolo
 	@make run-camera
 	@make run-cloud
+	@make run-web
 
 start-network:
 	docker network create --subnet 172.20.0.0/16 --ip-range 172.20.240.0/20 ${NETWORK_NAME}
@@ -19,6 +20,9 @@ remove-network:
 
 run-cloud:
 	docker run --network=${NETWORK_NAME} -d --gpus all --name cloud -v ${VIDEO_DATA_PATH}:${VIDEO_DATA_PATH_IN_CONTAINER}:ro diva-cloud:latest
+
+run-web:
+	docker run --network=${NETWORK_NAME} -d --gpus all --name web -v ${VIDEO_DATA_PATH}:${VIDEO_DATA_PATH_IN_CONTAINER}:ro diva-web:latest
 
 run-camera:
 	docker run --network=${NETWORK_NAME}  -d --gpus all --name camera -v ${CAMERA_RESULT_PATH}:${CAMERA_RESULT_PATH_IN_CONTAINER} diva-camera:latest
@@ -37,3 +41,6 @@ build-cloud:
 
 build-camera:
 	docker build  -t diva-camera:latest -f docker/Dockerfile.camera .
+
+build-web:
+	docker build  -t diva-web:latest -f docker/Dockerfile.web .
