@@ -14,9 +14,9 @@ class server_flaskStub(object):
     Args:
       channel: A grpc.Channel.
     """
-    self.request_dir = channel.unary_unary(
-        '/server_flask/request_dir',
-        request_serializer=server__flask__pb2.Server_Frame_request.SerializeToString,
+    self.request_frame_path = channel.unary_unary(
+        '/server_flask.server_flask/request_frame_path',
+        request_serializer=server__flask__pb2.query_statement.SerializeToString,
         response_deserializer=server__flask__pb2.directory.FromString,
         )
 
@@ -25,7 +25,7 @@ class server_flaskServicer(object):
   # missing associated documentation comment in .proto file
   pass
 
-  def request_dir(self, request, context):
+  def request_frame_path(self, request, context):
     # missing associated documentation comment in .proto file
     pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -35,12 +35,12 @@ class server_flaskServicer(object):
 
 def add_server_flaskServicer_to_server(servicer, server):
   rpc_method_handlers = {
-      'request_dir': grpc.unary_unary_rpc_method_handler(
-          servicer.request_dir,
-          request_deserializer=server__flask__pb2.Server_Frame_request.FromString,
+      'request_frame_path': grpc.unary_unary_rpc_method_handler(
+          servicer.request_frame_path,
+          request_deserializer=server__flask__pb2.query_statement.FromString,
           response_serializer=server__flask__pb2.directory.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
-      'server_flask', rpc_method_handlers)
+      'server_flask.server_flask', rpc_method_handlers)
   server.add_generic_rpc_handlers((generic_handler,))

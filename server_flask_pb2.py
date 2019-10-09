@@ -17,24 +17,24 @@ _sym_db = _symbol_database.Default()
 
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='server_flask.proto',
-  package='',
+  package='server_flask',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x12server_flask.proto\"$\n\x14Server_Frame_request\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x18\n\tdirectory\x12\x0b\n\x03\x64ir\x18\x01 \x01(\t2B\n\x0cserver_flask\x12\x32\n\x0brequest_dir\x12\x15.Server_Frame_request\x1a\n.directory\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\x12server_flask.proto\x12\x0cserver_flask\"\x1f\n\x0fquery_statement\x12\x0c\n\x04name\x18\x01 \x01(\t\"#\n\tdirectory\x12\x16\n\x0e\x64irectory_path\x18\x01 \x01(\t2^\n\x0cserver_flask\x12N\n\x12request_frame_path\x12\x1d.server_flask.query_statement\x1a\x17.server_flask.directory\"\x00\x62\x06proto3')
 )
 
 
 
 
-_SERVER_FRAME_REQUEST = _descriptor.Descriptor(
-  name='Server_Frame_request',
-  full_name='Server_Frame_request',
+_QUERY_STATEMENT = _descriptor.Descriptor(
+  name='query_statement',
+  full_name='server_flask.query_statement',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='name', full_name='Server_Frame_request.name', index=0,
+      name='name', full_name='server_flask.query_statement.name', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -52,20 +52,20 @@ _SERVER_FRAME_REQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=22,
-  serialized_end=58,
+  serialized_start=36,
+  serialized_end=67,
 )
 
 
 _DIRECTORY = _descriptor.Descriptor(
   name='directory',
-  full_name='directory',
+  full_name='server_flask.directory',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='dir', full_name='directory.dir', index=0,
+      name='directory_path', full_name='server_flask.directory.directory_path', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -83,25 +83,25 @@ _DIRECTORY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=60,
-  serialized_end=84,
+  serialized_start=69,
+  serialized_end=104,
 )
 
-DESCRIPTOR.message_types_by_name['Server_Frame_request'] = _SERVER_FRAME_REQUEST
+DESCRIPTOR.message_types_by_name['query_statement'] = _QUERY_STATEMENT
 DESCRIPTOR.message_types_by_name['directory'] = _DIRECTORY
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
-Server_Frame_request = _reflection.GeneratedProtocolMessageType('Server_Frame_request', (_message.Message,), {
-  'DESCRIPTOR' : _SERVER_FRAME_REQUEST,
+query_statement = _reflection.GeneratedProtocolMessageType('query_statement', (_message.Message,), {
+  'DESCRIPTOR' : _QUERY_STATEMENT,
   '__module__' : 'server_flask_pb2'
-  # @@protoc_insertion_point(class_scope:Server_Frame_request)
+  # @@protoc_insertion_point(class_scope:server_flask.query_statement)
   })
-_sym_db.RegisterMessage(Server_Frame_request)
+_sym_db.RegisterMessage(query_statement)
 
 directory = _reflection.GeneratedProtocolMessageType('directory', (_message.Message,), {
   'DESCRIPTOR' : _DIRECTORY,
   '__module__' : 'server_flask_pb2'
-  # @@protoc_insertion_point(class_scope:directory)
+  # @@protoc_insertion_point(class_scope:server_flask.directory)
   })
 _sym_db.RegisterMessage(directory)
 
@@ -109,19 +109,19 @@ _sym_db.RegisterMessage(directory)
 
 _SERVER_FLASK = _descriptor.ServiceDescriptor(
   name='server_flask',
-  full_name='server_flask',
+  full_name='server_flask.server_flask',
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=86,
-  serialized_end=152,
+  serialized_start=106,
+  serialized_end=200,
   methods=[
   _descriptor.MethodDescriptor(
-    name='request_dir',
-    full_name='server_flask.request_dir',
+    name='request_frame_path',
+    full_name='server_flask.server_flask.request_frame_path',
     index=0,
     containing_service=None,
-    input_type=_SERVER_FRAME_REQUEST,
+    input_type=_QUERY_STATEMENT,
     output_type=_DIRECTORY,
     serialized_options=None,
   ),
