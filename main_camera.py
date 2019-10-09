@@ -28,6 +28,7 @@ import keras.backend as K
 import cam_cloud_pb2
 import cam_cloud_pb2_grpc
 from variables import CAMERA_CHANNEL_PORT, OP_DIR
+from constants.grpc_constant import INIT_DIVA_SUCCESS
 
 from util import *
 
@@ -119,7 +120,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
     def InitDiva(self, request, context):
         self.img_dir = request.img_path
         self.send_buf = []
-        return cam_cloud_pb2.StrMsg(msg='OK')
+        return cam_cloud_pb2.StrMsg(msg=INIT_DIVA_SUCCESS)
     def DeployOpNotify(self, request, context):
         self.cur_op_name = request.name
         op_fname = os.path.join(OP_DIR, self.cur_op_name)

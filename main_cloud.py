@@ -14,6 +14,7 @@ import cam_cloud_pb2
 import cam_cloud_pb2_grpc
 
 from variables import CAMERA_CHANNEL_ADDRESS, YOLO_CHANNEL_ADDRESS, IMAGE_PATH, OP_FNAME_PATH
+from constants.grpc_constant import INIT_DIVA_SUCCESS
 
 from util import ClockLog
 
@@ -73,6 +74,7 @@ def process_frame(img_name: str, img_data, det_res):
 
 
 def runDiva():
+    # Init the communication channels to camera and yolo
     camChannel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
     camStub = cam_cloud_pb2_grpc.DivaCameraStub(camChannel)
     yoloChannel = grpc.insecure_channel(YOLO_CHANNEL_ADDRESS)
@@ -80,7 +82,7 @@ def runDiva():
 
     response = camStub.InitDiva(
         cam_cloud_pb2.InitDivaRequest(img_path=IMAGE_PATH))
-    if response.msg != 'OK':
+    if response.msg != INIT_DIVA_SUCCESS:
         print('DIVA init fails!!!')
         return
 
