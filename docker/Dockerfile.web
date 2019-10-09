@@ -1,0 +1,8 @@
+FROM diva-base:latest
+
+COPY . /var/web
+
+WORKDIR /var/web
+
+# FIXME execute correct python script
+CMD ["python3.6", ".py"]
