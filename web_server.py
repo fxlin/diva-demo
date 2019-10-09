@@ -5,11 +5,11 @@ import os
 import bottle
 import grpc
 
-import helloworld_pb2
-import helloworld_pb2_grpc
-
 import server_diva_pb2
 import server_diva_pb2_grpc
+
+from variables import DIVA_CHANNEL_ADDRESS
+
 
 directory = os.getcwd()
 app = bottle.Bottle()
@@ -51,23 +51,14 @@ def index():
     return bottle.static_file('./template/index.html', root=directory)
 
 
-@app.route('/begin', method="POST")
-def query():
-    logging.basicConfig()
-    with grpc.insecure_channel('localhost:50051') as channel:
-        stub = helloworld_pb2_grpc.GreeterStub(channel)
-        response = stub.SayHello(helloworld_pb2.HelloRequest(name='you'))
-    print("Greeter client received: " + response.message)
-
-
 @app.route('/display', method="POST")
 def query():
-    print("good")
     logging.basicConfig()
-    with grpc.insecure_channel('localhost:50052') as channel:
+    with grpc.insecure_channel(DIVA_CHANNEL_ADDRESS) as channel:
         stub = server_diva_pb2_grpc.server_divaStub(channel)
-        response = stub.request_frame_path(server_diva_pb2.query_statement(name='requested directory for frames'))
+        response = stub.request_frame_path(server_diva_pb2.query_statement(name='request directory'))
     pic_files = list()
+    pic_files.append(response.directory_path)
     if os.path.exists(response.directory_path):
         temp = os.listdir(response.directory_path)
         for files in temp:
