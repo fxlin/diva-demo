@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package server_flask;
+package server_diva;
 
-service server_flask {
+service server_diva {
     rpc request_frame_path(query_statement) returns (directory) {}
 }
 
@@ -13,6 +13,4 @@ message query_statement {
 message directory {
     string directory_path = 1;
 }
-
-
 
