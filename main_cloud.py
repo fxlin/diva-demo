@@ -3,6 +3,7 @@ Ingest video frames and perform object detection on frames.
 """
 
 import os
+import logging
 from concurrent import futures
 import time
 import grpc
@@ -161,5 +162,6 @@ def testYOLO():
 
 
 if __name__ == '__main__':
+    logging.basicConfig()
     serve()
     # runDiva()

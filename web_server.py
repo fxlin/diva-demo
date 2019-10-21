@@ -62,7 +62,7 @@ def query():
     if os.path.exists(response.directory_path):
         temp = os.listdir(response.directory_path)
         for files in temp:
-            if 'png' or 'jpeg' in files:
+            if '.png' in files or '.jpg' in files or '.jpeg' in files:
                 pic_files.append(files)
     temp = ','.join(pic_files)
     return temp
