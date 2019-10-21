@@ -371,6 +371,29 @@ def detection_serve():
     # for _t in thread_list:
     #     _t.join()
 
+class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
+    """
+    Implement server_divaServicer of gRPC
+    """
+    # def __init__(self):
+    #     super().__init__(self)
+
+    def request_frame_path(self, request, context):
+        # FIXME should use name to find corresponding folder
+        # desired_object_name = request.name
+        return server_diva_pb2.directory(
+            directory_path=FAKE_IMAGE_DIRECTOR_PATH)
+
+
+def serve():
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    diva_servicer = DivaGRPCServer()
+    server_diva_pb2_grpc.add_server_divaServicer_to_server(
+        diva_servicer, server)
+    server.add_insecure_port(f'[::]:{DIVA_CHANNEL_PORT}')
+    server.start()
+    server.wait_for_termination()
+
 
 def draw_box(img, x1, y1, x2, y2):
     rw = float(img.shape[1]) / DET_SIZE
