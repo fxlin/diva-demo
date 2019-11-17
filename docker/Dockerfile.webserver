@@ -5,4 +5,4 @@ COPY . /var/web
 WORKDIR /var/web
 
 # FIXME execute correct python script
-CMD ["python3.6", ".py"]
+CMD ["python3.6", "web_server.py"]
