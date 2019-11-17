@@ -169,8 +169,28 @@
             </div>
 
 
-            <!--                  -->
-        </div>
+    </div>
+    <!-- /.container -->
+<!--    <h2 class="text-center"><span>VIDEO SELECTION</span><br>-->
+<!--    </h2>-->
+    <br>
+    <div class="container">
+ <div class="row">
+  <div class="col-lg-4 text-center">
+  <img src="./template/img/ny.jpg" class="img-responsive grow text-center" style="grid-auto-rows: auto" alt="" title="video1" onclick="video('video/sonic.mp4')">
+      <p>Video 1</p>
+  </div>
+  <div class="col-lg-4 text-center">
+  <img src="./template/img/ny-blur.jpg" class="img-responsive grow text-center" style="grid-auto-rows: auto"  alt="" title="video2" onclick="video('video/traffic_cam_vid.mp4')">
+      <p>Video 2</p>
+  </div>
+  <div class="col-lg-4 text-center">
+  <img src="./template/img/ny.jpg" class="img-responsive grow text-center" style="grid-auto-rows: auto"  alt="" title="video3" onclick="video('video/sonic.mp4')">
+      <p>Video 3</p>
+  </div>
+ </div>
+    </div>
+</section>
 
 
     </div>
@@ -204,12 +224,20 @@
 <!-- Projects ends -->
 <script>
     function video(a) {
-        console.log(a);
-        if (a == 0) {
+       document.getElementById('vidtitle').style.display = "block";
+       document.getElementById('video').style.display = "block";
+       document.getElementById('video_tab').style.display = "block";
+       if(document.getElementById('videodisplay').src === a){
 
-        } else if (a == 1) {
+       }
+       else {
+           document.getElementById('videodisplay').src = a;
+       }
+    }
 
-        }
+    function array(num){
+        console.log(num);
+        document.getElementById('videodisplay').currentTime = num;
     }
 
     function call_diva() {
@@ -235,6 +263,8 @@
                 img.src = arrimg[0] + '/' + arrimg[i];
                 img.width = 400;
                 img.height = 300;
+                img.addEventListener('click', function(){array(i)}, false);
+                // img.addEventListener('click', function(val){return function(){array(val);};}(i), false);
                 document.getElementById('results').appendChild(img);
             }
 
