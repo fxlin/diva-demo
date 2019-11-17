@@ -7,10 +7,13 @@ CAMERA_RESULT_PATH=${PWD}/result/ops
 CAMERA_RESULT_PATH_IN_CONTAINER=/var/yolov3/result/ops
 DOCKER_USERNAME=wen777
 
+WEB_SERVER_PORT=10000
+
 run-all:
 	@make run-yolo
 	@make run-camera
 	@make run-cloud
+	@make run-webserver
 
 start-network:
 	docker network create --subnet 172.20.0.0/16 --ip-range 172.20.240.0/20 ${NETWORK_NAME}
@@ -28,7 +31,7 @@ run-yolo:
 	docker run --network=${NETWORK_NAME}  -d --gpus all --name=yolo ${DOCKER_USERNAME}/diva-yolo:latest
 
 run-webserver:
-	docker run --network=${NETWORK_NAME}  -d --name=webserver ${DOCKER_USERNAME}/diva-webserver:latest
+	docker run --network=${NETWORK_NAME} -p ${WEB_SERVER_PORT}:${WEB_SERVER_PORT} -d --name=webserver ${DOCKER_USERNAME}/diva-webserver:latest
 
 build-base:
 	docker build  -t ${DOCKER_USERNAME}/diva-base:latest -f docker/Dockerfile.base .
