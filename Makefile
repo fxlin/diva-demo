@@ -10,10 +10,15 @@ DOCKER_USERNAME=wen777
 WEB_SERVER_PORT=10000
 
 run-all:
+	@make run-cloud
+	@sleep 2
 	@make run-yolo
 	@make run-camera
-	@make run-cloud
 	@make run-webserver
+
+stop-and-remove:
+	@docker stop cloud yolo webserver camera
+	@docker rm cloud yolo webserver camera
 
 start-network:
 	docker network create --subnet 172.20.0.0/16 --ip-range 172.20.240.0/20 ${NETWORK_NAME}
