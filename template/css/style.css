@@ -1,0 +1,346 @@
+/* Body */
+html,
+body {
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    font-family: "Source Sans Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.text-vertical-center {
+    display: table-cell;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.text-vertical-center h1 {
+    margin: 0;
+    padding: 0;
+    font-size: 4.5em;
+    font-weight: 700;
+}
+
+/* Header */
+.header {
+    display: table;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    background-size: cover;
+    -o-background-size: cover;
+    padding: 50px 0;
+}
+
+header h1, h3 {
+    color: white;
+}
+
+header .fa, .projects .fa-angle-double-up {
+    color: rgb(170,172,179);
+}
+
+header .fa:hover, .projects .fa-angle-double-up:hover {
+    color: rgb(130,130,130);
+}
+
+/* Summary */
+.summary {
+    background-color: white;
+    padding: 50px 0;
+}
+
+.summary p {
+    font-size: 20px;
+    font-weight: 500;
+}
+
+/* Work */
+.work p {
+    font-size: 20px;
+    font-weight: 500;
+}
+
+.work{
+    background-color: rgb(56,56,56);
+    padding: 50px 0;
+    color: white;
+}
+
+/* Projects */
+.projects p {
+    font-size: 20px;
+    font-weight: 500;
+}
+
+.projects {
+    background-color: rgb(56,56,56);
+    padding: 50px 0;
+    color: white;
+}
+
+/* Resume */
+#resume p {
+    font-size: 50px;
+    color: white;
+}
+
+#resume {
+    background-color: rgb(77,77,79);
+}
+
+#resume .fa {
+    color: rgb(130,130,130);
+}
+
+#resume .fa:hover {
+    color: white;
+}
+
+/* Footer */
+footer {
+    background-color: white;
+    padding: 50px 0;
+}
+
+/* General Style */
+img {
+    background-color: #fff;
+    padding: 4px;
+}
+
+.htmllogo {
+    background-color: rgb(36, 36, 36);
+}
+
+hr {
+    display: block;
+    height: 1px;
+    border: 0;
+    border-top: 1px solid #ccc;
+    margin: 1em 0;
+    padding: 0;
+}
+
+/* Custom Button Styles */
+.btn-dark {
+    border-radius: 0;
+    color: #fff;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.btn-dark:hover,
+.btn-dark:focus,
+.btn-dark:active {
+    color: #fff;
+    background-color: rgba(0,0,0,0.7);
+}
+
+.btn-light {
+    color: #fff;
+    background-color: rgba(0,0,0,0.7);
+}
+
+.btn-light:hover,
+.btn-light:focus,
+.btn-light:active {
+    color: #333;
+    background-color: rgba(255,255,255,0.8);
+}
+
+/* Custom Horizontal Rule */
+hr.small {
+    max-width: 100px;
+}
+
+/* Side Menu*/
+#sidebar-wrapper {
+    z-index: 1000;
+    position: fixed;
+    right: 0;
+    width: 250px;
+    height: 100%;
+    transform: translateX(250px);
+    overflow-y: auto;
+    background: #222;
+    -webkit-transition: all 0.4s ease 0s;
+    -moz-transition: all 0.4s ease 0s;
+    -ms-transition: all 0.4s ease 0s;
+    -o-transition: all 0.4s ease 0s;
+    transition: all 0.4s ease 0s;
+}
+
+.sidebar-nav {
+    position: absolute;
+    top: 0;
+    width: 250px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.sidebar-nav li {
+    text-indent: 20px;
+    line-height: 40px;
+}
+
+.sidebar-nav li a {
+    display: block;
+    text-decoration: none;
+    color: #999;
+}
+
+.sidebar-nav li a:hover {
+    text-decoration: none;
+    color: #fff;
+    background: rgba(255,255,255,0.2);
+}
+
+.sidebar-nav li a:active,
+.sidebar-nav li a:focus {
+    text-decoration: none;
+}
+
+.sidebar-nav > .sidebar-brand {
+    height: 55px;
+    font-size: 18px;
+    line-height: 55px;
+}
+
+.sidebar-nav > .sidebar-brand a {
+    color: #999;
+}
+
+.sidebar-nav > .sidebar-brand a:hover {
+    color: #fff;
+    background: none;
+}
+
+#menu-toggle {
+    z-index: 1;
+    position: fixed;
+    top: 0;
+    right: 0;
+}
+
+#menu-close {
+    border-radius: 5px;
+    background-color: rgb(34,34,34);
+    color: white;
+    border-style: solid;
+    border-color: white;
+}
+
+#sidebar-wrapper.active {
+    right: 250px;
+    width: 250px;
+    -webkit-transition: all 0.4s ease 0s;
+    -moz-transition: all 0.4s ease 0s;
+    -ms-transition: all 0.4s ease 0s;
+    -o-transition: all 0.4s ease 0s;
+    transition: all 0.4s ease 0s;
+}
+
+.toggle {
+    margin: 5px 5px 0 0;
+}
+
+/* Blur Effect */
+.image {
+   background: url('../img/ny-blur.jpg') no-repeat center center;
+}
+
+.blurimage {
+   background: #1F1F1F url('../img/ny.jpg') no-repeat center center;
+}
+
+.blurImg {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    z-index: -9999;
+    top: 0;
+    left: 0;
+}
+.blurImg > div {
+    position: fixed;
+    width: 100%;
+    height: 100vh;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center center;
+}
+.blur {
+    opacity: 0;
+    -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=0)";
+    filter: alpha(opacity=0);
+}
+
+/* Transition Effect */
+.grow {
+    transition: all .2s ease-in-out;
+}
+
+.grow:hover {
+    transform: scale(1.1);
+}
+
+/* Scroll Button */
+.page-scroll {
+  width: 70px;
+  height: 70px;
+  margin-top: 15px;
+  padding: 7px 16px;
+  border-radius: 100% !important;
+  font-size: 40px;
+  background: transparent;
+}
+
+/* Full Width Image */
+#workimage {
+    background: #1F1F1F url(../img/code.png) no-repeat center center;
+}
+
+#projectimage {
+    background: #1F1F1F url(../img/code.png) no-repeat center center;
+}
+
+#workimage, #projectimage {
+   background-size: cover !important;
+   -webkit-background-size: cover !important;
+   background-attachment: fixed;
+   position: relative;
+   width: 100%;
+   overflow: hidden;
+}
+
+#workimage .text-container, #projectimage .text-container, #resume .text-container {
+   padding-top: 60px;
+   padding-bottom: 60px;
+}
+
+#workimage p, #projectimage p, #workimage .fa, #projectimage .fa {
+    font-size: 50px;
+    color: white;
+}
+
+/* Back to top */
+.back-to-top {
+    cursor: pointer;
+    position: fixed;
+    bottom: 5px;
+    right: 5px;
+    display:none;
+    text-decoration: none;
+    border-radius: 0;
+    color: #fff;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.back-to-top:hover {
+    color: #fff;
+    background-color: rgba(0,0,0,0.7);
+}
