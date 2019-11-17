@@ -3,7 +3,8 @@
 
 import os
 import time
-import utils
+import tensorflow_yolov3_utils as utils
+import util
 import keras
 from concurrent import futures
 import logging
@@ -22,7 +23,7 @@ from variables import YOLO_CHANNEL_PORT
 sys.path.insert(0, './tensorflow-yolov3/core')
 
 IMAGE_H, IMAGE_W = 608, 608
-classes = utils.read_coco_names('./tensorflow-yolov3/data/coco.names')
+classes = util.read_coco_names('./tensorflow-yolov3/data/coco.names')
 num_classes = len(classes)
 gpu_nms_graph = tf.Graph()
 

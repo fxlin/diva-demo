@@ -37,6 +37,13 @@ FRAMES_PER_SEC = 10
 
 computed_metrics = ['accuracy', 'mean_squared_error']
 
+def read_coco_names(class_file_name):
+    names = {}
+    with open(class_file_name, 'r') as data:
+        for ID, name in enumerate(data):
+            names[ID] = name.strip('\n')
+    return names
+
 class ClockLog():
     def __init__(self, secs):
         self.interval = secs
