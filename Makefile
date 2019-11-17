@@ -11,7 +11,7 @@ WEB_SERVER_PORT=10000
 
 run-all:
 	@make run-cloud
-	@sleep 2
+	sleep 2
 	@make run-yolo
 	@make run-camera
 	@make run-webserver
@@ -27,16 +27,16 @@ remove-network:
 	docker network rm ${NETWORK_NAME}
 
 run-cloud:
-	docker run --network=${NETWORK_NAME} -d --gpus all --name cloud -v ${VIDEO_DATA_PATH}:${VIDEO_DATA_PATH_IN_CONTAINER}:ro ${DOCKER_USERNAME}/diva-cloud:latest
+	docker run --network=${NETWORK_NAME} -it -d --gpus all --name cloud -v ${VIDEO_DATA_PATH}:${VIDEO_DATA_PATH_IN_CONTAINER}:ro ${DOCKER_USERNAME}/diva-cloud:latest
 
 run-camera:
-	docker run --network=${NETWORK_NAME}  -d --gpus all --name camera -v ${CAMERA_RESULT_PATH}:${CAMERA_RESULT_PATH_IN_CONTAINER} ${DOCKER_USERNAME}/diva-camera:latest
+	docker run --network=${NETWORK_NAME} -it -d --gpus all --name camera -v ${CAMERA_RESULT_PATH}:${CAMERA_RESULT_PATH_IN_CONTAINER} ${DOCKER_USERNAME}/diva-camera:latest
 
 run-yolo:
-	docker run --network=${NETWORK_NAME}  -d --gpus all --name=yolo ${DOCKER_USERNAME}/diva-yolo:latest
+	docker run --network=${NETWORK_NAME} -it  -d --gpus all --name=yolo ${DOCKER_USERNAME}/diva-yolo:latest
 
 run-webserver:
-	docker run --network=${NETWORK_NAME} -p ${WEB_SERVER_PORT}:${WEB_SERVER_PORT} -d --name=webserver ${DOCKER_USERNAME}/diva-webserver:latest
+	docker run --network=${NETWORK_NAME} -it -p ${WEB_SERVER_PORT}:${WEB_SERVER_PORT} -d --name=webserver ${DOCKER_USERNAME}/diva-webserver:latest
 
 build-base:
 	docker build  -t ${DOCKER_USERNAME}/diva-base:latest -f docker/Dockerfile.base .
