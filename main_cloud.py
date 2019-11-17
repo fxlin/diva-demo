@@ -35,9 +35,6 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
     """
     Implement server_divaServicer of gRPC
     """
-    def __init__(self):
-        super().__init__(self)
-
     def request_frame_path(self, request, context):
         # FIXME should use name to find corresponding folder
         # desired_object_name = request.name
