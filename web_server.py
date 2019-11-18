@@ -59,13 +59,26 @@ def query():
         response = stub.request_frame_path(server_diva_pb2.query_statement(name='request directory'))
     pic_files = list()
     pic_files.append(response.directory_path)
+    print(response.directory_path)
     if os.path.exists(response.directory_path):
         temp = os.listdir(response.directory_path)
         for files in temp:
+            # if '.txt' in files:
+            #     with open(os.path.join(response.directory_path, files), 'r') as temp:
+            #         for i in temp:
+            #             x, y = i.split()
+            #             pic_files.append(y)
+            #             pic_files.append(x)
             if '.png' in files or '.jpg' in files or '.jpeg' in files:
-                pic_files.append(files)
+
+                x, _ = files.split('.')
+                x = int(x)//10 + 15
+
+                if x <= 180:
+                    pic_files.append(files)
+                    pic_files.append(str(x))
     temp = ','.join(pic_files)
-    return tuple(temp)
+    return temp
 
 
 if __name__ == '__main__':

@@ -43,7 +43,7 @@
             <a href="#projects" onclick=$("#menu-close").click();>Project</a>
         </li>
         <li style="display: none" id="video_tab">
-            <a href="#vidtitle" onclick=$("#menu-close").click();>Selected Video</a>
+            <a href="#videodisplay" onclick=$("#menu-close").click();>Selected Video</a>
         </li>
         <li style="display: none" id="demo_tab">
             <a href="#work" onclick=$("#menu-close").click();>Demo Result</a>
@@ -168,15 +168,15 @@
     <div class="container">
  <div class="row">
   <div class="col-lg-4 text-center">
-  <img src="./template/img/ny.jpg" class="img-responsive grow text-center" style="grid-auto-rows: auto" alt="" title="video1" onclick="video('video/sonic.mp4')">
+  <img src="./template/img/sonic.jpg" class="img-responsive grow text-center" style="grid-auto-rows: auto" alt="" title="video1" onclick="video('video/sonic.mp4')">
       <p>Video 1</p>
   </div>
   <div class="col-lg-4 text-center">
-  <img src="./template/img/ny-blur.jpg" class="img-responsive grow text-center" style="grid-auto-rows: auto"  alt="" title="video2" onclick="video('video/traffic_cam_vid.mp4')">
+  <img src="./template/img/traffic.jpg" class="img-responsive grow text-center" style="grid-auto-rows: auto"  alt="" title="video2" onclick="video('video/traffic_cam_vid.mp4')">
       <p>Video 2</p>
   </div>
   <div class="col-lg-4 text-center">
-  <img src="./template/img/ny.jpg" class="img-responsive grow text-center" style="grid-auto-rows: auto"  alt="" title="video3" onclick="video('video/sonic.mp4')">
+  <img src="./template/img/hooters.jpg" class="img-responsive grow text-center" style="grid-auto-rows: auto"  alt="" title="video3" onclick="video('video/output.mp4')">
       <p>Video 3</p>
   </div>
  </div>
@@ -190,7 +190,7 @@
     </div>
 
 </section>
-<div id="video" style="background-color: white; display: none;" class="content-section text-center">
+<div id="video" style="background-color: black; display: none;" class="content-section text-center">
         <video id="videodisplay" style="align-items: center; width: auto;height: auto" controls>
   <source  src="video/sonic.mp4" type="video/mp4">
 </video>
@@ -212,7 +212,7 @@
         <!--                <div class="col-lg-6 text-center">-->
         <i id="results"></i>
         <!--            <i id="zoom"></i>-->
-        <hr>
+<!--        <hr>-->
         <!--                </div>-->
         <!--                <div class="col-lg-3"></div>-->
     </div>
@@ -254,12 +254,12 @@
                     child = document.getElementById('results').lastElementChild;
                 }
             }
-            for (let i = 1; i < arrimg.length; i++) {
+            for (let i = 1; i < arrimg.length; i+=2) {
                 var img = new Image();
                 img.src = arrimg[0] + '/' + arrimg[i];
                 img.width = 400;
                 img.height = 300;
-                img.addEventListener('click', function(){array(i)}, false);
+                img.addEventListener('click', function(){array(parseInt(arrimg[i+1]))}, false);
                 // img.addEventListener('click', function(val){return function(){array(val);};}(i), false);
                 document.getElementById('results').appendChild(img);
             }
