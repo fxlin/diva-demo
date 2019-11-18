@@ -65,7 +65,7 @@ def query():
             if '.png' in files or '.jpg' in files or '.jpeg' in files:
                 pic_files.append(files)
     temp = ','.join(pic_files)
-    return temp
+    return tuple(temp)
 
 
 if __name__ == '__main__':

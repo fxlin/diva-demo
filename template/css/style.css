@@ -303,12 +303,14 @@ hr.small {
 #workimage {
     background: #1F1F1F url(../img/code.png) no-repeat center center;
 }
-
+#workimage1 {
+    background: #1F1F1F url(../img/black.jpg) no-repeat center center;
+}
 #projectimage {
     background: #1F1F1F url(../img/code.png) no-repeat center center;
 }
 
-#workimage, #projectimage {
+#workimage, #projectimage, #workimage1 {
    background-size: cover !important;
    -webkit-background-size: cover !important;
    background-attachment: fixed;
@@ -317,12 +319,12 @@ hr.small {
    overflow: hidden;
 }
 
-#workimage .text-container, #projectimage .text-container, #resume .text-container {
+#workimage .text-container, #projectimage .text-container, #resume .text-container, #workimage1 .text-container {
    padding-top: 60px;
    padding-bottom: 60px;
 }
 
-#workimage p, #projectimage p, #workimage .fa, #projectimage .fa {
+#workimage p, #projectimage p, #workimage1 p, #workimage1 .fa, #workimage .fa, #projectimage .fa {
     font-size: 50px;
     color: white;
 }
