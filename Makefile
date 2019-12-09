@@ -7,6 +7,12 @@ CAMERA_RESULT_PATH=${PWD}/result/ops
 CAMERA_RESULT_PATH_IN_CONTAINER=/var/yolov3/result/ops
 DOCKER_USERNAME=wen777
 
+DEFAULT_POSTGRES_USER=postgres
+DEFAULT_POSTGRES_PASSWORD=xsel_postgres
+DEFAULT_POSTGRES_DB=xsel_test
+DEFAULT_POSTGRES_PORT=5432
+DEFAULT_POSTGRES_HOST=mypgdb
+
 WEB_SERVER_PORT=10000
 
 run-all:
@@ -37,6 +43,10 @@ run-yolo:
 
 run-webserver:
 	docker run --network=${NETWORK_NAME} -it -p ${WEB_SERVER_PORT}:${WEB_SERVER_PORT} -d --name=webserver ${DOCKER_USERNAME}/diva-webserver:latest
+
+run-postgres:
+	docker run --network=${NETWORK_NAME} -it -p  --name ${DEFAULT_POSTGRES_HOST} -p ${DEFAULT_POSTGRES_PORT}:${DEFAULT_POSTGRES_PORT} \
+	-e POSTGRES_PASSWORD=${DEFAULT_POSTGRES_PASSWORD} -e POSTGRES_DB=${DEFAULT_POSTGRES_DB} -d postgres:latest
 
 build-base:
 	docker build  -t ${DOCKER_USERNAME}/diva-base:latest -f docker/Dockerfile.base .
