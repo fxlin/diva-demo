@@ -1,4 +1,4 @@
-[submodule "third-party/tensorflow-yolov3"]
-	path = third-party/tensorflow-yolov3
-	url = git@github.com:Hypercamera/tensorflow-yolov3.git
-	branch = diva_docker
+[submodule "third_party/TensorFlow2_0_Examples"]
+	path = third_party/TensorFlow2_0_Examples
+	url = git@github.com:Hypercamera/TensorFlow2.0-Examples.git
+	branch = master

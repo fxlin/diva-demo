@@ -1,1 +1,1 @@
-third-party/tensorflow-yolov3/core/config.py
+third_party/TensorFlow2_0_Examples/4_Object_Detection/YOLOV3/core/config.py
