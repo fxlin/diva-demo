@@ -4,13 +4,31 @@ package server_diva;
 
 service server_diva {
     rpc request_frame_path(query_statement) returns (directory) {}
+    rpc detect_object_in_video(object_video_pair) returns (image_paths) {}
 }
 
 message query_statement {
     string name = 1;
 }
 
+message object_video_pair {
+    string object_name = 1;
+    string video_name = 2;
+}
+
 message directory {
     string directory_path = 1;
 }
 
+message bounding_box {
+    // xmin,ymin,xmax,ymax
+    double xmin = 1;
+    double ymin = 2;
+    double xmax = 3;
+    double ymax = 4;
+}
+
+message image_paths {
+    repeated string paths = 1;
+    repeated bounding_box box_arr = 2;
+}

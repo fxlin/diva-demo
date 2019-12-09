@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='server_diva',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x11server_diva.proto\x12\x0bserver_diva\"\x1f\n\x0fquery_statement\x12\x0c\n\x04name\x18\x01 \x01(\t\"#\n\tdirectory\x12\x16\n\x0e\x64irectory_path\x18\x01 \x01(\t2[\n\x0bserver_diva\x12L\n\x12request_frame_path\x12\x1c.server_diva.query_statement\x1a\x16.server_diva.directory\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\x11server_diva.proto\x12\x0bserver_diva\"\x1f\n\x0fquery_statement\x12\x0c\n\x04name\x18\x01 \x01(\t\"<\n\x11object_video_pair\x12\x13\n\x0bobject_name\x18\x01 \x01(\t\x12\x12\n\nvideo_name\x18\x02 \x01(\t\"#\n\tdirectory\x12\x16\n\x0e\x64irectory_path\x18\x01 \x01(\t\"F\n\x0c\x62ounding_box\x12\x0c\n\x04xmin\x18\x01 \x01(\x01\x12\x0c\n\x04ymin\x18\x02 \x01(\x01\x12\x0c\n\x04xmax\x18\x03 \x01(\x01\x12\x0c\n\x04ymax\x18\x04 \x01(\x01\"H\n\x0bimage_paths\x12\r\n\x05paths\x18\x01 \x03(\t\x12*\n\x07\x62ox_arr\x18\x02 \x03(\x0b\x32\x19.server_diva.bounding_box2\xb1\x01\n\x0bserver_diva\x12L\n\x12request_frame_path\x12\x1c.server_diva.query_statement\x1a\x16.server_diva.directory\"\x00\x12T\n\x16\x64\x65tect_object_in_video\x12\x1e.server_diva.object_video_pair\x1a\x18.server_diva.image_paths\"\x00\x62\x06proto3')
 )
 
 
@@ -57,6 +57,44 @@ _QUERY_STATEMENT = _descriptor.Descriptor(
 )
 
 
+_OBJECT_VIDEO_PAIR = _descriptor.Descriptor(
+  name='object_video_pair',
+  full_name='server_diva.object_video_pair',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='object_name', full_name='server_diva.object_video_pair.object_name', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='video_name', full_name='server_diva.object_video_pair.video_name', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=67,
+  serialized_end=127,
+)
+
+
 _DIRECTORY = _descriptor.Descriptor(
   name='directory',
   full_name='server_diva.directory',
@@ -83,12 +121,106 @@ _DIRECTORY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=67,
-  serialized_end=102,
+  serialized_start=129,
+  serialized_end=164,
 )
 
+
+_BOUNDING_BOX = _descriptor.Descriptor(
+  name='bounding_box',
+  full_name='server_diva.bounding_box',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='xmin', full_name='server_diva.bounding_box.xmin', index=0,
+      number=1, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='ymin', full_name='server_diva.bounding_box.ymin', index=1,
+      number=2, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='xmax', full_name='server_diva.bounding_box.xmax', index=2,
+      number=3, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='ymax', full_name='server_diva.bounding_box.ymax', index=3,
+      number=4, type=1, cpp_type=5, label=1,
+      has_default_value=False, default_value=float(0),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=166,
+  serialized_end=236,
+)
+
+
+_IMAGE_PATHS = _descriptor.Descriptor(
+  name='image_paths',
+  full_name='server_diva.image_paths',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='paths', full_name='server_diva.image_paths.paths', index=0,
+      number=1, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='box_arr', full_name='server_diva.image_paths.box_arr', index=1,
+      number=2, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=238,
+  serialized_end=310,
+)
+
+_IMAGE_PATHS.fields_by_name['box_arr'].message_type = _BOUNDING_BOX
 DESCRIPTOR.message_types_by_name['query_statement'] = _QUERY_STATEMENT
+DESCRIPTOR.message_types_by_name['object_video_pair'] = _OBJECT_VIDEO_PAIR
 DESCRIPTOR.message_types_by_name['directory'] = _DIRECTORY
+DESCRIPTOR.message_types_by_name['bounding_box'] = _BOUNDING_BOX
+DESCRIPTOR.message_types_by_name['image_paths'] = _IMAGE_PATHS
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 query_statement = _reflection.GeneratedProtocolMessageType('query_statement', (_message.Message,), {
@@ -98,12 +230,33 @@ query_statement = _reflection.GeneratedProtocolMessageType('query_statement', (_
   })
 _sym_db.RegisterMessage(query_statement)
 
+object_video_pair = _reflection.GeneratedProtocolMessageType('object_video_pair', (_message.Message,), {
+  'DESCRIPTOR' : _OBJECT_VIDEO_PAIR,
+  '__module__' : 'server_diva_pb2'
+  # @@protoc_insertion_point(class_scope:server_diva.object_video_pair)
+  })
+_sym_db.RegisterMessage(object_video_pair)
+
 directory = _reflection.GeneratedProtocolMessageType('directory', (_message.Message,), {
   'DESCRIPTOR' : _DIRECTORY,
   '__module__' : 'server_diva_pb2'
   # @@protoc_insertion_point(class_scope:server_diva.directory)
   })
 _sym_db.RegisterMessage(directory)
+
+bounding_box = _reflection.GeneratedProtocolMessageType('bounding_box', (_message.Message,), {
+  'DESCRIPTOR' : _BOUNDING_BOX,
+  '__module__' : 'server_diva_pb2'
+  # @@protoc_insertion_point(class_scope:server_diva.bounding_box)
+  })
+_sym_db.RegisterMessage(bounding_box)
+
+image_paths = _reflection.GeneratedProtocolMessageType('image_paths', (_message.Message,), {
+  'DESCRIPTOR' : _IMAGE_PATHS,
+  '__module__' : 'server_diva_pb2'
+  # @@protoc_insertion_point(class_scope:server_diva.image_paths)
+  })
+_sym_db.RegisterMessage(image_paths)
 
 
 
@@ -113,8 +266,8 @@ _SERVER_DIVA = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=104,
-  serialized_end=195,
+  serialized_start=313,
+  serialized_end=490,
   methods=[
   _descriptor.MethodDescriptor(
     name='request_frame_path',
@@ -123,6 +276,15 @@ _SERVER_DIVA = _descriptor.ServiceDescriptor(
     containing_service=None,
     input_type=_QUERY_STATEMENT,
     output_type=_DIRECTORY,
+    serialized_options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='detect_object_in_video',
+    full_name='server_diva.server_diva.detect_object_in_video',
+    index=1,
+    containing_service=None,
+    input_type=_OBJECT_VIDEO_PAIR,
+    output_type=_IMAGE_PATHS,
     serialized_options=None,
   ),
 ])

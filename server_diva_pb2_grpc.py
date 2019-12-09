@@ -19,6 +19,11 @@ class server_divaStub(object):
         request_serializer=server__diva__pb2.query_statement.SerializeToString,
         response_deserializer=server__diva__pb2.directory.FromString,
         )
+    self.detect_object_in_video = channel.unary_unary(
+        '/server_diva.server_diva/detect_object_in_video',
+        request_serializer=server__diva__pb2.object_video_pair.SerializeToString,
+        response_deserializer=server__diva__pb2.image_paths.FromString,
+        )
 
 
 class server_divaServicer(object):
@@ -32,6 +37,13 @@ class server_divaServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def detect_object_in_video(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_server_divaServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -39,6 +51,11 @@ def add_server_divaServicer_to_server(servicer, server):
           servicer.request_frame_path,
           request_deserializer=server__diva__pb2.query_statement.FromString,
           response_serializer=server__diva__pb2.directory.SerializeToString,
+      ),
+      'detect_object_in_video': grpc.unary_unary_rpc_method_handler(
+          servicer.detect_object_in_video,
+          request_deserializer=server__diva__pb2.object_video_pair.FromString,
+          response_serializer=server__diva__pb2.image_paths.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
