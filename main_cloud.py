@@ -6,10 +6,13 @@ import os
 import logging
 from concurrent import futures
 import time
-import grpc
+import threading
+from queue import Queue
 import cv2
 import numpy as np
+import ffmpeg
 
+import grpc
 import det_yolov3_pb2
 import det_yolov3_pb2_grpc
 import cam_cloud_pb2
@@ -21,14 +24,180 @@ from util import ClockLog
 
 from variables import CAMERA_CHANNEL_ADDRESS, YOLO_CHANNEL_ADDRESS, IMAGE_PATH, OP_FNAME_PATH
 from variables import FAKE_IMAGE_DIRECTOR_PATH, DIVA_CHANNEL_ADDRESS, DIVA_CHANNEL_PORT
+from variables import RESULT_IMAGE_PATH, VIDEO_FOLDER
 
 from constants.grpc_constant import INIT_DIVA_SUCCESS
+
+from models.frame import Frame
+from models.element import Element
+from models.common import session_factory
+from models.video import Video
 
 CHUNK_SIZE = 1024 * 100
 OBJECT_OF_INTEREST = 'bicycle'
 CROP_SPEC = '350,0,720,400'
 YOLO_SCORE_THRE = 0.4
 DET_SIZE = 608
+
+SHUTDOWN_SIGNAL = threading.Event()
+"""
+frame task: (video_name, video_path, frame_number, object_of_interest)
+image task: (image name, image data, bounding_boxes)
+"""
+TaskQueue = Queue(0)
+ImageQueue = Queue(10)
+
+
+class ImageProcessor(threading.Thread):
+    def run(self):
+        while not SHUTDOWN_SIGNAL.is_set():
+            while len(ImageQueue) > 0:
+                self.consume_image_task()
+
+    def consume_image_task(self):
+        task = ImageQueue.get(block=False)
+        if not task or len(task) == 0:
+            return
+
+        image_name = task[0]
+        image_data = task[1]
+        bounding_boxes = task[2]
+        self.process_frame(image_name, image_data, bounding_boxes)
+
+    def process_frame(self, img_name: str, img_data, res_items: 'tuple'):
+        """
+        Take two arguments: one is the image frame data and the other is the
+        response from YOLO agent. Draw boxes around the object of interest.
+        """
+        if not res_items or len(res_items) <= 0:
+            return
+
+        img = cv2.imdecode(np.fromstring(img_data, dtype=np.uint8), -1)
+        for item in res_items:
+            x1, y1, x2, y2 = int(item[1]), int(item[2]), int(item[3]), int(
+                item[4])
+            img = draw_box(img, x1, y1, x2, y2)
+
+        img_fname = os.path.join(RESULT_IMAGE_PATH, img_name)
+        cv2.imwrite(img_fname, img)
+
+
+class FrameProcessor(threading.Thread):
+    def run(self):
+        while not SHUTDOWN_SIGNAL.is_set():
+            while len(TaskQueue) > 0:
+                self.detect_object()
+
+    @staticmethod
+    def video_info(video_path) -> dict:
+        if not os.path.exists(video_path):
+            raise ValueError(f"path {video_path} does not exist")
+
+        probe = ffmpeg.probe(video_path)
+
+        video_stream = next((stream for stream in probe['streams']
+                             if stream['codec_type'] == 'video'), None)
+        if video_stream is None:
+            raise ValueError(f'{video_path} is invalid\nNo video stream found')
+
+        return video_stream
+
+    @staticmethod
+    def read_frame_as_jpeg(in_filename: str, frame_num: int):
+        out, err = (ffmpeg.input(in_filename).filter(
+            'select', 'gte(n,{})'.format(frame_num)).output(
+                'pipe:', vframes=1, format='image2',
+                vcodec='mjpeg').run(capture_stdout=True))
+        return out
+
+    @staticmethod
+    def extract_frame_nums(video_path: str) -> 'List[int]':
+        video_stream = FrameProcessor.video_info(video_path)
+        num_of_frames = int(video_stream['nb_frames'])
+
+        index = 0
+        frame_list = []
+        while index < num_of_frames:
+            frame_list.append(index)
+            index += 10
+        return frame_list
+
+    @staticmethod
+    def extract_one_frame(video_path: str, frame_num: int) -> np.ndarray:
+        if not os.path.exists(video_path):
+            raise ValueError(f'video does not exist: {video_path}')
+
+        return FrameProcessor.read_frame_as_jpeg(video_path, frame_num)
+
+    @staticmethod
+    def get_bounding_boxes(yolo_result: str) -> 'List[int]':
+        if not yolo_result or len(yolo_result) == 0:
+            return
+
+        res_items = yolo_result.split('|')
+        res_items = [[float(y) for y in x.split(',')] for x in res_items]
+        res_items = list(filter(lambda z: z[0] > YOLO_SCORE_THRE, res_items))
+
+        if not res_items or len(res_items) <= 0:
+            return []
+
+        arr = []
+
+        for item in res_items:
+            arr.append(
+                (int(item[1]), int(item[2]), int(item[3]), int(item[4])))
+
+        return arr
+
+    def detect_object(self):
+        """
+        task: (video_id, video_path, frame_number, object_of_interest)
+        """
+        task = TaskQueue.get(block=True)
+
+        yolo_channel = grpc.insecure_channel(YOLO_CHANNEL_ADDRESS)
+        yolo_stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(yolo_channel)
+
+        video_id = task[0]
+        video_path = task[1]
+        frame_num = task[2]
+        object_name = task[3]
+
+        img_name = f'{frame_num}.jpg'
+        img_data = self.extract_one_frame(video_path, frame_num)
+
+        logging.debug(f"Sending extracted frame {task[1]} to YOLO")
+        detected_objects = yolo_stub.DetFrame(
+            det_yolov3_pb2.DetFrameRequest(data=img_data,
+                                           name=img_name,
+                                           cls=object_name))
+
+        det_res = detected_objects.res
+        boxes = self.get_bounding_boxes(det_res)
+        logging.debug(f"bounding box of {object_name}: {boxes}")
+
+        session = session_factory()
+        session.begin()
+        try:
+            v = session.query(Video).filter(Video.c.id == video_id).one()
+            if boxes:
+                _frame = Frame(str(frame_num), video_id, v)
+                session.add(_frame)
+                for b in boxes:
+                    _ele = Element(object_name,
+                                   Element.coordinate_iterable_to_str(b),
+                                   _frame.frame_id, _frame)
+                    session.add(_ele)
+
+                session.commit()
+
+                ImageQueue.put((img_name, img_data, boxes))
+        except Exception as err:
+            logging.error(err)
+            session.rollback()
+        finally:
+            session.close()
+        yolo_channel.close()
 
 
 class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
@@ -41,8 +210,36 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
         return server_diva_pb2.directory(
             directory_path=FAKE_IMAGE_DIRECTOR_PATH)
 
+    def detect_object_in_video(self, request, context):
+        object_name = request.object_name
+        video_name = request.video_name
 
-def serve():
+        session = session_factory()
+
+        session.begin()
+        try:
+            selected_video = session.query(Video).filter(
+                Video.c.name == video_name).one()
+            logging.debug(f'finding video: {selected_video.name}')
+
+            frame_ids = FrameProcessor.extract_frame_nums(selected_video.path)
+            logging.debug(f"adding {len(frame_ids)} tasks in queue")
+            for f_id in frame_ids:
+                TaskQueue.put((selected_video.id, selected_video.path, f_id,
+                               object_name))
+
+        except Exception as err:
+            logging.error(err)
+            session.rollback()
+        finally:
+            session.close()
+
+        # FIXME should return nothing
+        path_arr = []
+        return server_diva_pb2.image_paths(path=path_arr)
+
+
+def grpc_serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     diva_servicer = DivaGRPCServer()
     server_diva_pb2_grpc.add_server_divaServicer_to_server(
@@ -50,6 +247,25 @@ def serve():
     server.add_insecure_port(f'[::]:{DIVA_CHANNEL_PORT}')
     server.start()
     server.wait_for_termination()
+
+
+def detection_serve():
+    max_workers = 10
+    thread_list = []
+
+    for _ in range(max_workers):
+        temp = FrameProcessor()
+        temp.start()
+        thread_list.append(temp)
+
+    for _ in range(max_workers):
+        image_worker = ImageProcessor()
+        image_worker.start()
+        thread_list.append(image_worker)
+
+    # NOTE should not join since we don't want the program got blocked here
+    # for _t in thread_list:
+    #     _t.join()
 
 
 def draw_box(img, x1, y1, x2, y2):
@@ -96,7 +312,8 @@ def process_frame(img_name: str, img_data, det_res):
     for item in res_items:
         x1, y1, x2, y2 = int(item[1]), int(item[2]), int(item[3]), int(item[4])
         img = draw_box(img, x1, y1, x2, y2)
-    img_fname = os.path.join('result/retrieval_imgs/', img_name)
+
+    img_fname = os.path.join(RESULT_IMAGE_PATH, img_name)
     cv2.imwrite(img_fname, img)
 
 
@@ -136,7 +353,6 @@ def runDiva():
                                            cls=OBJECT_OF_INTEREST))
 
         det_res = detected_objects.res
-
         process_frame(img_name, img_data, det_res)
 
         pos_num += 1
@@ -159,6 +375,9 @@ def testYOLO():
 
 
 if __name__ == '__main__':
-    logging.basicConfig()
-    serve()
+    FORMAT = '%(asctime)-15s %(thread)d %(threadName)s %(user)-8s %(message)s'
+    logging.basicConfig(format=FORMAT, level=logging.DEBUG)
+    logging.getLogger('sqlalchemy').setLevel(logging.INFO)
+    grpc_serve()
+    detection_serve()
     # runDiva()
