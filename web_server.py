@@ -63,20 +63,12 @@ def query():
     if os.path.exists(response.directory_path):
         temp = os.listdir(response.directory_path)
         for files in temp:
-            # if '.txt' in files:
-            #     with open(os.path.join(response.directory_path, files), 'r') as temp:
-            #         for i in temp:
-            #             x, y = i.split()
-            #             pic_files.append(y)
-            #             pic_files.append(x)
             if '.png' in files or '.jpg' in files or '.jpeg' in files:
-
                 x, _ = files.split('.')
-                x = int(x)//10 + 15
-
-                if x <= 180:
-                    pic_files.append(files)
-                    pic_files.append(str(x))
+                x = int(x) // 10
+                # if x <= 180:
+                pic_files.append(files)
+                pic_files.append(str(x))
     temp = ','.join(pic_files)
     return temp
 
