@@ -1,4 +1,4 @@
 [submodule "third_party/TensorFlow2_0_Examples"]
 	path = third_party/TensorFlow2_0_Examples
 	url = git@github.com:Hypercamera/TensorFlow2.0-Examples.git
-	branch = master
+	branch = diva_docker
