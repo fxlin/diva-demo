@@ -1,4 +1,8 @@
-import logging
+"""
+Init DB
+"""
+
+import logging, time
 from models.common import session_factory, init_db
 from models.video import Video
 from variables import VIDEO_FOLDER
@@ -19,11 +23,13 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
 logger = logging.getLogger(__name__)
 logging.getLogger('sqlalchemy').setLevel(logging.INFO)
 
-logger.info("Begin to initialize DB")
+logger.info("Begin to initialize DB, wait 5 seconds")
 
 init_db()
+time.sleep(5)
 
 logger.info("Table created")
+
 
 session.begin()
 
