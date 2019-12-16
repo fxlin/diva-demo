@@ -23,12 +23,12 @@ from tensorflow_yolov3_config import cfg
 
 # FIXME workround
 sys.path.insert(
-    0, './third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core')
+    0, './third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3')
 
 # input_size   = 416
 # image_path   = "./docs/kite.jpg"
-import utils
-from yolov3 import YOLOv3, decode
+import core.utils as utils
+from core.yolov3 import YOLOv3, decode
 
 IMAGE_H, IMAGE_W = 608, 608
 # classes = util.read_coco_names('./tensorflow-yolov3/data/coco.names')
