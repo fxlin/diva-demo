@@ -4,7 +4,7 @@ File for Video table
 
 from sqlalchemy import Column, String, Integer
 from sqlalchemy.orm import relationship, backref
-from common import Base
+from models.common import Base
 
 
 class Video(Base):

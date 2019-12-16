@@ -1,7 +1,7 @@
 from sqlalchemy import Column, String, Integer, ForeignKey
 from sqlalchemy.orm import relationship, backref
-from common import Base
-from video import Video
+from models.common import Base
+from models.video import Video
 
 
 class Frame(Base):

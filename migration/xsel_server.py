@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
-from ..models.common import session_factory
-from ..models.video import Video
-from ..variables import VIDEO_FOLDER
+from models.common import session_factory
+from models.video import Video
+from variables import VIDEO_FOLDER
 import os
 
 session = session_factory()
