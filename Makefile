@@ -45,7 +45,7 @@ run-webserver:
 	docker run --network=${NETWORK_NAME} -it -p ${WEB_SERVER_PORT}:${WEB_SERVER_PORT} -d --name=webserver ${DOCKER_USERNAME}/diva-webserver:latest
 
 run-postgres:
-	docker run --network=${NETWORK_NAME} -it -p  --name ${DEFAULT_POSTGRES_HOST} -p ${DEFAULT_POSTGRES_PORT}:${DEFAULT_POSTGRES_PORT} \
+	docker run --network=${NETWORK_NAME} -it --name ${DEFAULT_POSTGRES_HOST} -p ${DEFAULT_POSTGRES_PORT}:${DEFAULT_POSTGRES_PORT} \
 		-e POSTGRES_PASSWORD=${DEFAULT_POSTGRES_PASSWORD} \
 		-e POSTGRES_DB=${DEFAULT_POSTGRES_DB} -d postgres:latest
 
