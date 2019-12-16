@@ -2,7 +2,7 @@
 Ingest video frames and perform object detection on frames.
 """
 
-import os
+import os, sys
 import logging
 from concurrent import futures
 import time
@@ -388,8 +388,8 @@ def testYOLO():
 
 
 if __name__ == '__main__':
-    FORMAT = '%(asctime)-15s %(thread)d %(threadName)s %(user)-8s %(message)s'
-    logging.basicConfig(format=FORMAT, level=logging.DEBUG)
+    FORMAT = '%(asctime)-15s %(thread)d %(threadName)s %(message)s'
+    logging.basicConfig(stream=sys.stdout, format=FORMAT, level=logging.DEBUG)
     logging.getLogger('sqlalchemy').setLevel(logging.INFO)
     _server = grpc_serve()
     detection_serve()

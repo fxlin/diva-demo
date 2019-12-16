@@ -3,8 +3,6 @@
 
 import os
 import time
-import util
-import keras
 from concurrent import futures
 import logging
 import grpc
@@ -12,7 +10,6 @@ import sys
 import cv2
 import det_yolov3_pb2
 import det_yolov3_pb2_grpc
-import time
 from PIL import Image
 import numpy as np
 import tensorflow as tf
@@ -29,6 +26,10 @@ from variables import YOLO_CHANNEL_PORT
 from tensorflow_yolov3_config import cfg
 import tensorflow_yolov3_utils as utils
 from tensorflow_yolov3 import YOLOv3, decode
+
+FORMAT = '%(asctime)-15s %(thread)d %(threadName)s %(message)s'
+logging.basicConfig(stream=sys.stdout, format=FORMAT, level=logging.DEBUG)
+logger =  logging.getLogger(__name__)
 
 IMAGE_H, IMAGE_W = 608, 608
 # classes = util.read_coco_names('./tensorflow-yolov3/data/coco.names')
@@ -97,7 +98,7 @@ def run_det(image_data: np.ndarray, target_class: str) -> str:
 
     temp = filter_bbox(bboxes=bboxes, target_class=target_class)
 
-    logging.info("YOLOv3-det time: %.2f ms" % (1000 * (time.time() - start)))
+    logger.info("YOLOv3-det time: %.2f ms" % (1000 * (time.time() - start)))
 
     return temp
 
