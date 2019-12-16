@@ -1,9 +1,8 @@
-# FROM nvidia/cuda:10.1-base-ubuntu16.04
-FROM ufoym/deepo:tensorflow-py36-cu101
+FROM tensorflow/tensorflow:latest-gpu-py3
 
 COPY docker/install-opencv.sh /tmp
 
 # Install all dependencies for OpenCV
 RUN /tmp/install-opencv.sh
 
-RUN python -m pip install grpcio numpy easydict pillow pandas keras tensorflow-gpu sklearn pickle-mixin opencv-python bottle
+RUN python -m pip install grpcio numpy easydict pillow pandas keras sklearn pickle-mixin opencv-python bottle SQLAlchemy
