@@ -38,6 +38,8 @@ OBJECT_OF_INTEREST = 'bicycle'
 CROP_SPEC = '350,0,720,400'
 YOLO_SCORE_THRE = 0.4
 DET_SIZE = 608
+IMAGE_PROCESSOR_WORKER_NUM = 1
+FRAME_PROCESSOR_WORKER_NUM = 1
 
 SHUTDOWN_SIGNAL = threading.Event()
 """
@@ -53,6 +55,8 @@ class ImageProcessor(threading.Thread):
         while not SHUTDOWN_SIGNAL.is_set():
             while len(ImageQueue) > 0:
                 self.consume_image_task()
+            else:
+                logging.info("ImageQueue is empty")
 
     def consume_image_task(self):
         task = ImageQueue.get(block=False)
@@ -87,6 +91,8 @@ class FrameProcessor(threading.Thread):
         while not SHUTDOWN_SIGNAL.is_set():
             while len(TaskQueue) > 0:
                 self.detect_object()
+            else:
+                logging.info("TaskQueue is empty")
 
     @staticmethod
     def video_info(video_path) -> dict:
@@ -155,6 +161,10 @@ class FrameProcessor(threading.Thread):
         """
         task = TaskQueue.get(block=True)
 
+        _start_time = time.time()
+
+        logging.info(f'Task {task}')
+
         yolo_channel = grpc.insecure_channel(YOLO_CHANNEL_ADDRESS)
         yolo_stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(yolo_channel)
 
@@ -198,6 +208,8 @@ class FrameProcessor(threading.Thread):
         finally:
             session.close()
         yolo_channel.close()
+
+        logging.info(f'Take {time.time() - _start_time} m second to finish')
 
 
 class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
@@ -250,15 +262,14 @@ def grpc_serve():
 
 
 def detection_serve():
-    max_workers = 10
     thread_list = []
 
-    for _ in range(max_workers):
+    for _ in range(FRAME_PROCESSOR_WORKER_NUM):
         temp = FrameProcessor()
         temp.start()
         thread_list.append(temp)
 
-    for _ in range(max_workers):
+    for _ in range(IMAGE_PROCESSOR_WORKER_NUM):
         image_worker = ImageProcessor()
         image_worker.start()
         thread_list.append(image_worker)
@@ -380,4 +391,14 @@ if __name__ == '__main__':
     logging.getLogger('sqlalchemy').setLevel(logging.INFO)
     grpc_serve()
     detection_serve()
+
+    logging.info("Started threads")
+
+    try:
+        while True:
+            time.sleep(60 * 60 * 24)
+    except KeyboardInterrupt:
+        print('cloud receiver stops!!!')
+        SHUTDOWN_SIGNAL.set()
+
     # runDiva()

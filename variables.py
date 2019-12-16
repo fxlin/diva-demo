@@ -15,7 +15,7 @@ OP_FNAME_PATH = '/media/YOLO-RES-720P/exp/chaweng/models/chaweng-a3d16c61813043a
 OP_DIR = 'result/ops'
 
 # Folder that saves processed video frames
-VIDEO_FOLDER = 'videos'
+VIDEO_FOLDER = 'video'
 RESULT_PATH = 'result'
 RESULT_IMAGE_PATH = os.path.join(RESULT_PATH, 'retrieval_imgs')
 
