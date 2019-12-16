@@ -14,22 +14,21 @@ video_list = [('sonic.mp4', os.path.join(os.curdir, VIDEO_FOLDER,
               ('example.mp4',
                os.path.join(os.curdir, VIDEO_FOLDER, 'example.mp4'))]
 
-if __name__ == "__main__":
-    logging.basicConfig()
+logging.basicConfig()
 
-    session.begin()
+session.begin()
 
-    try:
-        for p in video_list:
-            v = Video(p[0], p[1], [])
-            session.add(v)
-        session.commit()
-    except Exception as err:
-        print(err)
-        print('Failed to initialize db')
-        session.rollback()
-        exit(1)
-    finally:
-        session.close()
+try:
+    for p in video_list:
+        v = Video(p[0], p[1], [])
+        session.add(v)
+    session.commit()
+except Exception as err:
+    print(err)
+    print('Failed to initialize db')
+    session.rollback()
+    exit(1)
+finally:
+    session.close()
 
-    logging.info("Bootstrap DB")
+logging.info("Bootstrap DB")
