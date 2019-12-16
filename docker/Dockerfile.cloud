@@ -4,4 +4,4 @@ COPY . /var/yolov3
 
 WORKDIR /var/yolov3
 
-CMD ["python3.6", "main_cloud.py"]
+CMD ["python", "main_cloud.py"]

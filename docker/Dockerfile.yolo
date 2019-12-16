@@ -6,4 +6,4 @@ WORKDIR /var/yolov3
 
 RUN curl https://pjreddie.com/media/files/yolov3.weights -o yolov3.weights
 
-CMD ["python3.6", "YOLOv3_grpc.py"]
+CMD ["python", "YOLOv3_grpc.py"]

@@ -4,4 +4,4 @@ COPY . /var/yolov3
 
 WORKDIR /var/yolov3
 
-CMD ["python3.6", "main_camera.py"]
+CMD ["python", "main_camera.py"]

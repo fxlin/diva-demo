@@ -14,14 +14,13 @@ DEBIAN_FRONTEND=noninteractive
 apt-get install -y build-essential cmake apt-utils gnupg2 software-properties-common curl wget
 
 # Python:
-# python-numpy  python3-numpy
-add-apt-repository -y ppa:jonathonf/python-3.6 && apt-get -y update
+# add-apt-repository -y ppa:jonathonf/python-3.6 && apt-get -y update
 
-apt-get install -y python3.6 python3.6-dev
-curl https://bootstrap.pypa.io/get-pip.py | python3.6 - --user
-ln -f -s /usr/bin/python3.6 /usr/local/bin/python3
+# apt-get install -y python3.6 python3.6-dev
+# curl https://bootstrap.pypa.io/get-pip.py | python3.6 - --user
+# ln -f -s /usr/bin/python3.6 /usr/local/bin/python3
 
-alias pip="python3.6 -m pip"
+# alias pip="python3.6 -m pip"
 
 
 apt-get install -y libopencv-dev
