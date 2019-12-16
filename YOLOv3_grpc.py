@@ -19,7 +19,7 @@ import tensorflow as tf
 from variables import YOLO_CHANNEL_PORT
 
 # import tensorflow_yolov3_utils as utils
-# from tensorflow_yolov3_config import cfg
+from tensorflow_yolov3_config import cfg
 
 # FIXME workround
 sys.path.insert(
@@ -28,7 +28,6 @@ sys.path.insert(
 # input_size   = 416
 # image_path   = "./docs/kite.jpg"
 import utils
-from config import cfg
 from yolov3 import YOLOv3, decode
 
 IMAGE_H, IMAGE_W = 608, 608
