@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+import logging
 from models.common import session_factory
 from models.video import Video
 from variables import VIDEO_FOLDER
@@ -14,19 +14,22 @@ video_list = [('sonic.mp4', os.path.join(os.curdir, VIDEO_FOLDER,
               ('example.mp4',
                os.path.join(os.curdir, VIDEO_FOLDER, 'example.mp4'))]
 
-session.begin()
+if __name__ == "__main__":
+    logging.basicConfig()
 
-try:
-    for p in video_list:
-        v = Video(p[0], p[1], [])
-        session.add(v)
-    session.commit()
-except Exception as err:
-    print(err)
-    print('Failed to initialize db')
-    session.rollback()
-    exit(1)
-finally:
-    session.close()
+    session.begin()
 
-print("Bootstrap DB")
+    try:
+        for p in video_list:
+            v = Video(p[0], p[1], [])
+            session.add(v)
+        session.commit()
+    except Exception as err:
+        print(err)
+        print('Failed to initialize db')
+        session.rollback()
+        exit(1)
+    finally:
+        session.close()
+
+    logging.info("Bootstrap DB")
