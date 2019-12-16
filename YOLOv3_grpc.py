@@ -20,8 +20,8 @@ from variables import YOLO_CHANNEL_PORT
 
 
 # FIXME workround
-sys.path.insert(
-    0, './third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core')
+# sys.path.insert(
+#     0, './third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core')
 
 # input_size   = 416
 # image_path   = "./docs/kite.jpg"
