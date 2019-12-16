@@ -20,7 +20,7 @@ Base = declarative_base()
 IS_DB_INITIALIZED = False
 
 
-def Init_DB():
+def init_db():
     global IS_DB_INITIALIZED
     if not IS_DB_INITIALIZED:
         IS_DB_INITIALIZED = True

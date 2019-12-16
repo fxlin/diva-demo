@@ -1,5 +1,5 @@
 import logging
-from models.common import session_factory
+from models.common import session_factory, init_db
 from models.video import Video
 from variables import VIDEO_FOLDER
 import os
@@ -15,6 +15,10 @@ video_list = [('sonic.mp4', os.path.join(os.curdir, VIDEO_FOLDER,
                os.path.join(os.curdir, VIDEO_FOLDER, 'example.mp4'))]
 
 logging.basicConfig()
+
+logging.info("Begin to initialize DB")
+
+init_db()
 
 session.begin()
 
