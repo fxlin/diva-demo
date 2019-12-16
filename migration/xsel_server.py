@@ -2,7 +2,7 @@ import logging
 from models.common import session_factory, init_db
 from models.video import Video
 from variables import VIDEO_FOLDER
-import os
+import os, sys
 
 session = session_factory()
 
@@ -14,11 +14,15 @@ video_list = [('sonic.mp4', os.path.join(os.curdir, VIDEO_FOLDER,
               ('example.mp4',
                os.path.join(os.curdir, VIDEO_FOLDER, 'example.mp4'))]
 
-logging.basicConfig()
+FORMAT = '%(asctime)-15s %(thread)d %(threadName)s %(user)-8s %(message)s'
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
+logger = logging.getLogger(__name__)
 
-logging.info("Begin to initialize DB")
+logger.info("Begin to initialize DB")
 
 init_db()
+
+logger.info("Table created")
 
 session.begin()
 
