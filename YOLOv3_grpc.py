@@ -18,13 +18,18 @@ import numpy as np
 import tensorflow as tf
 from variables import YOLO_CHANNEL_PORT
 
-import tensorflow_yolov3_utils as utils
-from tensorflow_yolov3_config import cfg
+# import tensorflow_yolov3_utils as utils
+# from tensorflow_yolov3_config import cfg
+
+# FIXME workround
+sys.path.insert(
+    0, './third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core')
 
 # input_size   = 416
 # image_path   = "./docs/kite.jpg"
-
-from third_party.TensorFlow2_0_Examples.Object_Detection.YOLOV3.core.yolov3 import YOLOv3, decode
+import utils
+from config import cfg
+from yolov3 import YOLOv3, decode
 
 IMAGE_H, IMAGE_W = 608, 608
 # classes = util.read_coco_names('./tensorflow-yolov3/data/coco.names')
