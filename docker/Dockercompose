@@ -1,0 +1,31 @@
+version: "3.5"
+services:
+    cloud:
+        image: "wen777:diva-cloud:latest"
+        container_name: cloud
+        networks:
+            - diva-network
+    camera:
+        depends_on:
+            - cloud
+        image: "wen777:diva-camera:latest"
+        container_name: camera
+        networks:
+            - diva-network
+    webserver:
+        image: "wen777/diva-webserver:latest"
+        depends_on:
+            - cloud
+        ports:
+            - "10000:10000"
+        container_name: webserver
+        networks:
+            - diva-network
+    yolo:
+        image: "wen777:diva-yolo:latest"
+        container_name: yolo
+        networks:
+            - diva-network
+        depends_on:
+            - cloud
+networks: diva-network

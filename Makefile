@@ -46,7 +46,8 @@ run-webserver:
 
 run-postgres:
 	docker run --network=${NETWORK_NAME} -it -p  --name ${DEFAULT_POSTGRES_HOST} -p ${DEFAULT_POSTGRES_PORT}:${DEFAULT_POSTGRES_PORT} \
-	-e POSTGRES_PASSWORD=${DEFAULT_POSTGRES_PASSWORD} -e POSTGRES_DB=${DEFAULT_POSTGRES_DB} -d postgres:latest
+		-e POSTGRES_PASSWORD=${DEFAULT_POSTGRES_PASSWORD} \
+		-e POSTGRES_DB=${DEFAULT_POSTGRES_DB} -d postgres:latest
 
 build-base:
 	docker build  -t ${DOCKER_USERNAME}/diva-base:latest -f docker/Dockerfile.base .

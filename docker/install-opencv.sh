@@ -3,9 +3,11 @@
 DEBIAN_FRONTEND=noninteractive
 
  apt-get -y update
- apt-get -y upgrade       # Uncomment to install new versions of packages currently installed
- apt-get -y dist-upgrade  # Uncomment to handle changing dependencies with new vers. of pack.
+#  apt-get -y upgrade       # Uncomment to install new versions of packages currently installed
+#  apt-get -y dist-upgrade  # Uncomment to handle changing dependencies with new vers. of pack.
  apt-get -y autoremove    # Uncomment to remove packages that are now no longer needed
+
+apt-get install -y apt-utils
 
 # set your timezone
 ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
@@ -14,7 +16,7 @@ dpkg-reconfigure --frontend noninteractive tzdata
 # 2. INSTALL THE DEPENDENCIES
 
 # Build tools:
-apt-get install -y build-essential cmake apt-utils gnupg2 software-properties-common curl wget tzdata
+apt-get install -y build-essential cmake gnupg2 software-properties-common curl wget tzdata
 
 # Python:
 # add-apt-repository -y ppa:jonathonf/python-3.6 && apt-get -y update
