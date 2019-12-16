@@ -49,6 +49,9 @@ run-postgres:
 		-e POSTGRES_PASSWORD=${DEFAULT_POSTGRES_PASSWORD} \
 		-e POSTGRES_DB=${DEFAULT_POSTGRES_DB} -d postgres:latest
 
+init-postgres:
+	docker run --network=${NETWORK_NAME} -it --name init_db  ${DOCKER_USERNAME}/diva-cloud:latest python migration/xsel_server.py
+
 build-base:
 	docker build  -t ${DOCKER_USERNAME}/diva-base:latest -f docker/Dockerfile.base .
 
