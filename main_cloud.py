@@ -260,6 +260,8 @@ def grpc_serve():
     server.start()
     server.wait_for_termination()
 
+    return server
+
 
 def detection_serve():
     thread_list = []
@@ -389,7 +391,7 @@ if __name__ == '__main__':
     FORMAT = '%(asctime)-15s %(thread)d %(threadName)s %(user)-8s %(message)s'
     logging.basicConfig(format=FORMAT, level=logging.DEBUG)
     logging.getLogger('sqlalchemy').setLevel(logging.INFO)
-    grpc_serve()
+    _server = grpc_serve()
     detection_serve()
 
     logging.info("Started threads")
@@ -398,7 +400,12 @@ if __name__ == '__main__':
         while True:
             time.sleep(60 * 60 * 24)
     except KeyboardInterrupt:
-        print('cloud receiver stops!!!')
+        logging.info('cloud receiver stops!!!')
         SHUTDOWN_SIGNAL.set()
+        _server.stop(0)
+    except Exception as err:
+        logging.warning(err)
+        SHUTDOWN_SIGNAL.set()
+        _server.stop(1)
 
     # runDiva()

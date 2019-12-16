@@ -5,4 +5,4 @@ COPY docker/install-opencv.sh /tmp
 # Install all dependencies for OpenCV
 RUN /tmp/install-opencv.sh
 
-RUN pip install grpcio numpy easydict pillow pandas keras sklearn pickle-mixin opencv-python bottle SQLAlchemy
+RUN pip install grpcio numpy easydict pillow pandas keras sklearn pickle-mixin opencv-python bottle SQLAlchemy ffmpeg-python
