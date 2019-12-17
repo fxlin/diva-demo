@@ -1,6 +1,7 @@
 from sqlalchemy import Column, String, Integer, ForeignKey
 from sqlalchemy.orm import relationship, backref
 from models.common import Base
+from models.frame import Frame
 
 
 class Element(Base):
@@ -14,7 +15,7 @@ class Element(Base):
                                          cascade="all, delete-orphan"))
 
     def __init__(self, object_class: str, box_coordinate: str, frame_id: int,
-                 frame):
+                 frame: Frame):
         self.object_class = object_class
         self.box_coordinate = box_coordinate
         self.frame_id = frame_id
@@ -24,7 +25,8 @@ class Element(Base):
     def coordinate_iterable_to_str(
             coordinate: 'Tuple[float, float, float, float]') -> str:
         if not (isinstance(coordinate, tuple) or isinstance(coordinate, list)):
-            raise TypeError(f'{coordinate} is not an instance of tuple or list')
+            raise TypeError(
+                f'{coordinate} is not an instance of tuple or list')
 
         if len(coordinate) != 4:
             raise ValueError(f'size of {coordinate} is not 4')

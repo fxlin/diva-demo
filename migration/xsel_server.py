@@ -2,11 +2,12 @@
 Init DB
 """
 
-import logging, time
+import os
+import sys
+import logging
 from models.common import db_session, init_db
 from models.video import Video
 from variables import VIDEO_FOLDER
-import os, sys
 
 # FIXME
 video_list = [('sonic.mp4', os.path.join(os.curdir, VIDEO_FOLDER,
@@ -25,19 +26,17 @@ logger.info("Begin to initialize DB, wait 5 seconds")
 
 init_db()
 
-session = db_session()
-
 try:
     for p in video_list:
         v = Video(p[0], p[1], [])
-        session.add(v)
-    session.commit()
+        db_session.add(v)
+    db_session.commit()
 except Exception as err:
     print(err)
     print('Failed to initialize db')
-    session.rollback()
+    db_session.rollback()
     exit(1)
 finally:
-    session.remove()
+    db_session.remove()
 
 logging.info("Bootstrap DB")
