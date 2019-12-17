@@ -8,13 +8,12 @@ import logging
 import grpc
 import sys
 import cv2
-import det_yolov3_pb2
-import det_yolov3_pb2_grpc
 from PIL import Image
 import numpy as np
 import tensorflow as tf
 from variables import YOLO_CHANNEL_PORT
-
+import det_yolov3_pb2
+import det_yolov3_pb2_grpc
 
 # FIXME workround
 # sys.path.insert(
