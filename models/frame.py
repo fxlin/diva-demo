@@ -11,7 +11,7 @@ class Frame(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String)
     video_id = Column(Integer, ForeignKey('video.id'))
-    video = relationship("video",
+    video = relationship("Video",
                          backref=backref("frames",
                                          cascade="all, delete-orphan"))
 

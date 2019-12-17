@@ -10,7 +10,7 @@ class Element(Base):
     object_class = Column(String)
     box_coordinate = Column(String)
     frame_id = Column(Integer, ForeignKey('frame.id'))
-    frame = relationship("frame",
+    frame = relationship("Frame",
                          backref=backref("elements",
                                          cascade="all, delete-orphan"))
 

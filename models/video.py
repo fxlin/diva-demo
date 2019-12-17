@@ -15,7 +15,7 @@ class Video(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True)
     path = Column(String)
-    frames = relationship("frame",
+    frames = relationship("Frame",
                           back_populates="video",
                           cascade="all, delete-orphan")
 
