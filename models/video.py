@@ -3,9 +3,8 @@ File for Video table
 """
 
 from sqlalchemy import Column, String, Integer
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship
 from models.common import Base
-from models.frame import Frame
 
 
 class Video(Base):
@@ -20,7 +19,7 @@ class Video(Base):
                           back_populates="video",
                           cascade="all, delete-orphan")
 
-    def __init__(self, name: str, path: str, frames: 'list[Frame]'):
+    def __init__(self, name: str, path: str, frames):
         self.name = name
         self.path = path
         if frames:
