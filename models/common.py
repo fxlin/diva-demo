@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker, Session, scoped_session
 from variables import DEFAULT_POSTGRES_PASSWORD, DEFAULT_POSTGRES_USER, DEFAULT_POSTGRES_DB
 from variables import DEFAULT_POSTGRES_HOST, DEFAULT_POSTGRES_PORT
 
@@ -17,16 +17,9 @@ new_url = URL(drivername="postgres",
 engine = create_engine(new_url)
 Base = declarative_base()
 
-IS_DB_INITIALIZED = False
-
-
-def init_db():
-    global IS_DB_INITIALIZED
-    if not IS_DB_INITIALIZED:
-        IS_DB_INITIALIZED = True
-        Base.metadata.create_all(engine)
-
 
 def session_factory() -> Session:
+    Base.metadata.create_all(engine)
     # use session_factory() to get a new Session
-    return sessionmaker(bind=engine)()
+    return scoped_session(
+        sessionmaker(bind=engine, autocommit=False, autoflush=False))
