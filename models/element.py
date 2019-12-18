@@ -9,17 +9,13 @@ class Element(Base):
     id = Column(Integer, primary_key=True)
     object_class = Column(String)
     box_coordinate = Column(String)
-    frame_id = Column(Integer, ForeignKey('frame.id'))
-    frame = relationship("Frame",
-                         backref=backref("elements",
-                                         cascade="all, delete-orphan"))
+    frame_id = Column(Integer, ForeignKey('frame.id'), nullable=False)
+    frame = relationship("Frame", back_populates="elements")
 
-    def __init__(self, object_class: str, box_coordinate: str, frame_id: int,
-                 frame: Frame):
+    def __init__(self, object_class: str, box_coordinate: str, frame_id: int):
         self.object_class = object_class
         self.box_coordinate = box_coordinate
         self.frame_id = frame_id
-        self.frame = frame
 
     @staticmethod
     def coordinate_iterable_to_str(

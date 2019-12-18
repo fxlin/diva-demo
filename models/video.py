@@ -17,11 +17,16 @@ class Video(Base):
     path = Column(String)
     frames = relationship("Frame",
                           back_populates="video",
-                          cascade="all, delete-orphan")
+                          cascade="all,delete-orphan")
 
-    def __init__(self, name: str, path: str, frames):
+    def __init__(self, name: str, path: str):
         self.name = name
         self.path = path
+
+    def add_frames(self, frames):
         if frames:
             for f in frames:
                 self.frames.append(f)
+
+    def __repr__(self):
+        return f"<{self.__tablename__} id:{self.id} name:{self.name} path:{self.path} frames:{self.frames}>"
