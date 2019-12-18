@@ -31,6 +31,9 @@ try:
         v = Video(p[0], p[1])
         db_session.add(v)
     db_session.commit()
+
+    print(
+        db_session.query(Video).filter(Video.c.name == video_list[0][0]).one())
 except Exception as err:
     print(err)
     print('Failed to initialize db')
