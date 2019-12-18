@@ -28,10 +28,10 @@ from variables import RESULT_IMAGE_PATH, VIDEO_FOLDER
 
 from constants.grpc_constant import INIT_DIVA_SUCCESS
 
+from models.common import db_session, init_db
+from models.video import Video
 from models.frame import Frame
 from models.element import Element
-from models.common import session_factory
-from models.video import Video
 
 CHUNK_SIZE = 1024 * 100
 OBJECT_OF_INTEREST = 'bicycle'
@@ -186,10 +186,10 @@ class FrameProcessor(threading.Thread):
         boxes = self.get_bounding_boxes(det_res)
         logging.debug(f"bounding box of {object_name}: {boxes}")
 
-        session = session_factory()
+        session = db_session() 
         session.begin()
         try:
-            v = session.query(Video).filter(Video.c.id == video_id).one()
+            v = session.query(Video).filter(Video.id == video_id).one()
             if boxes:
                 _frame = Frame(str(frame_num), video_id, v)
                 session.add(_frame)
@@ -206,7 +206,9 @@ class FrameProcessor(threading.Thread):
             logging.error(err)
             session.rollback()
         finally:
-            session.close()
+            session.remove()
+
+
         yolo_channel.close()
 
         logging.info(f'Take {time.time() - _start_time} m second to finish')
@@ -226,25 +228,26 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
         object_name = request.object_name
         video_name = request.video_name
 
-        session = session_factory()
+        session = db_session() 
 
         session.begin()
         try:
             selected_video = session.query(Video).filter(
-                Video.c.name == video_name).one()
-            logging.debug(f'finding video: {selected_video.name}')
+                Video.name == video_name).one()
+            logging.debug(f'finding video: {video_name} result: {selected_video}')
 
-            frame_ids = FrameProcessor.extract_frame_nums(selected_video.path)
-            logging.debug(f"adding {len(frame_ids)} tasks in queue")
-            for f_id in frame_ids:
-                TaskQueue.put((selected_video.id, selected_video.path, f_id,
-                               object_name))
+            if selected_video:
+                frame_ids = FrameProcessor.extract_frame_nums(selected_video.path)
+                logging.debug(f"adding {len(frame_ids)} tasks in queue")
+                for f_id in frame_ids:
+                    TaskQueue.put((selected_video.id, selected_video.path, f_id,
+                                object_name))
 
         except Exception as err:
             logging.error(err)
             session.rollback()
         finally:
-            session.close()
+            session.remove()
 
         # FIXME should return nothing
         path_arr = []
@@ -391,6 +394,9 @@ if __name__ == '__main__':
     FORMAT = '%(asctime)-15s %(thread)d %(threadName)s %(message)s'
     logging.basicConfig(stream=sys.stdout, format=FORMAT, level=logging.DEBUG)
     logging.getLogger('sqlalchemy').setLevel(logging.INFO)
+
+    init_db()
+
     _server = grpc_serve()
     detection_serve()
 
