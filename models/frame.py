@@ -25,3 +25,6 @@ class Frame(Base):
         if elements:
             for e in elements:
                 self.elements.append(f)
+
+    def __repr__(self):
+        return f"<{self.__tablename__} id:{self.id} name:{self.name} video_id:{self.video_id} elements:{self.elements}>"

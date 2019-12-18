@@ -45,3 +45,6 @@ class Element(Base):
             raise ValueError(f"{coordinate_string} is not a valid coordinate")
         temp = map(lambda x: float(x), coordinate_string.split(","))
         return tuple(temp)
+
+    def __repr__(self):
+        return f"<{self.__tablename__} id:{self.id} object_class:{self.object_class} box_coordinate:{self.box_coordinate} frame_id:{self.frame_id}>"
