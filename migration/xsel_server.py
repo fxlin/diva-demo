@@ -28,7 +28,7 @@ init_db()
 
 try:
     for p in video_list:
-        v = Video(p[0], p[1], [])
+        v = Video(p[0], p[1])
         db_session.add(v)
     db_session.commit()
 except Exception as err:
