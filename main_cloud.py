@@ -51,7 +51,6 @@ ImageQueue = Queue(10)
 
 FORMAT = '%(asctime)-15s %(thread)d %(threadName)s %(message)s'
 logging.basicConfig(stream=sys.stdout, format=FORMAT, level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 
 
 class ImageProcessor(threading.Thread):
@@ -60,7 +59,7 @@ class ImageProcessor(threading.Thread):
             while len(ImageQueue) > 0:
                 self.consume_image_task()
             else:
-                logger.info("ImageQueue is empty")
+                logging.info("ImageQueue is empty")
 
     def consume_image_task(self):
         task = ImageQueue.get(block=False)
@@ -96,7 +95,7 @@ class FrameProcessor(threading.Thread):
             while len(TaskQueue) > 0:
                 self.detect_object()
             else:
-                logger.info("TaskQueue is empty")
+                logging.info("TaskQueue is empty")
 
     @staticmethod
     def video_info(video_path) -> dict:
@@ -167,7 +166,7 @@ class FrameProcessor(threading.Thread):
 
         _start_time = time.time()
 
-        logger.info(f'Task {task}')
+        logging.info(f'Task {task}')
 
         yolo_channel = grpc.insecure_channel(YOLO_CHANNEL_ADDRESS)
         yolo_stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(yolo_channel)
@@ -180,7 +179,7 @@ class FrameProcessor(threading.Thread):
         img_name = f'{frame_num}.jpg'
         img_data = self.extract_one_frame(video_path, frame_num)
 
-        logger.debug(f"Sending extracted frame {task[1]} to YOLO")
+        logging.debug(f"Sending extracted frame {task[1]} to YOLO")
         detected_objects = yolo_stub.DetFrame(
             det_yolov3_pb2.DetFrameRequest(data=img_data,
                                            name=img_name,
@@ -188,7 +187,7 @@ class FrameProcessor(threading.Thread):
 
         det_res = detected_objects.res
         boxes = self.get_bounding_boxes(det_res)
-        logger.debug(f"bounding box of {object_name}: {boxes}")
+        logging.debug(f"bounding box of {object_name}: {boxes}")
 
         session = db_session()
         session.begin()
@@ -207,14 +206,14 @@ class FrameProcessor(threading.Thread):
 
                 ImageQueue.put((img_name, img_data, boxes))
         except Exception as err:
-            logger.error(err)
+            logging.error(err)
             session.rollback()
         finally:
             session.remove()
 
         yolo_channel.close()
 
-        logger.info(f'Take {time.time() - _start_time} m second to finish')
+        logging.info(f'Take {time.time() - _start_time} m second to finish')
 
 
 class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
@@ -237,13 +236,13 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
         try:
             selected_video = session.query(Video).filter(
                 Video.name == video_name).one()
-            logger.debug(
+            logging.debug(
                 f'finding video: {video_name} result: {selected_video}')
 
             if selected_video:
                 frame_ids = FrameProcessor.extract_frame_nums(
                     selected_video.path)
-                logger.debug(f"adding {len(frame_ids)} tasks in queue")
+                logging.debug(f"adding {len(frame_ids)} tasks in queue")
                 for f_id in frame_ids:
                     TaskQueue.put((selected_video.id, selected_video.path,
                                    f_id, object_name))
@@ -267,7 +266,7 @@ def grpc_serve():
     server.add_insecure_port(f'[::]:{DIVA_CHANNEL_PORT}')
     server.start()
     server.wait_for_termination()
-    logger.info("GRPC server is runing")
+    logging.info("GRPC server is runing")
 
     return server
 
@@ -285,7 +284,7 @@ def detection_serve():
         image_worker.start()
         thread_list.append(image_worker)
 
-    logger.info("workers are runing")
+    logging.info("workers are runing")
 
     # NOTE should not join since we don't want the program got blocked here
     # for _t in thread_list:
@@ -308,7 +307,7 @@ def deploy_operator_on_camera(operator_path: str,
     while op_data != b"":
         response = camStub.DeployOp(cam_cloud_pb2.Chunk(data=op_data))
         if response.msg != 'OK':
-            logger.warning('DIVA deploy op fails!!!')
+            logging.warning('DIVA deploy op fails!!!')
             return
         op_data = f.read(CHUNK_SIZE)
     f.close()
@@ -407,7 +406,7 @@ if __name__ == '__main__':
     _server = grpc_serve()
     detection_serve()
 
-    logger.info("Started threads")
+    logging.info("Started threads")
 
     try:
         while True:
