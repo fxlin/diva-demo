@@ -49,6 +49,9 @@ image task: (image name, image data, bounding_boxes)
 TaskQueue = Queue(0)
 ImageQueue = Queue(10)
 
+FORMAT = '%(asctime)-15s %(thread)d %(threadName)s %(message)s'
+logging.basicConfig(stream=sys.stdout, format=FORMAT, level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 class ImageProcessor(threading.Thread):
     def run(self):
@@ -56,7 +59,7 @@ class ImageProcessor(threading.Thread):
             while len(ImageQueue) > 0:
                 self.consume_image_task()
             else:
-                logging.info("ImageQueue is empty")
+                logger.info("ImageQueue is empty")
 
     def consume_image_task(self):
         task = ImageQueue.get(block=False)
@@ -92,7 +95,7 @@ class FrameProcessor(threading.Thread):
             while len(TaskQueue) > 0:
                 self.detect_object()
             else:
-                logging.info("TaskQueue is empty")
+                logger.info("TaskQueue is empty")
 
     @staticmethod
     def video_info(video_path) -> dict:
@@ -163,7 +166,7 @@ class FrameProcessor(threading.Thread):
 
         _start_time = time.time()
 
-        logging.info(f'Task {task}')
+        logger.info(f'Task {task}')
 
         yolo_channel = grpc.insecure_channel(YOLO_CHANNEL_ADDRESS)
         yolo_stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(yolo_channel)
@@ -176,7 +179,7 @@ class FrameProcessor(threading.Thread):
         img_name = f'{frame_num}.jpg'
         img_data = self.extract_one_frame(video_path, frame_num)
 
-        logging.debug(f"Sending extracted frame {task[1]} to YOLO")
+        logger.debug(f"Sending extracted frame {task[1]} to YOLO")
         detected_objects = yolo_stub.DetFrame(
             det_yolov3_pb2.DetFrameRequest(data=img_data,
                                            name=img_name,
@@ -184,7 +187,7 @@ class FrameProcessor(threading.Thread):
 
         det_res = detected_objects.res
         boxes = self.get_bounding_boxes(det_res)
-        logging.debug(f"bounding box of {object_name}: {boxes}")
+        logger.debug(f"bounding box of {object_name}: {boxes}")
 
         session = db_session() 
         session.begin()
@@ -203,7 +206,7 @@ class FrameProcessor(threading.Thread):
 
                 ImageQueue.put((img_name, img_data, boxes))
         except Exception as err:
-            logging.error(err)
+            logger.error(err)
             session.rollback()
         finally:
             session.remove()
@@ -211,7 +214,7 @@ class FrameProcessor(threading.Thread):
 
         yolo_channel.close()
 
-        logging.info(f'Take {time.time() - _start_time} m second to finish')
+        logger.info(f'Take {time.time() - _start_time} m second to finish')
 
 
 class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
@@ -234,11 +237,11 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
         try:
             selected_video = session.query(Video).filter(
                 Video.name == video_name).one()
-            logging.debug(f'finding video: {video_name} result: {selected_video}')
+            logger.debug(f'finding video: {video_name} result: {selected_video}')
 
             if selected_video:
                 frame_ids = FrameProcessor.extract_frame_nums(selected_video.path)
-                logging.debug(f"adding {len(frame_ids)} tasks in queue")
+                logger.debug(f"adding {len(frame_ids)} tasks in queue")
                 for f_id in frame_ids:
                     TaskQueue.put((selected_video.id, selected_video.path, f_id,
                                 object_name))
@@ -391,8 +394,7 @@ def testYOLO():
 
 
 if __name__ == '__main__':
-    FORMAT = '%(asctime)-15s %(thread)d %(threadName)s %(message)s'
-    logging.basicConfig(stream=sys.stdout, format=FORMAT, level=logging.DEBUG)
+
     logging.getLogger('sqlalchemy').setLevel(logging.INFO)
 
     init_db()
