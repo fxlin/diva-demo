@@ -19,10 +19,9 @@ video_list = [('sonic.mp4', os.path.join(os.curdir, VIDEO_FOLDER,
 
 FORMAT = '%(asctime)-15s %(thread)d %(threadName)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
-logger = logging.getLogger(__name__)
 logging.getLogger('sqlalchemy').setLevel(logging.INFO)
 
-logger.info("Begin to initialize DB, wait 5 seconds")
+logging.info("Begin to initialize DB, wait 5 seconds")
 
 init_db()
 
@@ -32,11 +31,11 @@ try:
         db_session.add(v)
     db_session.commit()
 
-    print(
+    logging.info(
         db_session.query(Video).filter(Video.name == video_list[0][0]).one())
 except Exception as err:
-    print(err)
-    print('Failed to initialize db')
+    logging.error(err)
+    logging.error('Failed to initialize db')
     db_session.rollback()
     exit(1)
 finally:
