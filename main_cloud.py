@@ -58,10 +58,8 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
 class ImageProcessor(threading.Thread):
     def run(self):
         while not SHUTDOWN_SIGNAL.is_set():
-            while len(ImageQueue) > 0:
+            while not ImageQueue.empty():
                 self.consume_image_task()
-            else:
-                logging.info("ImageQueue is empty")
 
     def consume_image_task(self):
         task = ImageQueue.get(block=False)
