@@ -30,7 +30,7 @@ from constants.grpc_constant import INIT_DIVA_SUCCESS
 
 from models.common import db_session, init_db
 from models.video import Video
-from models.frame import Frame
+from models.frame import Frame, Status
 from models.element import Element
 
 CHUNK_SIZE = 1024 * 100
@@ -50,7 +50,7 @@ TaskQueue = Queue(0)
 ImageQueue = Queue(10)
 
 FORMAT = '%(asctime)-15s %(thread)d %(threadName)s %(message)s'
-logging.basicConfig(stream=sys.stdout, format=FORMAT, level=logging.DEBUG)
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
 
 
 class ImageProcessor(threading.Thread):
@@ -194,8 +194,7 @@ class FrameProcessor(threading.Thread):
         try:
             v = session.query(Video).filter(Video.id == video_id).one()
             if boxes:
-                _frame = Frame(str(frame_num), video_id, v)
-                session.add(_frame)
+                session.query(Frame).filter(Frame.name == str(frame_num)).update({'processing_status': Status.Finished})
                 for b in boxes:
                     _ele = Element(object_name,
                                    Element.coordinate_iterable_to_str(b),
@@ -206,6 +205,7 @@ class FrameProcessor(threading.Thread):
 
                 ImageQueue.put((img_name, img_data, boxes))
         except Exception as err:
+            logging.error(f'Working on task {task} but encounter error')
             logging.error(err)
             session.rollback()
         finally:
@@ -243,9 +243,20 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
                 frame_ids = FrameProcessor.extract_frame_nums(
                     selected_video.path)
                 logging.debug(f"adding {len(frame_ids)} tasks in queue")
+
+                _frame_list = []
+
                 for f_id in frame_ids:
+                    _frame_list.append(
+                        Frame(str(f_id), selected_video.id, selected_video,
+                              Status.Initialized))
                     TaskQueue.put((selected_video.id, selected_video.path,
                                    f_id, object_name))
+
+                session.bulk_save_objects(_frame_list)
+
+            else:
+                logging.warning(f'Failed to find video with name {video_name}')
 
         except Exception as err:
             logging.error(err)
@@ -265,7 +276,6 @@ def grpc_serve():
         diva_servicer, server)
     server.add_insecure_port(f'[::]:{DIVA_CHANNEL_PORT}')
     server.start()
-    server.wait_for_termination()
     logging.info("GRPC server is runing")
 
     return server
@@ -276,11 +286,13 @@ def detection_serve():
 
     for _ in range(FRAME_PROCESSOR_WORKER_NUM):
         temp = FrameProcessor()
+        temp.setDaemon(True)
         temp.start()
         thread_list.append(temp)
 
     for _ in range(IMAGE_PROCESSOR_WORKER_NUM):
         image_worker = ImageProcessor()
+        image_worker.setDaemon(True)
         image_worker.start()
         thread_list.append(image_worker)
 
@@ -403,8 +415,12 @@ if __name__ == '__main__':
 
     init_db()
 
-    _server = grpc_serve()
+    logging.info("Init threads")
+
     detection_serve()
+
+    _server = grpc_serve()
+    _server.wait_for_termination()
 
     logging.info("Started threads")
 
