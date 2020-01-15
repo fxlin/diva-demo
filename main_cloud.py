@@ -92,7 +92,7 @@ class ImageProcessor(threading.Thread):
 class FrameProcessor(threading.Thread):
     def run(self):
         while not SHUTDOWN_SIGNAL.is_set():
-            while len(TaskQueue) > 0:
+            while TaskQueue.qsize() > 0:
                 self.detect_object()
             else:
                 logging.info("TaskQueue is empty")
