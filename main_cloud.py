@@ -8,6 +8,8 @@ from concurrent import futures
 import time
 import threading
 from queue import Queue
+from typing import List, Tuple
+
 import cv2
 import numpy as np
 import ffmpeg
@@ -92,10 +94,8 @@ class ImageProcessor(threading.Thread):
 class FrameProcessor(threading.Thread):
     def run(self):
         while not SHUTDOWN_SIGNAL.is_set():
-            while TaskQueue.qsize() > 0:
+            while not TaskQueue.empty():
                 self.detect_object()
-            else:
-                logging.info("TaskQueue is empty")
 
     @staticmethod
     def video_info(video_path) -> dict:
@@ -139,15 +139,15 @@ class FrameProcessor(threading.Thread):
         return FrameProcessor.read_frame_as_jpeg(video_path, frame_num)
 
     @staticmethod
-    def get_bounding_boxes(yolo_result: str) -> 'List[int]':
+    def get_bounding_boxes(yolo_result: str) -> 'List[Tuple[int, int, int, int]]':
         if not yolo_result or len(yolo_result) == 0:
-            return
+            return []
 
         res_items = yolo_result.split('|')
-        res_items = [[float(y) for y in x.split(',')] for x in res_items]
-        res_items = list(filter(lambda z: z[0] > YOLO_SCORE_THRE, res_items))
+        res_items_float: 'List[List[float]]' = [[float(y) for y in x.split(',')] for x in res_items]
+        res_items_end = list(filter(lambda z: z[0] > YOLO_SCORE_THRE, res_items_float))
 
-        if not res_items or len(res_items) <= 0:
+        if not res_items or len(res_items_end) <= 0:
             return []
 
         arr = []
@@ -162,7 +162,10 @@ class FrameProcessor(threading.Thread):
         """
         task: (video_id, video_path, frame_number, object_of_interest)
         """
+        # FIXME to test blocking feature
+        _t = time.time()
         task = TaskQueue.get(block=True)
+        logging.info(f'Time elapse {time.time() - _t}')
 
         _start_time = time.time()
 

@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from sqlalchemy import Column, String, Integer, ForeignKey
 from sqlalchemy.orm import relationship, backref
 from models.common import Base
