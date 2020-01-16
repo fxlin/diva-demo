@@ -48,7 +48,7 @@ def detect_object(object_name: str, video_name: str, video_id: int):
 
 
 def simulate_detection():
-    OBJECT_NAME = 'bike'
+    OBJECT_NAME = 'motorbike'
     VIDEO_NAME = 'traffic_cam_vid.mp4'
 
     v_id = query_video(OBJECT_NAME, VIDEO_NAME)
@@ -62,7 +62,7 @@ def simulate_detection():
 
 
 class TestObjectDetection(unittest.TestCase):
-    OBJECT_NAME = 'bike'
+    OBJECT_NAME = 'motorbike'
     VIDEO_NAME = 'traffic_cam_vid.mp4'
 
     def test_query_video(self):
