@@ -30,3 +30,6 @@ class Video(Base):
 
     def __repr__(self):
         return f"<{self.__tablename__} id:{self.id} name:{self.name} path:{self.path} frames:{self.frames}>"
+
+    def __str__(self):
+        return f"<{self.__tablename__} id:{self.id} name:{self.name} path:{self.path} frames:{self.frames}>"

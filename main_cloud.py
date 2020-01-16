@@ -423,8 +423,6 @@ if __name__ == '__main__':
     _server = grpc_serve()
     _server.wait_for_termination()
 
-    logging.info("Started threads")
-
     try:
         while True:
             time.sleep(60 * 60 * 24)

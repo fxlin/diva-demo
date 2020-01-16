@@ -50,3 +50,6 @@ class Element(Base):
 
     def __repr__(self):
         return f"<{self.__tablename__} id:{self.id} object_class:{self.object_class} box_coordinate:{self.box_coordinate} frame_id:{self.frame_id}>"
+
+    def __str__(self):
+        return f"<{self.__tablename__} id:{self.id} object_class:{self.object_class} box_coordinate:{self.box_coordinate} frame_id:{self.frame_id}>"

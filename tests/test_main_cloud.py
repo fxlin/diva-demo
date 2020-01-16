@@ -1,5 +1,4 @@
 import unittest
-import logging
 import time
 
 import grpc
@@ -17,7 +16,7 @@ from models.element import Element
 
 def query_video(object_name: str, video_name: str):
     session = db_session()
-    res = session.query(Video).filter(Video.id == video_id).all()
+    res = session.query(Video).filter(Video.name == video_name).all()
     if len(res) != 1:
         raise Exception("Duplicated videos")
 

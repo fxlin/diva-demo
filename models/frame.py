@@ -24,7 +24,11 @@ class Frame(Base):
                             cascade="all,delete-orphan")
     processing_status = Column(Integer)
 
-    def __init__(self, name: str, video_id: int, video, status=Status.Initialized):
+    def __init__(self,
+                 name: str,
+                 video_id: int,
+                 video,
+                 status=Status.Initialized):
         self.name = name
         self.video_id = video_id
         self.video = video
@@ -36,4 +40,7 @@ class Frame(Base):
                 self.elements.append(f)
 
     def __repr__(self):
+        return f"<{self.__tablename__} id:{self.id} name:{self.name} video_id:{self.video_id} elements:{self.elements}>"
+
+    def __str__(self):
         return f"<{self.__tablename__} id:{self.id} name:{self.name} video_id:{self.video_id} elements:{self.elements}>"
