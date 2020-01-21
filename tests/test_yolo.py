@@ -26,7 +26,7 @@ class TestYOLO(unittest.TestCase):
 
         self.assertNotEqual(temp, "", "Fail to perform object detection")
         regex_str = r"([0][.][0-9]*[,][0-9]*[,][0-9]*[,][0-9]*[,][0-9]*[|]?)*"
-        self.assertRegex(temp, regex, "Invalid result")
+        self.assertRegex(temp, regex_str, "Invalid result")
 
 
 if __name__ == "__main__":
