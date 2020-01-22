@@ -82,7 +82,7 @@ class ImageProcessor(threading.Thread):
         if not res_items:
             return
 
-        img = cv2.cvtColor(numpy.asarray(img_data), cv2.COLOR_RGB2BGR)
+        img = cv2.cvtColor(np.asarray(img_data), cv2.COLOR_RGB2BGR)
         for item in res_items:
             x1, y1, x2, y2 = item[0], item[1], item[2], item[3]
             img = draw_box(img, x1, y1, x2, y2)
