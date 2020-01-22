@@ -30,6 +30,7 @@ from variables import RESULT_IMAGE_PATH, VIDEO_FOLDER
 
 from constants.grpc_constant import INIT_DIVA_SUCCESS
 
+from sqlalchemy.orm.exc import MultipleResultsFound
 from models.common import db_session, init_db
 from models.video import Video
 from models.frame import Frame, Status
@@ -62,7 +63,7 @@ class ImageProcessor(threading.Thread):
                 self.consume_image_task()
 
     def consume_image_task(self):
-        task = ImageQueue.get(block=False)
+        task = ImageQueue.get(block=True)
         if not task or len(task) == 0:
             return
 
@@ -71,7 +72,8 @@ class ImageProcessor(threading.Thread):
         bounding_boxes = task[2]
         self.process_frame(image_name, image_data, bounding_boxes)
 
-    def process_frame(self, img_name: str, img_data, res_items: 'tuple'):
+    @staticmethod
+    def process_frame(img_name: str, img_data, res_items: List[Tuple[int, int, int, int]]):
         """
         Take two arguments: one is the image frame data and the other is the
         response from YOLO agent. Draw boxes around the object of interest.
@@ -137,13 +139,17 @@ class FrameProcessor(threading.Thread):
         return FrameProcessor.read_frame_as_jpeg(video_path, frame_num)
 
     @staticmethod
-    def get_bounding_boxes(yolo_result: str) -> 'List[Tuple[int, int, int, int]]':
+    def get_bounding_boxes(yolo_result: str
+                           ) -> 'List[Tuple[int, int, int, int]]':
         if not yolo_result or len(yolo_result) == 0:
             return []
 
         res_items = yolo_result.split('|')
-        res_items_float: 'List[List[float]]' = [[float(y) for y in x.split(',')] for x in res_items]
-        res_items_end = list(filter(lambda z: z[0] > YOLO_SCORE_THRE, res_items_float))
+        res_items_float: 'List[List[float]]' = [
+            [float(y) for y in x.split(',')] for x in res_items
+        ]
+        res_items_end = list(
+            filter(lambda z: z[0] > YOLO_SCORE_THRE, res_items_float))
 
         if not res_items or len(res_items_end) <= 0:
             return []
@@ -177,40 +183,60 @@ class FrameProcessor(threading.Thread):
         frame_num = task[2]
         object_name = task[3]
 
-        img_name = f'{frame_num}.jpg'
-        img_data = self.extract_one_frame(video_path, frame_num)
-
-        logging.debug(f"Sending extracted frame {task[1]} to YOLO")
-        detected_objects = yolo_stub.DetFrame(
-            det_yolov3_pb2.DetFrameRequest(data=img_data,
-                                           name=img_name,
-                                           cls=object_name))
-
-        det_res = detected_objects.res
-        boxes = self.get_bounding_boxes(det_res)
-        logging.debug(f"bounding box of {object_name}: {boxes}")
-
         session = db_session()
         session.begin()
+        picked_frame = None
         try:
-            v = session.query(Video).filter(Video.id == video_id).one()
-            if boxes:
-                session.query(Frame).filter(Frame.name == str(frame_num)).update({'processing_status': Status.Finished})
-                for b in boxes:
-                    _ele = Element(object_name,
-                                   Element.coordinate_iterable_to_str(b),
-                                   _frame.frame_id, _frame)
-                    session.add(_ele)
+            picked_frame = session.query(Frame).filter(
+                Frame.name == str(frame_num)).filter(
+                    Frame.processing_status ==
+                    Status.Initialized).one_or_none()
+        except MultipleResultsFound as m_err:
+            logging.error(
+                f'Found too many frames with name {frame_num}: {m_err}')
+        except Exception as err:
+            logging.error(err)
 
+        if picked_frame:
+            try:
+                picked_frame.processing_status = Status.Processing
+                session.commit()
+            except Exception as err:
+                logging.error(err)
+
+            img_name = f'{frame_num}.jpg'
+            img_data = self.extract_one_frame(video_path, frame_num)
+
+            logging.debug(f"Sending extracted frame {task[1]} to YOLO")
+            detected_objects = yolo_stub.DetFrame(
+                det_yolov3_pb2.DetFrameRequest(data=img_data,
+                                               name=img_name,
+                                               cls=object_name))
+
+            boxes = self.get_bounding_boxes(detected_objects.res)
+            logging.debug(f"bounding box of {object_name}: {boxes}")
+
+            try:
+                picked_frame.processing_status = Status.Finished
                 session.commit()
 
-                ImageQueue.put((img_name, img_data, boxes))
-        except Exception as err:
-            logging.error(f'Working on task {task} but encounter error')
-            logging.error(err)
-            session.rollback()
-        finally:
-            session.remove()
+                if boxes:
+                    temp_b = map(
+                        lambda x: Element.coordinate_iterable_to_str(x), boxes)
+                    ele_list = list(
+                        map(
+                            lambda y: Element(object_name, y, _frame.frame_id,
+                                              _frame), temp_b))
+                    session.bulk_save_objects(ele_list)
+                    session.commit()
+
+                    ImageQueue.put((img_name, img_data, boxes))
+            except Exception as err:
+                logging.error(
+                    f'Working on task {task} but encounter error: {err}')
+                session.rollback()
+
+        session.remove()
 
         yolo_channel.close()
 
@@ -236,7 +262,7 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
         session.begin()
         try:
             selected_video = session.query(Video).filter(
-                Video.name == video_name).one()
+                Video.name == video_name).one_or_none()
             logging.debug(
                 f'finding video: {video_name} result: {selected_video}')
 
@@ -255,10 +281,14 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
                                    f_id, object_name))
 
                 session.bulk_save_objects(_frame_list)
-
+                session.commit()
             else:
                 logging.warning(f'Failed to find video with name {video_name}')
 
+        except MultipleResultsFound as m_err:
+            logging.error(
+                f'Found multiple result when finding video with name {video_name}: {m_err}'
+            )
         except Exception as err:
             logging.error(err)
             session.rollback()
