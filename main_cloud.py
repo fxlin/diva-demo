@@ -73,7 +73,8 @@ class ImageProcessor(threading.Thread):
         self.process_frame(image_name, image_data, bounding_boxes)
 
     @staticmethod
-    def process_frame(img_name: str, img_data, res_items: List[Tuple[int, int, int, int]]):
+    def process_frame(img_name: str, img_data,
+                      res_items: List[Tuple[int, int, int, int]]):
         """
         Take two arguments: one is the image frame data and the other is the
         response from YOLO agent. Draw boxes around the object of interest.
@@ -145,11 +146,21 @@ class FrameProcessor(threading.Thread):
             return []
 
         res_items = yolo_result.split('|')
-        res_items_float: 'List[List[float]]' = [
-            [float(y) for y in x.split(',')] for x in res_items
-        ]
+        res_items_float: 'List[List[float]]' = map(
+            lambda y: float(y), map(lambda x: x.split(','), res_items))
+        # res_items_float: 'List[List[float]]' = [
+        #     [float(y) for y in x.split(',')] for x in res_items
+        # ]
+
+        # FIXME remove
+        print(res_items_float)
+
         res_items_end = list(
             filter(lambda z: z[0] > YOLO_SCORE_THRE, res_items_float))
+
+        # FIXME remove
+        print(res_items_end)
+
 
         if not res_items or len(res_items_end) <= 0:
             return []
