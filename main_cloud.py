@@ -84,8 +84,7 @@ class ImageProcessor(threading.Thread):
 
         img = cv2.imdecode(np.fromstring(img_data, dtype=np.uint8), -1)
         for item in res_items:
-            x1, y1, x2, y2 = int(item[1]), int(item[2]), int(item[3]), int(
-                item[4])
+            x1, y1, x2, y2 = item[0], item[1], item[2], item[3]
             img = draw_box(img, x1, y1, x2, y2)
 
         img_fname = os.path.join(RESULT_IMAGE_PATH, img_name)
