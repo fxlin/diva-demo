@@ -107,8 +107,7 @@ class TestImageProcessor(unittest.TestCase):
 
         ImageProcessor.process_frame(TEMP_IMAGE_PATH, im, res)
 
-        if not os.path.exists(TEMP_IMAGE_PATH):
-            self.fail(f'file {TEMP_IMAGE_PATH} does not exist')
+        self.assertTrue(os.path.exists(TEMP_IMAGE_PATH), f'file {TEMP_IMAGE_PATH} does not exist')
 
         # FIXME compare images
 
