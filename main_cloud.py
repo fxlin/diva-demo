@@ -87,7 +87,10 @@ class ImageProcessor(threading.Thread):
             x1, y1, x2, y2 = item[0], item[1], item[2], item[3]
             img = draw_box(img, x1, y1, x2, y2)
 
-        img_fname = os.path.join(RESULT_IMAGE_PATH, img_name)
+        # FIXME test
+        img_fname = img_name
+        # img_fname = os.path.join(RESULT_IMAGE_PATH, img_name)
+
         cv2.imwrite(img_fname, img)
 
         del img_data
