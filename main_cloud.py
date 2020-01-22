@@ -145,27 +145,19 @@ class FrameProcessor(threading.Thread):
         if not yolo_result or len(yolo_result) == 0:
             return []
 
-        res_itemsres_items = yolo_result.split('|')
+        res_items = yolo_result.split('|')
         res_item_coordinates = map(lambda x: x.split(','), res_items)
-        res_items_tuple: 'List[Tuple[str, str, str, str, str]]' = map(
-            lambda y: tuple(y), res_item_coordinates)
         res_items_end = list(
-            filter(lambda z: float(z[0]) > YOLO_SCORE_THRE, res_items_tuple))
+            filter(lambda z: float(z[0]) > YOLO_SCORE_THRE,
+                   res_item_coordinates))
 
         del res_items
         del res_item_coordinates
-        del res_items_tuple
 
-        if not res_items or len(res_items_end) <= 0:
+        if not res_items_end:
             return []
 
-        arr = []
-
-        for item in res_items_end:
-            arr.append(
-                (int(item[1]), int(item[2]), int(item[3]), int(item[4])))
-
-        return arr
+        return [tuple(int(b) for b in a[1:]) for a in res_items_end]
 
     def detect_object(self):
         """
