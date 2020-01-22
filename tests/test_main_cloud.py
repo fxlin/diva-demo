@@ -5,6 +5,8 @@ import os
 import grpc
 import server_diva_pb2_grpc
 import server_diva_pb2
+
+import numpy as np
 from PIL import Image
 
 from variables import CAMERA_CHANNEL_ADDRESS, YOLO_CHANNEL_ADDRESS
@@ -32,7 +34,7 @@ def query_video(object_name: str, video_name: str):
     if len(temp) > 0:
         raise Exception("Table frame is not empty")
 
-    session.remove()
+    db_session.remove()
     return res[0].id
 
 

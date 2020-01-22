@@ -236,7 +236,7 @@ class FrameProcessor(threading.Thread):
                     f'Working on task {task} but encounter error: {err}')
                 session.rollback()
 
-        session.remove()
+        db_session.remove()
 
         yolo_channel.close()
 
@@ -293,7 +293,7 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
             logging.error(err)
             session.rollback()
         finally:
-            session.remove()
+            db_session.remove()
 
         # FIXME should return nothing
         path_arr = []
