@@ -145,22 +145,16 @@ class FrameProcessor(threading.Thread):
         if not yolo_result or len(yolo_result) == 0:
             return []
 
-        res_items = yolo_result.split('|')
-        res_items_float: 'List[List[float]]' = map(
-            lambda y: float(y), map(lambda x: x.split(','), res_items))
-        # res_items_float: 'List[List[float]]' = [
-        #     [float(y) for y in x.split(',')] for x in res_items
-        # ]
-
-        # FIXME remove
-        print(res_items_float)
-
+        res_itemsres_items = yolo_result.split('|')
+        res_item_coordinates = map(lambda x: x.split(','), res_items)
+        res_items_tuple: 'List[Tuple[str, str, str, str, str]]' = map(
+            lambda y: tuple(y), res_item_coordinates)
         res_items_end = list(
-            filter(lambda z: z[0] > YOLO_SCORE_THRE, res_items_float))
+            filter(lambda z: float(z[0]) > YOLO_SCORE_THRE, res_items_tuple))
 
-        # FIXME remove
-        print(res_items_end)
-
+        del res_items
+        del res_item_coordinates
+        del res_items_tuple
 
         if not res_items or len(res_items_end) <= 0:
             return []
