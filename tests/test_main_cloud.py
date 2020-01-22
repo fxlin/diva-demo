@@ -103,11 +103,9 @@ class TestImageProcessor(unittest.TestCase):
 
     def test_process_frame(self):
         im = Image.open(EXAMPLE_IMAGE_PATH)
-        np_im = np.array(im)
-
         res = FrameProcessor.get_bounding_boxes(EXAMPLE_IMAGE_DETECTION_RESULT)
 
-        ImageProcessor.process_frame(TEMP_IMAGE_PATH, np_im, res)
+        ImageProcessor.process_frame(TEMP_IMAGE_PATH, im, res)
 
         if not os.path.exists(TEMP_IMAGE_PATH):
             self.fail(f'file {TEMP_IMAGE_PATH} does not exist')

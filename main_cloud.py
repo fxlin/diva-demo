@@ -79,16 +79,19 @@ class ImageProcessor(threading.Thread):
         Take two arguments: one is the image frame data and the other is the
         response from YOLO agent. Draw boxes around the object of interest.
         """
-        if not res_items or len(res_items) <= 0:
+        if not res_items:
             return
 
-        img = cv2.imdecode(np.fromstring(img_data, dtype=np.uint8), -1)
+        img = cv2.cvtColor(numpy.asarray(img_data), cv2.COLOR_RGB2BGR)
         for item in res_items:
             x1, y1, x2, y2 = item[0], item[1], item[2], item[3]
             img = draw_box(img, x1, y1, x2, y2)
 
         img_fname = os.path.join(RESULT_IMAGE_PATH, img_name)
         cv2.imwrite(img_fname, img)
+
+        del img_data
+        del img
 
 
 class FrameProcessor(threading.Thread):
