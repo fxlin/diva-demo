@@ -87,7 +87,10 @@ class TestFrameProcessor(unittest.TestCase):
         EXPECTED_BOUNDIN_BOXES = [(77, 242, 98, 278), (162, 192, 170, 204)]
         res = FrameProcessor.get_bounding_boxes(EXAMPLE_IMAGE_DETECTION_RESULT)
         for one, two in zip(EXPECTED_BOUNDIN_BOXES, res):
-            self.assertTupleEqual(one, twof'expect to get identical bounding boxes given the threshold of object detection is {YOLO_SCORE_THRE}')
+            self.assertTupleEqual(
+                one, two,
+                f'expect to get identical bounding boxes given the threshold of object detection is {YOLO_SCORE_THRE}'
+            )
 
 
 class TestImageProcessor(unittest.TestCase):
