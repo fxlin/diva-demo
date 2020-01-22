@@ -156,7 +156,7 @@ class FrameProcessor(threading.Thread):
 
         arr = []
 
-        for item in res_items:
+        for item in res_items_end:
             arr.append(
                 (int(item[1]), int(item[2]), int(item[3]), int(item[4])))
 
