@@ -45,17 +45,18 @@ def display():
         stub = server_diva_pb2_grpc.server_divaStub(channel)
         #response = stub.request_frame_path(server_diva_pb2.query_statement(name='request directory'))
         response = stub.detect_object_in_video(server_diva_pb2.object_video_pair(object_name=obj,  video_name=video))
-    pic_files = list()
-    pic_files.append(response.directory_path)
-    if os.path.exists(response.directory_path):
-        temp = os.listdir(response.directory_path)
-        for files in temp:
-            if '.png' in files or '.jpg' in files or '.jpeg' in files:
-                x, _ = files.split('.')
-                x = int(x) // 10
-                pic_files.append(files)
-                pic_files.append(str(x))
-    temp = ','.join(pic_files)
+    # pic_files = list()
+    # pic_files.append(response.directory_path)
+    # if os.path.exists(response.directory_path):
+    #     temp = os.listdir(response.directory_path)
+    #     for files in temp:
+    #         if '.png' in files or '.jpg' in files or '.jpeg' in files:
+    #             x, _ = files.split('.')
+    #             x = int(x) // 10
+    #             pic_files.append(files)
+    #             pic_files.append(str(x))
+    # temp = ','.join(pic_files)
+    temp = 'good'
     return jsonify(file=temp)
 
 if __name__ == '__main__':
