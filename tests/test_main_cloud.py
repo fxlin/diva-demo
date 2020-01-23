@@ -102,6 +102,7 @@ class TestImageProcessor(unittest.TestCase):
             os.remove(TEMP_IMAGE_PATH)
 
     def test_process_frame(self):
+        # Reference https://blog.csdn.net/JohinieLi/article/details/81012572
         im = Image.open(EXAMPLE_IMAGE_PATH)
         res = FrameProcessor.get_bounding_boxes(EXAMPLE_IMAGE_DETECTION_RESULT)
 

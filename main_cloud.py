@@ -180,13 +180,10 @@ class FrameProcessor(threading.Thread):
         yolo_channel = grpc.insecure_channel(YOLO_CHANNEL_ADDRESS)
         yolo_stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(yolo_channel)
 
-        video_id = task[0]
-        video_path = task[1]
-        frame_num = task[2]
-        object_name = task[3]
+        video_id, video_path, = task[0], task[1]
+        frame_num, object_name = task[2], task[3]
 
         session = db_session()
-        session.begin()
         picked_frame = None
         try:
             picked_frame = session.query(Frame).filter(
@@ -260,8 +257,6 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
         video_name = request.video_name
 
         session = db_session()
-
-        session.begin()
         try:
             selected_video = session.query(Video).filter(
                 Video.name == video_name).one_or_none()
