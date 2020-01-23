@@ -45,9 +45,9 @@ model = tf.keras.Model(input_layer, bbox_tensors)
 utils.load_weights(model, "./yolov3.weights")
 
 IMAGE_H, IMAGE_W = 608, 608
-classes = utils.read_coco_names('./tensorflow-yolov3/data/coco.names')
-num_classes = len(classes)
-gpu_nms_graph = tf.Graph()
+# classes = util.read_coco_names('./tensorflow-yolov3/data/coco.names')
+# num_classes = len(classes)
+# gpu_nms_graph = tf.Graph()
 
 
 def filter_bbox(bboxes: 'List',

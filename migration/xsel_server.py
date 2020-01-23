@@ -12,11 +12,11 @@ from variables import VIDEO_FOLDER
 
 # FIXME
 fixture_list = [('sonic.mp4', os.path.join(os.curdir, VIDEO_FOLDER,
-                                         'sonic.mp4')),
-              ('traffic_cam_vid.mp4',
-               os.path.join(os.curdir, VIDEO_FOLDER, 'traffic_cam_vid.mp4')),
-              ('example.mp4',
-               os.path.join(os.curdir, VIDEO_FOLDER, 'example.mp4'))]
+                                           'sonic.mp4')),
+                ('traffic_cam_vid.mp4',
+                 os.path.join(os.curdir, VIDEO_FOLDER, 'traffic_cam_vid.mp4')),
+                ('example.mp4',
+                 os.path.join(os.curdir, VIDEO_FOLDER, 'example.mp4'))]
 
 FORMAT = '%(asctime)-15s %(thread)d %(threadName)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)

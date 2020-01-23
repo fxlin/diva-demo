@@ -6,7 +6,6 @@ import server_diva_pb2
 import server_diva_pb2_grpc
 
 from variables import DIVA_CHANNEL_ADDRESS
-
 from flask import Flask, render_template, request
 from flask import jsonify, send_from_directory
 

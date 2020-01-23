@@ -12,6 +12,7 @@ from queue import Queue
 from typing import List, Tuple
 import cv2
 import numpy as np
+import ffmpeg
 
 import grpc
 import det_yolov3_pb2
@@ -488,10 +489,3 @@ if __name__ == '__main__':
         logger.warning(err)
         SHUTDOWN_SIGNAL.set()
         _server.stop(1)
-
-<<<<<<< HEAD
-    # runDiva()
-=======
-if __name__ == '__main__':
-    runDiva()
->>>>>>> demo branch changes

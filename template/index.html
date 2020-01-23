@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>HYPER CAM Project</title>
+
+    <!-- Bootstrap Core CSS -->
+    <link href="./template/css/bootstrap.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link href="./template/css/style.css" rel="stylesheet">
+
+    <!-- Custom Fonts -->
+    <link href="./template/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,700,300italic,400italic,700italic"
+          rel="stylesheet" type="text/css">
+
+    <!-- Favicons -->
+    <link rel="shortcut icon" href="./template/img/favicon.png">
+</head>
+
+<body>
+<!-- Navigation begins -->
+<a id="menu-toggle" href="#" class="btn btn-dark btn-lg toggle"><i class="fa fa-bars"></i></a>
+<nav id="sidebar-wrapper">
+    <ul class="sidebar-nav">
+        <a id="menu-close" href="#" class="btn btn-light btn-lg pull-right toggle"><i class="fa fa-times"></i></a>
+        <li class="sidebar-brand">
+            <a href="" onclick=$("#menu-close").click();>Hyper Cam Team</a>
+        </li>
+        <li>
+            <a href="#home" onclick=$("#menu-close").click();>Home</a>
+        </li>
+        <li>
+            <a href="#summary" onclick=$("#menu-close").click();>Summary</a>
+        </li>
+        <li>
+            <a href="#projects" onclick=$("#menu-close").click();>Project</a>
+        </li>
+        <li style="display: none" id="video_tab">
+            <a href="#vidtitle" onclick=$("#menu-close").click();>Selected Video</a>
+        </li>
+        <li style="display: none" id="demo_tab">
+            <a href="#work" onclick=$("#menu-close").click();>Demo Result</a>
+        </li>
+    </ul>
+</nav>
+<!-- Navigation ends -->
+
+<!-- Home begins -->
+<header id="home" class="header">
+    <div class="blurImg">
+        <div class="image"></div>
+        <div class="blur blurimage"></div>
+    </div>
+
+    <div class="text-vertical-center">
+        <img class="img-responsive img-circle center-block grow" src="./template/img/default-user.jpg" width="200px"
+             alt="">
+        <h1>Hyper Cam Team</h1>
+        <h3>Senior Design Project</h3>
+        <br>
+        <br>
+        <a href="#summary" class="btn page-scroll">
+            <i class="fa fa-angle-double-down animated"></i>
+        </a>
+    </div>
+</header>
+<!-- Home ends -->
+
+<!-- Summary begins -->
+<section id="summary" class="summary">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-3"></div>
+            <div class="col-lg-6 text-center">
+                <i class="fa fa-user-circle fa-4x"></i>
+                <h2>Summary</h2>
+                <hr>
+                <p class="lead">
+                    The goal of this project is to make surveillance cameras more user friendly by utilizing object
+                    detection and machining learning to review footage for the user. The team will deliver a product
+                    that allows the user to configure a search entry to enable the camera to locate specific targets.
+                </p>
+
+                <p class="lead">
+                    This approach is new to the market because object detection and classification is hardware intensive
+                    and costly. As a result, companies have not seen the need to adopt it. The proposed product takes
+                    the shortcomings of processing images via a server or onboard the camera by implementing a two-step
+                    process. This enables the camera to perform an initial-filter of the captured frames before sending
+                    the frames over.
+
+                    This product is targeted towards companies, stores, and communities that currently have a large
+                    network of cameras that need to be reviewed. The product benefits them the most because they are
+                    able to autonomously review lots of footage but can still reduce their network traffic.
+
+                </p>
+
+            </div>
+            <div class="col-lg-3"></div>
+        </div>
+    </div>
+    <!-- /.container -->
+</section>
+<!-- Summary ends -->
+
+<!-- Projects Image begins-->
+<section id="projectimage" class="content-section text-center">
+    <div class="text-container">
+        <p><strong>Project</strong></p>
+    </div>
+</section>
+<!-- Projects Image ends -->
+
+<!-- Projects begins -->
+<section id="projects" class="projects">
+    <div class="container">
+        <div class="row" id="projectsheading">
+            <div class="col-lg-3"></div>
+            <div class="col-lg-6 text-center">
+                <i class="fa fa-code fa-4x"></i>
+
+                <hr>
+            </div>
+            <div class="col-lg-3"></div>
+        </div>
+
+        <br>
+
+
+        <div class="col-lg-2 text-center">
+        </div>
+    </div>
+
+    <br>
+    <br>
+
+
+    <div class="row">
+        <div class="col-lg-4 text-center">
+        </div>
+
+        <div class="col-lg-4 text-center">
+            <!--                  <a target="_blank" href="http://example.com/">-->
+            <img class="img-responsive img-circle center-block grow" src="./template/img/html.png" width="150px" alt=""
+                 onclick="call_diva()">
+            <!--                  </a>-->
+            <h2><span>DIVA</span><br>
+                <small>Fall 2019</small><br>
+                <small><a target="_blank" href="https://github.com/swhsiang/diva-fork">GitHub</a></small>
+            </h2>
+            <p class="lead">
+                Please select the video you would like to query then click on the icon for a quick demo of the project.
+            </p>
+        </div>
+
+
+    </div>
+    <!-- /.container -->
+<!--    <h2 class="text-center"><span>VIDEO SELECTION</span><br>-->
+<!--    </h2>-->
+    <br>
+    <div class="container">
+ <div class="row">
+  <div class="col-lg-4 text-center">
+  <img src="./template/img/ny.jpg" class="img-responsive grow text-center" style="grid-auto-rows: auto" alt="" title="video1" onclick="video('video/sonic.mp4')">
+      <p>Video 1</p>
+  </div>
+  <div class="col-lg-4 text-center">
+  <img src="./template/img/ny-blur.jpg" class="img-responsive grow text-center" style="grid-auto-rows: auto"  alt="" title="video2" onclick="video('video/traffic_cam_vid.mp4')">
+      <p>Video 2</p>
+  </div>
+  <div class="col-lg-4 text-center">
+  <img src="./template/img/ny.jpg" class="img-responsive grow text-center" style="grid-auto-rows: auto"  alt="" title="video3" onclick="video('video/sonic.mp4')">
+      <p>Video 3</p>
+  </div>
+ </div>
+    </div>
+</section>
+
+<section id="vidtitle" class="content-section text-center" style="display: none">
+    <div class="text-container" style="padding-top: 60px; padding-bottom: 60px">
+        <p style="font-size: 50px; color: white;"><strong>Selected Video</strong></p>
+
+    </div>
+
+</section>
+<div id="video" style="background-color: white; display: none;" class="content-section text-center">
+        <video id="videodisplay" style="align-items: center; width: auto;height: auto" controls>
+  <source  src="video/sonic.mp4" type="video/mp4">
+</video>
+    </div>
+
+
+
+
+<section id="workimage" class="content-section text-center" style="display:none;">
+    <div class="text-container">
+        <p><strong>Demo Results</strong></p>
+    </div>
+</section>
+
+<section id="work" class="work" style="display:none;">
+
+    <div class="row" id="workheading" style="text-align: center">
+        <!--                <div class="col-lg-3"></div>-->
+        <!--                <div class="col-lg-6 text-center">-->
+        <i id="results"></i>
+        <!--            <i id="zoom"></i>-->
+        <hr>
+        <!--                </div>-->
+        <!--                <div class="col-lg-3"></div>-->
+    </div>
+    <!-- /.container -->
+</section>
+<!-- Projects ends -->
+<script>
+    function video(a) {
+       document.getElementById('vidtitle').style.display = "block";
+       document.getElementById('video').style.display = "block";
+       document.getElementById('video_tab').style.display = "block";
+       if(document.getElementById('videodisplay').src === a){
+
+       }
+       else {
+           document.getElementById('videodisplay').src = a;
+       }
+    }
+
+    function array(num){
+        console.log(num);
+        document.getElementById('videodisplay').currentTime = num;
+    }
+    function call_diva() {
+        var computeReturn = $.ajax({
+            method: "POST",
+            url: "/display",
+        }).done(function (computeReturn) {
+            console.log(computeReturn);
+            arrimg = computeReturn.split(',');
+            console.log(arrimg);
+            document.getElementById('work').style.display = "block";
+            document.getElementById('workimage').style.display = "block";
+            document.getElementById('demo_tab').style.display = "block";
+            if (document.getElementById('results').childNodes.length > 0) {
+                var child = document.getElementById('results').lastElementChild;
+                while (child) {
+                    document.getElementById('results').removeChild(child);
+                    child = document.getElementById('results').lastElementChild;
+                }
+            }
+            for (let i = 1; i < arrimg.length; i++) {
+                var img = new Image();
+                img.src = arrimg[0] + '/' + arrimg[i];
+                img.width = 400;
+                img.height = 300;
+                img.addEventListener('click', function(){array(i)}, false);
+                // img.addEventListener('click', function(val){return function(){array(val);};}(i), false);
+                document.getElementById('results').appendChild(img);
+            }
+
+        });
+    }
+
+</script>
+<!-- Footer begins -->
+
+<footer>
+    <div class="container text-center">
+        <p>Copyright &copy; 2019 XSEL</p>
+    </div>
+</footer>
+
+<!-- Footer ends -->
+
+<!-- Bact to top begins -->
+<a id="back-to-top" href="#" class="btn btn-dark btn-lg back-to-top" role="button"><span
+        class="glyphicon glyphicon-chevron-up"></span></a>
+<!-- Bact to top ends -->
+
+<!-- jQuery -->
+<script src="./template/js/jquery.js"></script>
+
+<!-- Bootstrap Core JavaScript -->
+<script src="./template/js/bootstrap.js"></script>
+
+<!-- Custom Theme JavaScript -->
+<script>
+    // Closes the sidebar menu
+
+    $("#menu-close").click(function (e) {
+        e.preventDefault();
+        $("#sidebar-wrapper").toggleClass("active");
+    });
+    // Opens the sidebar menu
+    $("#menu-toggle").click(function (e) {
+        e.preventDefault();
+        $("#sidebar-wrapper").toggleClass("active");
+    });
+    // Scrolls to the selected menu item on the page
+    $(function () {
+        $('a[href*=#]:not([href=#],[data-toggle],[data-target],[data-slide])').click(function () {
+            if (location.pathname.replace(/^\//, '') == this.pathname.replace(/^\//, '') || location.hostname == this.hostname) {
+                var target = $(this.hash);
+                target = target.length ? target : $('[name=' + this.hash.slice(1) + ']');
+                if (target.length) {
+                    $('html,body').animate({
+                        scrollTop: target.offset().top
+                    }, 1000);
+                    return false;
+                }
+            }
+        });
+    });
+    //#to-top button appears after scrolling
+    var fixed = false;
+    $(document).scroll(function () {
+        if ($(this).scrollTop() > 250) {
+            if (!fixed) {
+                fixed = true;
+                // $('#to-top').css({position:'fixed', display:'block'});
+                $('#to-top').show("slow", function () {
+                    $('#to-top').css({
+                        position: 'fixed',
+                        display: 'block'
+                    });
+                });
+            }
+        } else {
+            if (fixed) {
+                fixed = false;
+                $('#to-top').hide("slow", function () {
+                    $('#to-top').css({
+                        display: 'none'
+                    });
+                });
+            }
+        }
+    });
+    // Disable Google Maps scrolling
+    // See http://stackoverflow.com/a/25904582/1607849
+    // Disable scroll zooming and bind back the click event
+    var onMapMouseleaveHandler = function (event) {
+        var that = $(this);
+        that.on('click', onMapClickHandler);
+        that.off('mouseleave', onMapMouseleaveHandler);
+        that.find('iframe').css("pointer-events", "none");
+    }
+    var onMapClickHandler = function (event) {
+        var that = $(this);
+        // Disable the click handler until the user leaves the map area
+        that.off('click', onMapClickHandler);
+        // Enable scrolling zoom
+        that.find('iframe').css("pointer-events", "auto");
+        // Handle the mouse leave event
+        that.on('mouseleave', onMapMouseleaveHandler);
+    }
+    // Enable map zooming with mouse scroll when the user clicks the map
+    $('.map').on('click', onMapClickHandler);
+</script>
+
+<!-- Blur Function -->
+<script type="text/javascript">
+    (function () {
+        $(window).scroll(function () {
+            var oVal;
+            oVal = $(window).scrollTop() / 500;
+            return $('.blur').css('opacity', oVal);
+        });
+    }.call(this));
+</script>
+
+<!-- Back to top -->
+<script>
+    $(document).ready(function () {
+        $(window).scroll(function () {
+            if ($(this).scrollTop() > 50) {
+                $('#back-to-top').fadeIn();
+            } else {
+                $('#back-to-top').fadeOut();
+            }
+        });
+        // scroll body to 0px on click
+        $('#back-to-top').click(function () {
+            $('#back-to-top').tooltip('hide');
+            $('body,html').animate({
+                scrollTop: 0
+            }, 800);
+            return false;
+        });
+        $('#back-to-top').tooltip('show');
+    });
+</script>
+</body>
+</html>

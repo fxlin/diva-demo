@@ -36,7 +36,7 @@ CHUNK_SIZE = 1024 * 100
 OP_BATCH_SZ = 16
 
 class OP_WORKER(Thread):
-    def read_images(self, imgs, H, W, crop=(-1,-1,-1,-1)):
+    def read_images(self, imgs, H, W, crop=(-1, -1, -1, -1)):
         frames = np.zeros((len(imgs), H, W, 3), dtype='float32')
         for i, img in enumerate(imgs):
             frame = cv2.imread(img)
@@ -155,6 +155,7 @@ def serve():
         print ('DivaCloud stop!!!')
         diva_cam_servicer.KillOp()
         server.stop(0)
+
 
 if __name__ == '__main__':
     serve()
