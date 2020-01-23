@@ -9,7 +9,11 @@ from variables import DIVA_CHANNEL_ADDRESS
 from flask import Flask, render_template, request
 from flask import jsonify, send_from_directory
 
-
+from sqlalchemy.orm.exc import MultipleResultsFound
+from models.common import db_session, init_db
+from models.video import Video
+from models.frame import Frame, Status
+from models.element import Element
 
 OUTPUT_DIR = './result/retrieval_imgs/'
 app = Flask(__name__, static_url_path='/static')
@@ -57,6 +61,12 @@ def display():
     # temp = ','.join(pic_files)
     temp = 'good'
     return jsonify(file=temp)
+
+
+@app.route('/retrieve', methods=['GET', 'POST'])
+def retrieve():
+    pass
+
 
 if __name__ == '__main__':
     app.run('0.0.0.0', 10000)
