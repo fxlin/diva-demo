@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>HYPER CAM Project</title>
+
+    <!-- Bootstrap Core CSS -->
+    <link href="/static/css/bootstrap.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link href="/static/css/style.css" rel="stylesheet">
+
+    <!-- Custom Fonts -->
+<!--    <link href="/static/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,700,300italic,400italic,700italic"
+          rel="stylesheet" type="text/css">
+
+    <!-- Favicons -->
+    <link rel="shortcut icon" href="/static/img/favicon.png">
+</head>
+
+<body>
+<!-- Navigation begins -->
+<a id="menu-toggle" href="#" class="btn btn-dark btn-lg toggle"><i class="fa fa-bars"></i></a>
+<nav id="sidebar-wrapper">
+    <ul class="sidebar-nav">
+        <a id="menu-close" href="#" class="btn btn-light btn-lg pull-right toggle"><i class="fa fa-times"></i></a>
+        <li class="sidebar-brand">
+            <a href="" onclick=$("#menu-close").click();>Hyper Cam Team</a>
+        </li>
+        <li>
+            <a href="#home" onclick=$("#menu-close").click();>Home</a>
+        </li>
+        <li>
+            <a href="#summary" onclick=$("#menu-close").click();>Summary</a>
+        </li>
+        <li>
+            <a href="#projects" onclick=$("#menu-close").click();>Project</a>
+        </li>
+        <li style="display: none" id="video_tab">
+            <a href="#videodisplay" onclick=$("#menu-close").click();>Selected Video</a>
+        </li>
+        <li style="display: none" id="demo_tab">
+            <a href="#work" onclick=$("#menu-close").click();>Demo Result</a>
+        </li>
+    </ul>
+</nav>
+<!-- Navigation ends -->
+
+<!-- Home begins -->
+<header id="home" class="header">
+    <div class="blurImg">
+        <div class="image"></div>
+        <div class="blur blurimage"></div>
+    </div>
+
+    <div class="text-vertical-center">
+        <img class="img-responsive img-circle center-block grow" src="/static/img/default-user.jpg" width="200px"
+             alt="">
+        <h1>Hyper Cam Team</h1>
+        <h3>Senior Design Project</h3>
+        <br>
+        <br>
+        <a href="#summary" class="btn page-scroll">
+            <i class="fa fa-angle-double-down animated"></i>
+        </a>
+    </div>
+</header>
+<!-- Home ends -->
+
+<!-- Summary begins -->
+<section id="summary" class="summary">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-3"></div>
+            <div class="col-lg-6 text-center">
+                <i class="fa fa-user-circle fa-4x"></i>
+                <h2>Summary</h2>
+                <hr>
+                <p class="lead">
+                    The goal of this project is to make surveillance cameras more user friendly by utilizing object
+                    detection and machining learning to review footage for the user. The team will deliver a product
+                    that allows the user to configure a search entry to enable the camera to locate specific targets.
+                </p>
+
+                <p class="lead">
+                    This approach is new to the market because object detection and classification is hardware intensive
+                    and costly. As a result, companies have not seen the need to adopt it. The proposed product takes
+                    the shortcomings of processing images via a server or onboard the camera by implementing a two-step
+                    process. This enables the camera to perform an initial-filter of the captured frames before sending
+                    the frames over.
+
+                    This product is targeted towards companies, stores, and communities that currently have a large
+                    network of cameras that need to be reviewed. The product benefits them the most because they are
+                    able to autonomously review lots of footage but can still reduce their network traffic.
+
+                </p>
+
+            </div>
+            <div class="col-lg-3"></div>
+        </div>
+    </div>
+    <!-- /.container -->
+</section>
+<!-- Summary ends -->
+
+<!-- Projects Image begins-->
+<section id="projectimage" class="content-section text-center">
+    <div class="text-container">
+        <p><strong>Project</strong></p>
+    </div>
+</section>
+<!-- Projects Image ends -->
+
+<!-- Projects begins -->
+<section id="projects" class="projects">
+    <div class="container">
+        <div class="row" id="projectsheading">
+            <div class="col-lg-3"></div>
+            <div class="col-lg-6 text-center">
+                <i class="fa fa-code fa-4x"></i>
+
+                <hr>
+            </div>
+            <div class="col-lg-3"></div>
+        </div>
+
+        <br>
+
+
+        <div class="col-lg-2 text-center">
+        </div>
+    </div>
+
+    <br>
+    <br>
+
+
+    <div class="row">
+        <div class="col-lg-4 text-center">
+        </div>
+
+        <div class="col-lg-4 text-center">
+            <!--                  <a target="_blank" href="http://example.com/">-->
+            <img class="img-responsive img-circle center-block grow" src="./static/img/html.png" id="query" width="150px" alt="">
+<!--                 onclick="call_diva()">-->
+            <!--                  </a>-->
+            <h2><span>DIVA</span><br>
+                <small>Fall 2019</small><br>
+                <small><a target="_blank" href="https://github.com/swhsiang/diva-fork">GitHub</a></small>
+            </h2>
+            <p class="lead">
+                Please select the video you would like to query then click on the icon for a quick demo of the project.
+            </p>
+        </div>
+
+
+    </div>
+
+
+  <div class="col-md-12 school-options-dropdown text-center">
+    <div class="dropdown btn-group">
+
+      <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown" id="drop">bike
+        <span class="caret"></span>
+      </button>
+
+        <ul class="dropdown-menu" style="background: white">
+        <li id="bike" style="color: black"><a>bike</a></li>
+          <li id="people" style="color: black"><a>people</a></li>
+          <li id="dog" style="color: black"><a>dog</a></li>
+      </ul>
+
+    </div>
+  </div>
+    <br>
+    <br>
+<!--</div>-->
+
+    <script>
+        let obj = 'bike';
+    </script>
+     <script type="text/javascript" src="/static/js/dropdown.js?2"></script>
+    <br>
+    <div class="container">
+ <div class="row">
+  <div class="col-lg-4 text-center">
+
+<!--      Change directory for the videos so that everything works.-->
+
+  <img src="./static/img/sonic.jpg" class="img-responsive grow text-center" style="grid-auto-rows: auto" alt="" title="video1" id="video1" >
+      <p>Video 1</p>
+  </div>
+  <div class="col-lg-4 text-center">
+  <img src="./static/img/traffic.jpg" class="img-responsive grow text-center" style="grid-auto-rows: auto"  alt="" title="video2" id="video2" >
+      <p>Video 2</p>
+  </div>
+  <div class="col-lg-4 text-center">
+  <img src="./static/img/hooters.jpg" class="img-responsive grow text-center" style="grid-auto-rows: auto"  alt="" title="video3" id="video3">
+      <p>Video 3</p>
+  </div>
+ </div>
+    </div>
+</section>
+
+<section id="vidtitle" class="content-section text-center" style="display: none">
+    <div class="text-container" style="padding-top: 60px; padding-bottom: 60px">
+        <p style="font-size: 50px; color: white;"><strong>Selected Video</strong></p>
+
+    </div>
+
+</section>
+    <div id="video" style="background-color: black; display: none;" class="content-section text-center">
+        <video id="videodisplay" style="align-items: center; width: auto;height: auto" controls>
+            <source  src="/static/video/sonic.mp4" type="video/mp4">
+        </video>
+        <canvas id=c></canvas>
+    </div>
+
+    <script type="text/javascript" src="/static/js/canvas.js?2"></script>
+
+
+<section id="workimage" class="content-section text-center" style="display:none;">
+    <div class="text-container">
+        <p><strong>Demo Results</strong></p>
+    </div>
+</section>
+
+<section id="work" class="work" style="display:none;">
+
+    <div class="row" id="workheading" style="text-align: center">
+        <i id="results"></i>
+    </div>
+
+</section>
+<!-- Projects ends -->
+<script>
+    let vid='/static/video/sonic.mp4';
+</script>
+ <script type="text/javascript" src="/static/js/video.js?2"></script>
+ <script type="text/javascript" src="/static/js/query.js?2"></script>
+<!-- Footer begins -->
+
+<footer>
+    <div class="container text-center">
+        <p>Copyright &copy; 2019 XSEL</p>
+    </div>
+</footer>
+
+<!-- Footer ends -->
+
+
+<!-- jQuery -->
+<script src="/static/js/jquery.js"></script>
+
+<!-- Bootstrap Core JavaScript -->
+<script src="/static/js/bootstrap.js"></script>
+
+<!-- Custom Theme JavaScript -->
+<script src="/static/js/functionality.js"></script>
+
+</body>
+</html>
