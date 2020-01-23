@@ -1,4 +1,4 @@
-FROM wen777/diva-base:latest
+FROM diva-base:latest
 
 COPY . /var/yolov3
 

@@ -44,7 +44,10 @@ for i, fm in enumerate(feature_maps):
 model = tf.keras.Model(input_layer, bbox_tensors)
 utils.load_weights(model, "./yolov3.weights")
 
-CLASSES = utils.read_class_names(cfg.YOLO.CLASSES)
+IMAGE_H, IMAGE_W = 608, 608
+classes = utils.read_coco_names('./tensorflow-yolov3/data/coco.names')
+num_classes = len(classes)
+gpu_nms_graph = tf.Graph()
 
 
 def filter_bbox(bboxes: 'List',

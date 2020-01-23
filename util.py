@@ -30,19 +30,13 @@ import tensorflow as tf
 from tensorflow.python.framework.graph_util import convert_variables_to_constants
 import PIL.Image
 
-JPG_ROOT_PATH = '/host/4TB_hybridvs_data/YOLO-RES-720P/jpg'
-CSV_ROOT_PATH = '/host/4TB_hybridvs_data/YOLO-RES-720P/out'
-RES_ROOT_PATH = '/host/4TB_hybridvs_data/YOLO-RES-720P/exp'
+RES_ROOT_PATH="/media/YOLO-RES-720P/exp"
+JPG_ROOT_PATH="/media/YOLO-RES-720P/jpg"
+CSV_ROOT_PATH="/media/YOLO-RES-720P/out"
+
 FRAMES_PER_SEC = 10
 
 computed_metrics = ['accuracy', 'mean_squared_error']
-
-def read_coco_names(class_file_name):
-    names = {}
-    with open(class_file_name, 'r') as data:
-        for ID, name in enumerate(data):
-            names[ID] = name.strip('\n')
-    return names
 
 class ClockLog():
     def __init__(self, secs):

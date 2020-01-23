@@ -489,4 +489,9 @@ if __name__ == '__main__':
         SHUTDOWN_SIGNAL.set()
         _server.stop(1)
 
+<<<<<<< HEAD
     # runDiva()
+=======
+if __name__ == '__main__':
+    runDiva()
+>>>>>>> demo branch changes
