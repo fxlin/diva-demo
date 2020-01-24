@@ -12,7 +12,6 @@ from models.element import Element
 
 
 def request_frames(video_id):
-    # init_db()
     session = db_session()
     session.begin()
     status = [i for i in session.query(Frame.processing_status).all()]
@@ -28,7 +27,6 @@ def request_frames(video_id):
 
 
 def request_videoID(name):
-    # init_db()
     session = db_session()
     session.begin()
     video_name = [i for i in db_session.query(Video.name).all()]
