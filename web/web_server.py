@@ -41,7 +41,7 @@ def display():
     with grpc.insecure_channel(DIVA_CHANNEL_ADDRESS) as channel:
         stub = server_diva_pb2_grpc.server_divaStub(channel)
         #  response = stub.request_frame_path(server_diva_pb2.query_statement(name='request directory'))
-        response = stub.detect_object_in_video(server_diva_pb2.object_video_pair(object_name=obj,  video_name=video))
+        _= stub.detect_object_in_video(server_diva_pb2.object_video_pair(object_name=obj,  video_name=video))
     temp = 'good'
     print(temp)
     return jsonify(file=temp)
@@ -51,17 +51,11 @@ def display():
 def retrieve():
     video_name = request.json['video'].split('/')[-1]
     print(video_name)
-    video_id = query.request_videoID(name=video_name)
-    if video_id:
-        return jsonify(file=False)
-    name = query.request_frames(video_id)
+    name = query.request_frames(video_name)
     if name:
         return jsonify(file=name)
     ','.join(name)
     return jsonify(file=name)
-
-    # Testing Polling (JQuery) uncomment this line and comment the uncommented return
-    # return jsonify(file=False)
 
 
 if __name__ == '__main__':
