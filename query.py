@@ -14,24 +14,22 @@ from models.element import Element
 def request_frames(video_id):
     session = db_session()
     session.begin()
-    status = [i for i in session.query(Frame.processing_status).all()]
-    id = [i for i in session.query(Frame.video_id).all()]
-    name = [i for i in session.query(Frame.name).all()]
-    num_frames = id.count(video_id)
-    video_frames = list()
-    for i in range(len(status)):
-        if id[i] == video_id and status[i] == 3:
-            video_frames.append(name[i])
+    frame_status = [i for i in session.query(Frame.processing_status).filter(Frame.video_id == video_id)]
+    name = [i for i in session.query(Frame.name).filter(Frame.video_id == video_id)]
+    for status in frame_status:
+        if status != Status.Finished:
+            db_session.remove()
+            return False
     db_session.remove()
-    return video_frames if num_frames == len(video_frames) else False
+    return name
 
 
 def request_videoID(name):
     session = db_session()
     session.begin()
-    video_name = [i for i in db_session.query(Video.name).all()]
+    video_id = [i for i in db_session.query(Video.id).filter(Video.name == name)][0]
     db_session.remove()
-    return video_name.index(name) + 1 if video_name.index(name) != -1 else False
+    return video_id if video_id > 0 else False
 
 
 #  Test to see if it works properly

@@ -24,6 +24,7 @@ class Video(Base):
         self.name = name
         self.path = path
 
+
     def add_frames(self, frames):
         if frames:
             for f in frames:

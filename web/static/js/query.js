@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', function(){
-     document.getElementById("query").addEventListener("click", function() {
+    let pollingTime = null;
+    document.getElementById("query").addEventListener("click", function() {
             call_diva();
         }, false);
 
@@ -16,21 +17,28 @@ document.addEventListener('DOMContentLoaded', function(){
             url: "/retrieve",
          }).done(function (computeReturn) {
             console.log(computeReturn);
+            if(computeReturn['file'] === false){
+                pollingTime = window.setTimeout(display_images, 10000);
+                return;
+            }
+            else{
+                window.clearTimeout(pollingTime);
+            }
             arrimg = computeReturn['file'].split(',');
             console.log(arrimg);
             document.getElementById('work').style.display = "block";
             document.getElementById('workimage').style.display = "block";
             document.getElementById('demo_tab').style.display = "block";
             if (document.getElementById('results').childNodes.length > 0) {
-                var child = document.getElementById('results').lastElementChild;
+                let child = document.getElementById('results').lastElementChild;
                 while (child) {
                     document.getElementById('results').removeChild(child);
                     child = document.getElementById('results').lastElementChild;
                 }
             }
             for (let i = 1; i < arrimg.length; i += 2) {
-                var img = new Image();
-                dir = arrimg[0] +'/' + arrimg[i];
+                let img = new Image();
+                let dir = arrimg[0] +'/' + arrimg[i];
                 img.src = dir;
                 img.src = "{{ url_for('download_file', filename=" + arrimg[i] + ") }}";
                 img.width = 400;

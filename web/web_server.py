@@ -70,14 +70,13 @@ def display():
 def retrieve():
     video_name = request.json['video'].split('/')[-1]
     video_id = query.request_videoID(name=video_name)
-    while True:
-        name = query.request_frames(video_id)
-        if name == False:
-            time.sleep(10)
-        else:
-            break
-    print(name)
-    return name
+    if video_id:
+        return jsonify(file=False)
+    name = query.request_frames(video_id)
+    if name:
+        return jsonify(file=name)
+    ','.join(name)
+    return jsonify(file=name)
 
 
 
