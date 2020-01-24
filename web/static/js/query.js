@@ -7,17 +7,14 @@ document.addEventListener('DOMContentLoaded', function(){
         document.getElementById('videodisplay').currentTime = num;
     }
 
-
-    function call_diva() {
-        console.log(vid);
-        console.log(obj);
+    function display_images() {
         var computeReturn = $.ajax({
             method: "POST",
             contentType: 'application/json',
             dataType: "json",
-            data: JSON.stringify({'video': vid, 'object':obj}),
-            url: "/display",
-        }).done(function (computeReturn) {
+            data: JSON.stringify({'video': vid}),
+            url: "/retrieve",
+         }).done(function (computeReturn) {
             console.log(computeReturn);
             arrimg = computeReturn['file'].split(',');
             console.log(arrimg);
@@ -31,18 +28,34 @@ document.addEventListener('DOMContentLoaded', function(){
                     child = document.getElementById('results').lastElementChild;
                 }
             }
-            for (let i = 1; i < arrimg.length; i+=2) {
+            for (let i = 1; i < arrimg.length; i += 2) {
                 var img = new Image();
-                //dir = arrimg[0] +'/' + arrimg[i];
-                //img.src = dir;
-                img.src = "{{ url_for('download_file', filename="+ arrimg[i]+") }}";
+                dir = arrimg[0] +'/' + arrimg[i];
+                img.src = dir;
+                img.src = "{{ url_for('download_file', filename=" + arrimg[i] + ") }}";
                 img.width = 400;
                 img.height = 300;
-                img.addEventListener('click', function(){array(parseInt(arrimg[i+1]))}, false);
+                img.addEventListener('click', function () {
+                    array(parseInt(arrimg[i + 1]))
+                }, false);
                 // img.addEventListener('click', function(val){return function(){array(val);};}(i), false);
                 document.getElementById('results').appendChild(img);
-            }
 
+            }
+        });
+    }
+
+    function call_diva() {
+        console.log(vid);
+        console.log(obj);
+        var computeReturn = $.ajax({
+            method: "POST",
+            contentType: 'application/json',
+            dataType: "json",
+            data: JSON.stringify({'video': vid, 'object':obj}),
+            url: "/display",
+         }).done(function (computeReturn) {
+             display_images()
         });
     }
 

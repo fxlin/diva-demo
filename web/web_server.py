@@ -4,7 +4,7 @@ import grpc
 import os
 import server_diva_pb2
 import server_diva_pb2_grpc
-
+import time
 from variables import DIVA_CHANNEL_ADDRESS
 from flask import Flask, render_template, request
 from flask import jsonify, send_from_directory
@@ -15,19 +15,22 @@ from models.video import Video
 from models.frame import Frame, Status
 from models.element import Element
 
+import query
+
+
 OUTPUT_DIR = './result/retrieval_imgs/'
 app = Flask(__name__, static_url_path='/static')
 
-POSTGRES = {
- 'user': 'postgres',
- 'pw': 'silverTip',
- 'db': 'flaskmovie',
- 'host': 'localhost',
- 'port': '10000',
-}
+# POSTGRES = {
+#  'user': 'postgres',
+#  'pw': 'silverTip',
+#  'db': 'flaskmovie',
+#  'host': 'localhost',
+#  'port': '10000',
+# }
 app.config['DEBUG'] = True
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://%(user)s:\
-%(pw)s@%(host)s:%(port)s/%(db)s' % POSTGRES
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://%(user)s:\
+# %(pw)s@%(host)s:%(port)s/%(db)s' % POSTGRES
 
 
 @app.route('/')
@@ -65,7 +68,17 @@ def display():
 
 @app.route('/retrieve', methods=['GET', 'POST'])
 def retrieve():
-    pass
+    video_name = request.json['video'].split('/')[-1]
+    video_id = query.request_videoID(name=video_name)
+    while True:
+        name = query.request_frames(video_id)
+        if name == False:
+            time.sleep(10)
+        else:
+            break
+    print(name)
+    return name
+
 
 
 if __name__ == '__main__':
