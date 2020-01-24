@@ -1,10 +1,5 @@
-#  FIXME : come back and change the hardcoded value of how often to query
 #  This file issues queries to the database and returns the difference between finished and either processing or initialized
 
-import os
-import sys
-
-from sqlalchemy.orm.exc import MultipleResultsFound
 from models.common import db_session
 from models.video import Video
 from models.frame import Frame, Status
