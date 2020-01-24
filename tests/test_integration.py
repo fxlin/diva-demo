@@ -1,6 +1,7 @@
 import unittest
 import os
 import ffmpeg
+import time
 
 import grpc
 import server_diva_pb2_grpc
@@ -73,8 +74,10 @@ class TestProcessVideo(unittest.TestCase):
             response = stub.request_frame_path(
                 server_diva_pb2.query_statement(name='request directory'))
 
+        begin = time.time()
+
         while True:
-            sleep(5)
+            time.sleep(5)
             all_frames = session.query(Frame).join(Video).filter(
                 Video.name == self.SAMPLE_VIDEO).distinct().all()
 
@@ -84,6 +87,11 @@ class TestProcessVideo(unittest.TestCase):
                     Status.Finished).distinct().all()
 
             if len(processed_frames) == len(all_frames):
+                break
+            elif (time.time() - begin) > 1000 * 30:
+                print(
+                    f"TIMEOUT of processing video {(time.time() - begin)/1000}"
+                )
                 break
 
         temp_res = session.query(Frame).join(Video).filter(
