@@ -26,3 +26,10 @@ def init_db():
     import models.frame
     import models.video
     Base.metadata.create_all(bind=engine)
+
+
+def drop_all_tables(engineURL):
+    new_engine = create_engine(engineURL)
+    meta = MetaData(new_engine)
+    meta.reflect()
+    meta.drop_all()

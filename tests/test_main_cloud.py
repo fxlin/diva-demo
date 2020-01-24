@@ -12,7 +12,7 @@ from PIL import Image
 from variables import CAMERA_CHANNEL_ADDRESS, YOLO_CHANNEL_ADDRESS
 from variables import DIVA_CHANNEL_ADDRESS, DIVA_CHANNEL_PORT
 
-from models.common import db_session, init_db
+from models.common import db_session
 from models.video import Video
 from models.frame import Frame
 from models.element import Element

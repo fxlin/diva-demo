@@ -5,6 +5,7 @@ Init DB
 import os
 import sys
 import logging
+from sqlalchemy import MetaData
 from models.common import db_session, init_db
 from models.video import Video
 from variables import VIDEO_FOLDER
@@ -23,22 +24,27 @@ logging.getLogger('sqlalchemy').setLevel(logging.INFO)
 
 logging.info("Begin to initialize DB, wait 5 seconds")
 
-init_db()
 
-try:
-    for p in video_list:
-        v = Video(p[0], p[1])
-        db_session.add(v)
-    db_session.commit()
+def add_fixtures(db_session):
+    try:
+        for p in video_list:
+            v = Video(p[0], p[1])
+            db_session.add(v)
+        db_session.commit()
 
-    logging.info(
-        db_session.query(Video).filter(Video.name == video_list[0][0]).one())
-except Exception as err:
-    logging.error(err)
-    logging.error('Failed to initialize db')
-    db_session.rollback()
-    exit(1)
-finally:
-    db_session.remove()
+        logging.info(
+            db_session.query(Video).filter(
+                Video.name == video_list[0][0]).one())
+    except Exception as err:
+        logging.error(err)
+        logging.error('Failed to initialize db')
+        db_session.rollback()
+        exit(1)
+    finally:
+        db_session.remove()
 
-logging.info("Bootstrap DB")
+
+if __name__ == "__main__":
+    init_db()
+    add_fixtures(db_session)
+    logging.info("Bootstrap DB")
