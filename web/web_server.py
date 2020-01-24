@@ -20,17 +20,8 @@ import query
 
 OUTPUT_DIR = './result/retrieval_imgs/'
 app = Flask(__name__, static_url_path='/static')
-
-# POSTGRES = {
-#  'user': 'postgres',
-#  'pw': 'silverTip',
-#  'db': 'flaskmovie',
-#  'host': 'localhost',
-#  'port': '10000',
-# }
 app.config['DEBUG'] = True
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://%(user)s:\
-# %(pw)s@%(host)s:%(port)s/%(db)s' % POSTGRES
+
 
 
 @app.route('/')
@@ -49,26 +40,17 @@ def display():
     logging.basicConfig()
     with grpc.insecure_channel(DIVA_CHANNEL_ADDRESS) as channel:
         stub = server_diva_pb2_grpc.server_divaStub(channel)
-        response = stub.request_frame_path(server_diva_pb2.query_statement(name='request directory'))
-        #  response = stub.detect_object_in_video(server_diva_pb2.object_video_pair(object_name=obj,  video_name=video))
-    # pic_files = list()
-    # pic_files.append(response.directory_path)
-    # if os.path.exists(response.directory_path):
-    #     temp = os.listdir(response.directory_path)
-    #     for files in temp:
-    #         if '.png' in files or '.jpg' in files or '.jpeg' in files:
-    #             x, _ = files.split('.')
-    #             x = int(x) // 10
-    #             pic_files.append(files)
-    #             pic_files.append(str(x))
-    # temp = ','.join(pic_files)
+        #  response = stub.request_frame_path(server_diva_pb2.query_statement(name='request directory'))
+        response = stub.detect_object_in_video(server_diva_pb2.object_video_pair(object_name=obj,  video_name=video))
     temp = 'good'
+    print(temp)
     return jsonify(file=temp)
 
 
 @app.route('/retrieve', methods=['GET', 'POST'])
 def retrieve():
     video_name = request.json['video'].split('/')[-1]
+    print(video_name)
     video_id = query.request_videoID(name=video_name)
     if video_id:
         return jsonify(file=False)
@@ -78,6 +60,8 @@ def retrieve():
     ','.join(name)
     return jsonify(file=name)
 
+    # Testing Polling (JQuery) uncomment this line and comment the uncommented return
+    # return jsonify(file=False)
 
 
 if __name__ == '__main__':
