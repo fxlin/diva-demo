@@ -1,20 +1,11 @@
 from __future__ import print_function
 import logging
 import grpc
-import os
 import server_diva_pb2
 import server_diva_pb2_grpc
-import time
 from variables import DIVA_CHANNEL_ADDRESS
 from flask import Flask, render_template, request
 from flask import jsonify, send_from_directory
-
-from sqlalchemy.orm.exc import MultipleResultsFound
-from models.common import db_session, init_db
-from models.video import Video
-from models.frame import Frame, Status
-from models.element import Element
-
 import query
 
 
