@@ -81,3 +81,6 @@ test-cloud:
 
 test-yolo:
 	docker run --network=${NETWORK_NAME} -it --rm --gpus all --name=test_yolo ${DOCKER_USERNAME}/diva-yolo:latest python -m tests.test_yolo
+
+test-integration:
+	docker run --network=${NETWORK_NAME} -it --rm --name cloud -v ${VIDEO_DATA_PATH}:${VIDEO_DATA_PATH_IN_CONTAINER}:ro ${DOCKER_USERNAME}/diva-cloud:latest python -m tests.test_integration
