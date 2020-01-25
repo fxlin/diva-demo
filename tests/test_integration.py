@@ -76,8 +76,11 @@ class TestProcessVideo(unittest.TestCase):
 
         begin = time.time()
 
+        rounds = 1
+
         while True:
             time.sleep(5)
+            print(f'{} rounds of test')
             all_frames = session.query(Frame).join(Video).filter(
                 Video.name == self.SAMPLE_VIDEO).distinct().all()
 

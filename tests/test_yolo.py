@@ -9,9 +9,6 @@ import server_diva_pb2
 import numpy as np
 from PIL import Image
 
-from variables import CAMERA_CHANNEL_ADDRESS, YOLO_CHANNEL_ADDRESS
-from variables import DIVA_CHANNEL_ADDRESS, DIVA_CHANNEL_PORT
-
 from YOLOv3_grpc import run_det
 
 
