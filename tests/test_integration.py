@@ -40,7 +40,6 @@ class TestProcessVideo(unittest.TestCase):
         v = Video(cls.SAMPLE_VIDEO, source_path)
         session.add(v)
         session.commit()
-
         db_session.remove()
 
     @classmethod
@@ -80,7 +79,7 @@ class TestProcessVideo(unittest.TestCase):
 
         while True:
             time.sleep(5)
-            print(f'{} rounds of test')
+            print(f'{rounds} rounds of test')
             all_frames = session.query(Frame).join(Video).filter(
                 Video.name == self.SAMPLE_VIDEO).distinct().all()
 
