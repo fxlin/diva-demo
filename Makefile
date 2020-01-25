@@ -14,6 +14,7 @@ DEFAULT_POSTGRES_PORT=5432
 DEFAULT_POSTGRES_HOST=mypgdb
 
 WEB_SERVER_PORT=10000
+YOLO_SERVICE_PORT=10088
 
 run-all:
 	@make run-cloud
@@ -40,6 +41,9 @@ run-camera:
 
 run-yolo:
 	docker run --network=${NETWORK_NAME} -it  -d --gpus all --name=yolo ${DOCKER_USERNAME}/diva-yolo:latest
+
+run-yolo-with-port:
+	docker run --network=${NETWORK_NAME} -it  -d --gpus all --name=yolo -p ${YOLO_SERVICE_PORT}:${YOLO_SERVICE_PORT} ${DOCKER_USERNAME}/diva-yolo:latest
 
 run-webserver:
 	docker run --network=${NETWORK_NAME} -it -p ${WEB_SERVER_PORT}:${WEB_SERVER_PORT} -d --name=webserver ${DOCKER_USERNAME}/diva-webserver:latest
