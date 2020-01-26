@@ -59,7 +59,7 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
 class ImageProcessor(threading.Thread):
     def run(self):
         while not SHUTDOWN_SIGNAL.is_set():
-                logging.info('MDFK!!!!!!!!')
+            logging.info('MDFK!!!!!!!!')
 
             while not ImageQueue.empty():
                 logging.info('working on the given image')
