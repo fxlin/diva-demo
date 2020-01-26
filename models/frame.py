@@ -21,7 +21,7 @@ class Frame(Base):
     video = relationship("Video", back_populates="frames", order_by=id)
     elements = relationship("Element",
                             back_populates="frame",
-                            cascade="all,delete-orphan")
+                            cascade="all,delete-orphan,delete")
     processing_status = Column(Integer)
 
     def __init__(self,

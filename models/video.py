@@ -17,7 +17,7 @@ class Video(Base):
     path = Column(String)
     frames = relationship("Frame",
                           back_populates="video",
-                          cascade="all,delete-orphan")
+                          cascade="all,delete-orphan,delete")
 
     def __init__(self, name: str, path: str):
         self.name = name
