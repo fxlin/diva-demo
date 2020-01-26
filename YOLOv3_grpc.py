@@ -26,8 +26,8 @@ from tensorflow_yolov3_config import cfg
 import tensorflow_yolov3_utils as utils
 from tensorflow_yolov3 import YOLOv3, decode
 
-FORMAT = '%(asctime)-15s %(thread)d %(threadName)s %(message)s'
-logging.basicConfig(stream=sys.stdout, format=FORMAT, level=logging.DEBUG)
+FORMAT = '%(asctime)-15s %(levelname)8s %(thread)d %(threadName)s %(message)s'
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
 logger =  logging.getLogger(__name__)
 
 IMAGE_H, IMAGE_W = 608, 608
@@ -97,7 +97,7 @@ def run_det(image_data: np.ndarray, target_class: str) -> str:
 
     temp = filter_bbox(bboxes=bboxes, target_class=target_class)
 
-    logger.info("YOLOv3-det time: %.2f ms" % (1000 * (time.time() - start)))
+    logger.info("YOLOv3-det time: %.2f ms" % (time.time() - start))
 
     return temp
 

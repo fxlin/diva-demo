@@ -12,63 +12,15 @@ from PIL import Image
 from variables import CAMERA_CHANNEL_ADDRESS, YOLO_CHANNEL_ADDRESS
 from variables import DIVA_CHANNEL_ADDRESS, DIVA_CHANNEL_PORT
 
-from models.common import db_session
+from models.common import db_session, init_db
 from models.video import Video
 from models.frame import Frame
-from models.element import Element
 
 from main_cloud import ImageProcessor, FrameProcessor, YOLO_SCORE_THRE
 
 EXAMPLE_IMAGE_DETECTION_RESULT = '0.8701794743537903,77,242,98,278|0.36665189266204834,162,192,170,204'
 EXAMPLE_IMAGE_PATH = os.path.join('tests', 'sample_364.jpeg')
 TEMP_IMAGE_PATH = os.path.join('tests', 'temp_sample_364.jpeg')
-
-
-def query_video(object_name: str, video_name: str):
-    session = db_session()
-    res = session.query(Video).filter(Video.name == video_name).all()
-    if len(res) != 1:
-        raise Exception("Duplicated videos")
-
-    temp = session.query(Frame).filter(Frame.video_id == res[0].id).all()
-    if len(temp) > 0:
-        raise Exception("Table frame is not empty")
-
-    db_session.remove()
-    return res[0].id
-
-
-def detect_object(object_name: str, video_name: str, video_id: int):
-    with grpc.insecure_channel(DIVA_CHANNEL_ADDRESS) as channel:
-        stub = server_diva_pb2_grpc.server_divaStub(channel)
-        _ = stub.detect_object_in_video(
-            server_diva_pb2.object_video_pair(object_name=object_name,
-                                              video_name=video_name))
-
-    time.sleep(3)
-
-    session = db_session()
-    temp = session.query(Frame).filter(Frame.video_id == video_id).all()
-    if len(temp) == 0:
-        raise Exception(f'No frames related to {video_name}')
-
-    _temp = session.query(Element).all()
-
-    return _temp
-
-
-def simulate_detection():
-    OBJECT_NAME = 'motorbike'
-    VIDEO_NAME = 'traffic_cam_vid.mp4'
-
-    v_id = query_video(OBJECT_NAME, VIDEO_NAME)
-
-    elements = detect_object(OBJECT_NAME, VIDEO_NAME)
-
-    # FIXME
-    print(elements)
-
-    return elements
 
 
 class TestObjectDetection(unittest.TestCase):
@@ -108,10 +60,12 @@ class TestImageProcessor(unittest.TestCase):
 
         ImageProcessor.process_frame(TEMP_IMAGE_PATH, im, res)
 
-        self.assertTrue(os.path.exists(TEMP_IMAGE_PATH), f'file {TEMP_IMAGE_PATH} does not exist')
+        self.assertTrue(os.path.exists(TEMP_IMAGE_PATH),
+                        f'file {TEMP_IMAGE_PATH} does not exist')
 
         # FIXME compare images
 
 
 if __name__ == "__main__":
+    init_db()
     unittest.main()

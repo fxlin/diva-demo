@@ -60,6 +60,7 @@ class ImageProcessor(threading.Thread):
     def run(self):
         while not SHUTDOWN_SIGNAL.is_set():
             while not ImageQueue.empty():
+                logging.info('working on the given image')
                 self.consume_image_task()
 
     def consume_image_task(self):

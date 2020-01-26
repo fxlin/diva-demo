@@ -15,6 +15,8 @@ DEFAULT_POSTGRES_HOST=mypgdb
 
 WEB_SERVER_PORT=10000
 YOLO_SERVICE_PORT=10088
+CLOUD_SERVICE_PORT=10090
+
 
 run-all:
 	@make run-cloud
@@ -34,10 +36,10 @@ remove-network:
 	docker network rm ${NETWORK_NAME}
 
 run-cloud:
-	docker run --network=${NETWORK_NAME} -it -d --gpus all --name cloud -v ${VIDEO_DATA_PATH}:${VIDEO_DATA_PATH_IN_CONTAINER}:ro ${DOCKER_USERNAME}/diva-cloud:latest
+	docker run --network=${NETWORK_NAME} -it -d -p ${CLOUD_SERVICE_PORT}:${CLOUD_SERVICE_PORT} --name cloud -v ${VIDEO_DATA_PATH}:${VIDEO_DATA_PATH_IN_CONTAINER}:ro ${DOCKER_USERNAME}/diva-cloud:latest
 
 run-cloud-without-disk:
-	docker run --network=${NETWORK_NAME} -it -d --name cloud ${DOCKER_USERNAME}/diva-cloud:latest
+	docker run --network=${NETWORK_NAME} -it -d -p ${CLOUD_SERVICE_PORT}:${CLOUD_SERVICE_PORT} --name cloud ${DOCKER_USERNAME}/diva-cloud:latest
 
 run-camera:
 	docker run --network=${NETWORK_NAME} -it -d --gpus all --name camera -v ${CAMERA_RESULT_PATH}:${CAMERA_RESULT_PATH_IN_CONTAINER} ${DOCKER_USERNAME}/diva-camera:latest

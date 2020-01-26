@@ -11,7 +11,7 @@ from variables import DIVA_CHANNEL_ADDRESS
 
 from sqlalchemy.orm import Session
 from sqlalchemy import func, distinct
-from models.common import db_session
+from models.common import db_session, init_db
 from models.frame import Frame, Status
 from models.video import Video
 
@@ -49,13 +49,13 @@ class TestProcessVideo(unittest.TestCase):
             os.remove(p)
 
         session = db_session()
-        session.query(Frame).join(Video).filter(
-            Video.name == cls.SAMPLE_VIDEO).delete()
+        session.query(Video).filter(Video.name == cls.SAMPLE_VIDEO).delete()
 
         # FIXME test
         temp = session.query(Video).filter(
             Video.name == cls.SAMPLE_VIDEO).all()
         print(temp)
+        print(session.query(Frame).count())
 
     def test_process_video(self):
         session: Session = db_session()
@@ -75,10 +75,11 @@ class TestProcessVideo(unittest.TestCase):
 
         begin = time.time()
 
-        rounds = 1
+        rounds = 0 
 
         while True:
-            time.sleep(5)
+            time.sleep(10)
+            rounds += 1
             print(f'{rounds} rounds of test')
             all_frames = session.query(Frame).join(Video).filter(
                 Video.name == self.SAMPLE_VIDEO).distinct().all()
@@ -88,9 +89,9 @@ class TestProcessVideo(unittest.TestCase):
                     Frame.processing_status ==
                     Status.Finished).distinct().all()
 
-            if len(processed_frames) == len(all_frames):
+            if len(processed_frames) == len(all_frames) != 0:
                 break
-            elif (time.time() - begin) > 1000 * 30:
+            elif (time.time() - begin) > 60 * 5:
                 print(
                     f"TIMEOUT of processing video {(time.time() - begin)/1000}"
                 )
@@ -107,4 +108,5 @@ class TestProcessVideo(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    init_db()
     unittest.main()
