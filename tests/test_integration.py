@@ -70,8 +70,8 @@ class TestProcessVideo(unittest.TestCase):
 
         with grpc.insecure_channel(DIVA_CHANNEL_ADDRESS) as channel:
             stub = server_diva_pb2_grpc.server_divaStub(channel)
-            response = stub.request_frame_path(
-                server_diva_pb2.query_statement(name='request directory'))
+            response = stub.detect_object_in_video(
+                server_diva_pb2.object_video_pair(object_name='motorbike', video_name=self.SAMPLE_VIDEO))
 
         begin = time.time()
 
