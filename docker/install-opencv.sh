@@ -16,7 +16,7 @@ dpkg-reconfigure --frontend noninteractive tzdata
 # 2. INSTALL THE DEPENDENCIES
 
 # Build tools:
-apt-get install -y build-essential cmake gnupg2 software-properties-common curl wget tzdata
+apt-get install -y build-essential cmake gnupg2 software-properties-common curl wget tzdata ffmpeg
 
 # Python:
 # add-apt-repository -y ppa:jonathonf/python-3.6 && apt-get -y update

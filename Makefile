@@ -36,6 +36,9 @@ remove-network:
 run-cloud:
 	docker run --network=${NETWORK_NAME} -it -d --gpus all --name cloud -v ${VIDEO_DATA_PATH}:${VIDEO_DATA_PATH_IN_CONTAINER}:ro ${DOCKER_USERNAME}/diva-cloud:latest
 
+run-cloud-without-disk:
+	docker run --network=${NETWORK_NAME} -it -d --name cloud ${DOCKER_USERNAME}/diva-cloud:latest
+
 run-camera:
 	docker run --network=${NETWORK_NAME} -it -d --gpus all --name camera -v ${CAMERA_RESULT_PATH}:${CAMERA_RESULT_PATH_IN_CONTAINER} ${DOCKER_USERNAME}/diva-camera:latest
 
@@ -81,10 +84,10 @@ push-docker: build-docker
 	docker push ${DOCKER_USERNAME}/diva-webserver:latest
 
 test-cloud:
-	docker run --network=${NETWORK_NAME} -it --rm --name cloud -v ${VIDEO_DATA_PATH}:${VIDEO_DATA_PATH_IN_CONTAINER}:ro ${DOCKER_USERNAME}/diva-cloud:latest python -m tests.test_main_cloud
+	docker run --network=${NETWORK_NAME} -it --rm --name cloud  ${DOCKER_USERNAME}/diva-cloud:latest python -m tests.test_main_cloud
 
 test-yolo:
 	docker run --network=${NETWORK_NAME} -it --rm --gpus all --name=test_yolo ${DOCKER_USERNAME}/diva-yolo:latest python -m tests.test_yolo
 
 test-integration:
-	docker run --network=${NETWORK_NAME} -it --rm --name test_integration -v ${VIDEO_DATA_PATH}:${VIDEO_DATA_PATH_IN_CONTAINER}:ro ${DOCKER_USERNAME}/diva-cloud:latest python -m tests.test_integration
+	docker run --network=${NETWORK_NAME} -it --rm --name test_integration ${DOCKER_USERNAME}/diva-cloud:latest python -m tests.test_integration
