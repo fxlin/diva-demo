@@ -59,6 +59,8 @@ logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
 class ImageProcessor(threading.Thread):
     def run(self):
         while not SHUTDOWN_SIGNAL.is_set():
+                logging.info('MDFK!!!!!!!!')
+
             while not ImageQueue.empty():
                 logging.info('working on the given image')
                 self.consume_image_task()
@@ -101,6 +103,8 @@ class ImageProcessor(threading.Thread):
 class FrameProcessor(threading.Thread):
     def run(self):
         while not SHUTDOWN_SIGNAL.is_set():
+            logging.info('lalalala')
+
             while not TaskQueue.empty():
                 logging.info("Got a task to do")
                 self.detect_object()
