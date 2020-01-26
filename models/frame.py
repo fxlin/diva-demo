@@ -1,6 +1,6 @@
 from enum import IntEnum
 from sqlalchemy import Column, String, Integer, ForeignKey
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship
 from models.common import Base
 
 

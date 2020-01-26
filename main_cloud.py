@@ -26,7 +26,7 @@ from util import ClockLog
 
 from variables import CAMERA_CHANNEL_ADDRESS, YOLO_CHANNEL_ADDRESS, IMAGE_PATH, OP_FNAME_PATH
 from variables import FAKE_IMAGE_DIRECTOR_PATH, DIVA_CHANNEL_ADDRESS, DIVA_CHANNEL_PORT
-from variables import RESULT_IMAGE_PATH, VIDEO_FOLDER
+from variables import RESULT_IMAGE_PATH
 
 from constants.grpc_constant import INIT_DIVA_SUCCESS
 
@@ -52,7 +52,7 @@ image task: (image name, image data, bounding_boxes)
 TaskQueue = Queue(0)
 ImageQueue = Queue(10)
 
-FORMAT = '%(asctime)-15s %(thread)d %(threadName)s %(message)s'
+FORMAT = '%(asctime)-15s %(levelname)8s %(thread)d %(threadName)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
 
 
@@ -101,6 +101,7 @@ class FrameProcessor(threading.Thread):
     def run(self):
         while not SHUTDOWN_SIGNAL.is_set():
             while not TaskQueue.empty():
+                logging.info("Got a task to do")
                 self.detect_object()
 
     @staticmethod
@@ -422,19 +423,6 @@ def runDiva():
 
     camChannel.close()
     yoloChannel.close()
-
-
-def testYOLO():
-    with grpc.insecure_channel(YOLO_CHANNEL_ADDRESS) as channel:
-        stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(channel)
-        with open('tensorflow-yolov3/data/demo_data/dog.jpg', 'rb') as f:
-            sample_data = f.read()
-        response = stub.DetFrame(
-            det_yolov3_pb2.DetFrameRequest(data=sample_data,
-                                           name='dog.jpg',
-                                           cls='dog'))
-        print('client received: ' + response.res)
-        # client received: 0.9983274,68.61318969726562,156.36236572265625,289.6726379394531,650.7457885742188
 
 
 if __name__ == '__main__':

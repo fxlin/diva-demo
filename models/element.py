@@ -7,12 +7,12 @@ from models.frame import Frame
 
 
 class Element(Base):
-    __tablename__ = 'element'
+    __tablename__ = 'image_element'
     id = Column(Integer, primary_key=True)
     object_class = Column(String)
     box_coordinate = Column(String)
     frame_id = Column(Integer, ForeignKey('frame.id'), nullable=False)
-    frame = relationship("Frame", back_populates="elements")
+    frame = relationship("Frame", back_populates="elements", order_by=id)
 
     def __init__(self, object_class: str, box_coordinate: str, frame_id: int):
         self.object_class = object_class
