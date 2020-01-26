@@ -28,7 +28,7 @@ from tensorflow_yolov3 import YOLOv3, decode
 
 FORMAT = '%(asctime)-15s %(levelname)8s %(thread)d %(threadName)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
-logger =  logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 IMAGE_H, IMAGE_W = 608, 608
 # classes = util.read_coco_names('./tensorflow-yolov3/data/coco.names')
@@ -130,15 +130,18 @@ def run_det(image_data: np.ndarray, target_class: str) -> str:
 class DetYOLOv3Servicer(det_yolov3_pb2_grpc.DetYOLOv3Servicer):
     def DetFrame(self, request, context):
         img_data = request.data
-        cls = request.cls
+        object_class = request.cls
         name = request.name
+
+        logger.info(f'Processing {name} with target amid at {object_class}')
+
         # img = Image.frombytes('RGBA', (720, 1280), img_data, decoder_name='jpeg', 'jpg')
         # TODO: resolution shall not be hard-coded
         img = cv2.imdecode(np.fromstring(img_data, dtype=np.uint8), -1)
         img = cv2.resize(img, (IMAGE_H, IMAGE_W),
                          interpolation=cv2.INTER_NEAREST)
         img = img / 255.0
-        det_res = run_det(img, cls)
+        det_res = run_det(img, object_class)
         return det_yolov3_pb2.Score(res=det_res)
 
 
@@ -152,7 +155,7 @@ def serve():
         while True:
             time.sleep(60 * 60 * 24)
     except KeyboardInterrupt:
-        print('YOLOv3-det receiver stops!!!')
+        logger.warn('YOLOv3-det receiver stops!!!')
         server.stop(0)
 
 
