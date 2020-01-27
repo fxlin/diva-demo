@@ -1,16 +1,8 @@
 import unittest
-import time
 import os
-
-import grpc
-import server_diva_pb2_grpc
-import server_diva_pb2
 
 import numpy as np
 from PIL import Image
-
-from variables import CAMERA_CHANNEL_ADDRESS, YOLO_CHANNEL_ADDRESS
-from variables import DIVA_CHANNEL_ADDRESS, DIVA_CHANNEL_PORT
 
 from models.common import db_session, init_db
 from models.video import Video
@@ -23,20 +15,11 @@ EXAMPLE_IMAGE_PATH = os.path.join('tests', 'sample_364.jpeg')
 TEMP_IMAGE_PATH = os.path.join('tests', 'temp_sample_364.jpeg')
 
 
-class TestObjectDetection(unittest.TestCase):
-    OBJECT_NAME = 'motorbike'
-    VIDEO_NAME = 'traffic_cam_vid.mp4'
-
-    def test_query_video(self):
-        try:
-            temp_res = query_video(self.OBJECT_NAME, self.VIDEO_NAME)
-        except Exception as err:
-            self.fail(f'calling query_video but got {err}')
-
-        self.assertEqual(2, temp_res, 'id of traffic_cam_vid.mp4 should be 2')
-
-
 class TestFrameProcessor(unittest.TestCase):
+    OBJECT_NAME = 'motorbike'
+    VIDEO_NAME = 'example.mp4'
+    VIDEO_FOLDER = 'video'
+
     def test_get_bounding_boxes(self):
         EXPECTED_BOUNDIN_BOXES = [(77, 242, 98, 278), (162, 192, 170, 204)]
         res = FrameProcessor.get_bounding_boxes(EXAMPLE_IMAGE_DETECTION_RESULT)
@@ -46,10 +29,15 @@ class TestFrameProcessor(unittest.TestCase):
                 f'expect to get identical bounding boxes given the threshold of object detection is {YOLO_SCORE_THRE}'
             )
 
+    def test_extract_frame_nums(self):
+        p = os.path.join(self.VIDEO_FOLDER, self.VIDEO_NAME)
+        frame_indices = FrameProcessor.extract_frame_nums(p)
+        self.assertCountEqual(frame_indices, list(set(frame_indices)),
+                              "should only contain distinct integers")
+
 
 class TestImageProcessor(unittest.TestCase):
-    @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(self):
         if os.path.exists(TEMP_IMAGE_PATH):
             os.remove(TEMP_IMAGE_PATH)
 

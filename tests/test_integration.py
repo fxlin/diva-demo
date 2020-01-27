@@ -21,10 +21,9 @@ class TestProcessVideo(unittest.TestCase):
     SAMPLE_VIDEO = 'temp_video.mp4'
     SAMPLE_FOLDER = os.path.join('video')
 
-    @classmethod
-    def setUpClass(cls):
-        source_path = os.path.join(cls.SAMPLE_FOLDER, cls.SOURCE_VIDEO)
-        p = os.path.join(cls.SAMPLE_FOLDER, cls.SAMPLE_VIDEO)
+    def setUp(self):
+        source_path = os.path.join(self.SAMPLE_FOLDER, self.SOURCE_VIDEO)
+        p = os.path.join(self.SAMPLE_FOLDER, self.SAMPLE_VIDEO)
 
         source_video = ffmpeg.input(source_path)
 
@@ -37,23 +36,22 @@ class TestProcessVideo(unittest.TestCase):
         del source_video
 
         session = db_session()
-        v = Video(cls.SAMPLE_VIDEO, source_path)
+        v = Video(self.SAMPLE_VIDEO, source_path)
         session.add(v)
         session.commit()
         db_session.remove()
 
-    @classmethod
-    def tearDownClass(cls):
-        p = os.path.join(cls.SAMPLE_FOLDER, cls.SAMPLE_VIDEO)
+    def tearDownClass(self):
+        p = os.path.join(self.SAMPLE_FOLDER, self.SAMPLE_VIDEO)
         if os.path.exists(p):
             os.remove(p)
 
         session = db_session()
-        session.query(Video).filter(Video.name == cls.SAMPLE_VIDEO).delete()
+        session.query(Video).filter(Video.name == self.SAMPLE_VIDEO).delete()
 
         # FIXME test
         temp = session.query(Video).filter(
-            Video.name == cls.SAMPLE_VIDEO).all()
+            Video.name == self.SAMPLE_VIDEO).all()
         print(temp)
         print(session.query(Frame).count())
 
@@ -71,11 +69,12 @@ class TestProcessVideo(unittest.TestCase):
         with grpc.insecure_channel(DIVA_CHANNEL_ADDRESS) as channel:
             stub = server_diva_pb2_grpc.server_divaStub(channel)
             response = stub.detect_object_in_video(
-                server_diva_pb2.object_video_pair(object_name='motorbike', video_name=self.SAMPLE_VIDEO))
+                server_diva_pb2.object_video_pair(
+                    object_name='motorbike', video_name=self.SAMPLE_VIDEO))
 
         begin = time.time()
 
-        rounds = 0 
+        rounds = 0
 
         while True:
             time.sleep(10)
@@ -108,5 +107,4 @@ class TestProcessVideo(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    init_db()
     unittest.main()
