@@ -108,9 +108,11 @@ class FrameProcessor(threading.Thread):
                 self.detect_object()
 
     @staticmethod
-    def video_info(video_path) -> dict:
+    def video_info(video_path: str) -> dict:
         if not os.path.exists(video_path):
-            raise ValueError(f"path {video_path} does not exist")
+            if not os.path.exists(os.path.join(os.curdir, video_path)):
+                raise ValueError(f"path {video_path} does not exist")
+            video_path = os.path.join(os.curdir, video_path)
 
         probe = ffmpeg.probe(video_path)
 
@@ -275,10 +277,6 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
             if selected_video:
                 frame_ids = FrameProcessor.extract_frame_nums(
                     selected_video.path)
-                # FIXME
-                logging.info(
-                    f"adding {len(frame_ids)} tasks in queue. distinc: {len(list(set(frame_ids)))}"
-                )
 
                 _frame_list = []
 
