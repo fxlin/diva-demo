@@ -282,8 +282,7 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
                 frame_ids = FrameProcessor.extract_frame_nums(
                     selected_video.path)
 
-                _frame_list = []
-                _frame_list.append(Frame(str(f_id), selected_video.id, selected_video, Status.Initialized)) for f_id in frame_ids
+                _frame_list = [Frame(str(f_id), selected_video.id, selected_video, Status.Initialized) for f_id in frame_ids]
 
                 session.bulk_save_objects(_frame_list)
                 session.commit()
