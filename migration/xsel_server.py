@@ -11,7 +11,7 @@ from models.video import Video
 from variables import VIDEO_FOLDER
 
 # FIXME
-video_list = [('sonic.mp4', os.path.join(os.curdir, VIDEO_FOLDER,
+fixture_list = [('sonic.mp4', os.path.join(os.curdir, VIDEO_FOLDER,
                                          'sonic.mp4')),
               ('traffic_cam_vid.mp4',
                os.path.join(os.curdir, VIDEO_FOLDER, 'traffic_cam_vid.mp4')),
@@ -25,7 +25,7 @@ logging.getLogger('sqlalchemy').setLevel(logging.INFO)
 logging.info("Begin to initialize DB, wait 5 seconds")
 
 
-def add_fixtures(db_session):
+def add_fixtures(db_session, video_list: 'List[Tuple[str, str]]'):
     try:
         for p in video_list:
             v = Video(p[0], p[1])
@@ -34,7 +34,7 @@ def add_fixtures(db_session):
 
         logging.info(
             db_session.query(Video).filter(
-                Video.name == video_list[0][0]).one())
+                Video.name == video_list[0][0]).all())
     except Exception as err:
         logging.error(err)
         logging.error('Failed to initialize db')
@@ -46,5 +46,5 @@ def add_fixtures(db_session):
 
 if __name__ == "__main__":
     init_db()
-    add_fixtures(db_session)
+    add_fixtures(db_session, fixture_list)
     logging.info("Bootstrap DB")

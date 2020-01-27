@@ -22,42 +22,27 @@ class TestProcessVideo(unittest.TestCase):
     SAMPLE_FOLDER = os.path.join('video')
 
     def setUp(self):
-        source_path = os.path.join(self.SAMPLE_FOLDER, self.SOURCE_VIDEO)
-        # FIXME test
-        # p = os.path.join(self.SAMPLE_FOLDER, self.SAMPLE_VIDEO)
-        p = os.path.join(os.curdir, self.SAMPLE_FOLDER, self.SAMPLE_VIDEO)
-
-        source_video = ffmpeg.input(source_path)
-
-        # 00:00:10 - 00:00:20
-        # FPS is 30
-        FPS = 30
-        print(f'time {time.time()}')
-        source_video.trim(start_frame=10 * FPS,
-                          end_frame=20 * FPS).output(p).run()
-        print(f'time {time.time()} file {p} exists? {os.path.exists(p)}')
-
-        del source_video
-
-        session = db_session()
-        v = Video(self.SAMPLE_VIDEO, p)
-        session.add(v)
-        session.commit()
-        db_session.remove()
+        # session = db_session()
+        # v = Video(self.SAMPLE_VIDEO, p)
+        # session.add(v)
+        # session.commit()
+        # db_session.remove()
+        pass
 
     def tearDown(self):
-        p = os.path.join(self.SAMPLE_FOLDER, self.SAMPLE_VIDEO)
-        if os.path.exists(p):
-            os.remove(p)
+        # p = os.path.join(self.SAMPLE_FOLDER, self.SAMPLE_VIDEO)
+        # if os.path.exists(p):
+        #     os.remove(p)
 
-        session = db_session()
-        session.query(Video).filter(Video.name == self.SAMPLE_VIDEO).delete()
+        # session = db_session()
+        # session.query(Video).filter(Video.name == self.SAMPLE_VIDEO).delete()
 
-        # FIXME test
-        temp = session.query(Video).filter(
-            Video.name == self.SAMPLE_VIDEO).all()
-        print(temp)
-        print(session.query(Frame).count())
+        # # FIXME test
+        # temp = session.query(Video).filter(
+        #     Video.name == self.SAMPLE_VIDEO).all()
+        # print(temp)
+        # print(session.query(Frame).count())
+        pass
 
     def test_process_video(self):
         session: Session = db_session()

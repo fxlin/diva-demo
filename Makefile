@@ -61,6 +61,9 @@ run-postgres:
 init-postgres:
 	docker run --network=${NETWORK_NAME} --rm -it --name init_db  ${DOCKER_USERNAME}/diva-cloud:latest python -m migration.xsel_server
 
+fixture-postgres:
+	docker run --network=${NETWORK_NAME} --rm -it --name init_db  ${DOCKER_USERNAME}/diva-cloud:latest python -m migration.test_case
+
 build-base:
 	docker build  -t ${DOCKER_USERNAME}/diva-base:latest -f docker/Dockerfile.base .
 
