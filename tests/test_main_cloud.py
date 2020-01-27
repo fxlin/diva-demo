@@ -17,7 +17,7 @@ TEMP_IMAGE_PATH = os.path.join('tests', 'temp_sample_364.jpeg')
 
 class TestFrameProcessor(unittest.TestCase):
     OBJECT_NAME = 'motorbike'
-    VIDEO_NAME = 'example.mp4'
+    VIDEO_NAME = 'temp_video.mp4'
     VIDEO_FOLDER = 'video'
 
     def test_get_bounding_boxes(self):
@@ -32,6 +32,8 @@ class TestFrameProcessor(unittest.TestCase):
     def test_extract_frame_nums(self):
         p = os.path.join(self.VIDEO_FOLDER, self.VIDEO_NAME)
         frame_indices = FrameProcessor.extract_frame_nums(p)
+        print(f'sample frames {frame_indices}')
+        print(f'video info {FrameProcessor.video_info(p)}')
         self.assertCountEqual(frame_indices, list(set(frame_indices)),
                               "should only contain distinct integers")
 
