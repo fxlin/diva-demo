@@ -283,16 +283,12 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
                     selected_video.path)
 
                 _frame_list = []
-
-                for f_id in frame_ids:
-                    _frame_list.append(
-                        Frame(str(f_id), selected_video.id, selected_video,
-                              Status.Initialized))
-                    TaskQueue.put((selected_video.id, selected_video.path,
-                                   f_id, object_name))
+                _frame_list.append(Frame(str(f_id), selected_video.id, selected_video, Status.Initialized)) for f_id in frame_ids
 
                 session.bulk_save_objects(_frame_list)
                 session.commit()
+
+                TaskQueue.put((selected_video.id, selected_video.path, f_id, object_name)) for f_id in frame_ids
             else:
                 logging.warning(f'Failed to find video with name {video_name}')
 
@@ -302,9 +298,7 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
             )
         except Exception as err:
             logging.error(f"Failed to insert frame data into DB: {err}")
-            print("-"*60)
-            traceback.print_exc(file=sys.stdout)
-            print("-"*60)
+
             session.rollback()
         finally:
             db_session.remove()
