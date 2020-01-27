@@ -30,16 +30,19 @@ source_path = os.path.join(_SAMPLE_FOLDER, _SOURCE_VIDEO)
 # p = os.path.join(self.SAMPLE_FOLDER, self.SAMPLE_VIDEO)
 p = os.path.join(os.curdir, _SAMPLE_FOLDER, _SAMPLE_VIDEO)
 
-source_video = ffmpeg.input(source_path)
 
-# 00:00:10 - 00:00:20
-# FPS is 30
-FPS = 30
-print(f'time {time.time()}')
-source_video.trim(start_frame=10 * FPS, end_frame=20 * FPS).output(p).run()
-print(f'time {time.time()} file {p} exists? {os.path.exists(p)}')
+def generate_test_video(source_path: str, output_path: str):
+    source_video = ffmpeg.input(source_path)
+
+    # 00:00:10 - 00:00:20
+    # FPS is 30
+    FPS = 30
+    logging.info(f'time {time.time()}')
+    source_video.trim(start_frame=10 * FPS,
+                      end_frame=20 * FPS).output(output_path).run()
+    logging.info(f'time {time.time()} file {p} exists? {os.path.exists(p)}')
+
 
 if __name__ == "__main__":
     init_db()
     add_fixtures(db_session, video_list)
-    logging.info("Bootstrap DB")
