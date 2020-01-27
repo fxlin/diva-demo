@@ -301,7 +301,7 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
                 zz_set = set([xxx.name for xxx in _frame_list])
                 logger.warning(
                     f'Any duplicate between {gg_set.union(zz_set)}?')
-                if gg_set.union(zz_set):
+                if gg_set.intersection(zz_set):
                     logger.warning(f'what is this thread???')
                     raise Exception(f'fuck!!!!!!!!!!! why?')
 
