@@ -23,7 +23,6 @@ class Frame(Base):
                             back_populates="frame",
                             cascade="all,delete-orphan,delete")
     processing_status = Column(Integer)
-    unique_id = Column(String, nullable=False, unique=True)
 
     def __init__(self,
                  name: str,
@@ -34,7 +33,6 @@ class Frame(Base):
         self.video_id = video_id
         self.video = video
         self.processing_status = status
-        self.unique_id = str(hash('_'.join([name, str(video_id)])))
 
     def add_elements(self, elements):
         if elements:
