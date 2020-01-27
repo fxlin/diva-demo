@@ -3,6 +3,7 @@ Ingest video frames and perform object detection on frames.
 """
 
 import os, sys
+import traceback
 import logging
 from concurrent import futures
 import time
@@ -300,7 +301,10 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
                 f'Found multiple result when finding video with name {video_name}: {m_err}'
             )
         except Exception as err:
-            logging.error(err)
+            logging.error(f"Failed to insert frame data into DB: {err}")
+            print("-"*60)
+            traceback.print_exc(file=sys.stdout)
+            print("-"*60)
             session.rollback()
         finally:
             db_session.remove()
