@@ -112,7 +112,7 @@ class FrameProcessor(threading.Thread):
         if not os.path.exists(video_path):
             if not os.path.exists(os.path.join(os.curdir, video_path)):
                 logging.info(
-                    f'time {time.time()} video path {video_path} or {os.path.join(os.curdir, video_path)} exists {os.path.exists(os.path.join(os.curdir, video_path))}'
+                    f'time {time.time()} video path {video_path}: all files {os.listdir(os.curdir)}'
                 )
                 raise ValueError(f"path {video_path} does not exist")
             video_path = os.path.join(os.curdir, video_path)
