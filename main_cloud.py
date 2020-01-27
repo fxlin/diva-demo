@@ -21,6 +21,8 @@ import cam_cloud_pb2
 import cam_cloud_pb2_grpc
 import server_diva_pb2_grpc
 import server_diva_pb2
+# FIXME
+from google.protobuf import empty_pb2
 
 from util import ClockLog
 
@@ -194,10 +196,10 @@ class FrameProcessor(threading.Thread):
                     Status.Initialized).one_or_none()
         except MultipleResultsFound as m_err:
             # FIXME
-            logging.info(session.query(Frame).filter(
-                Frame.name == str(frame_num)).filter(
-                    Frame.processing_status ==
-                    Status.Initialized).all())
+            logging.info(
+                session.query(Frame).filter(
+                    Frame.name == str(frame_num)).filter(
+                        Frame.processing_status == Status.Initialized).all())
             logging.error(
                 f'Found too many frames with name {frame_num}: {m_err}')
         except Exception as err:
@@ -274,7 +276,9 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
                 frame_ids = FrameProcessor.extract_frame_nums(
                     selected_video.path)
                 # FIXME
-                logging.info(f"adding {len(frame_ids)} tasks in queue. distinc: {len(list(set(frame_ids)))}")
+                logging.info(
+                    f"adding {len(frame_ids)} tasks in queue. distinc: {len(list(set(frame_ids)))}"
+                )
 
                 _frame_list = []
 
@@ -300,9 +304,7 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
         finally:
             db_session.remove()
 
-        # FIXME should return nothing
-        path_arr = []
-        return server_diva_pb2.image_paths(path=path_arr)
+        return empty_pb2.Empty()
 
 
 def grpc_serve():
