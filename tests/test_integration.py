@@ -41,7 +41,7 @@ class TestProcessVideo(unittest.TestCase):
         session.commit()
         db_session.remove()
 
-    def tearDownClass(self):
+    def tearDown(self):
         p = os.path.join(self.SAMPLE_FOLDER, self.SAMPLE_VIDEO)
         if os.path.exists(p):
             os.remove(p)
@@ -107,4 +107,5 @@ class TestProcessVideo(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    init_db()
     unittest.main()
