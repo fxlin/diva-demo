@@ -36,7 +36,7 @@ class TestProcessVideo(unittest.TestCase):
         del source_video
 
         session = db_session()
-        v = Video(self.SAMPLE_VIDEO, source_path)
+        v = Video(self.SAMPLE_VIDEO, p)
         session.add(v)
         session.commit()
         db_session.remove()
@@ -68,7 +68,7 @@ class TestProcessVideo(unittest.TestCase):
 
         with grpc.insecure_channel(DIVA_CHANNEL_ADDRESS) as channel:
             stub = server_diva_pb2_grpc.server_divaStub(channel)
-            response = stub.detect_object_in_video(
+            _ = stub.detect_object_in_video(
                 server_diva_pb2.object_video_pair(
                     object_name='motorbike', video_name=self.SAMPLE_VIDEO))
 
