@@ -32,8 +32,10 @@ class TestProcessVideo(unittest.TestCase):
         # 00:00:10 - 00:00:20
         # FPS is 30
         FPS = 30
+        print(f'time {time.time()}')
         source_video.trim(start_frame=10 * FPS,
                           end_frame=20 * FPS).output(p).run()
+        print(f'time {time.time()} file {p} exists? {os.path.exists(p)}')
 
         del source_video
 
