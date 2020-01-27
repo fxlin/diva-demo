@@ -57,13 +57,14 @@ ImageQueue = Queue(10)
 
 FORMAT = '%(asctime)-15s %(levelname)8s %(thread)d %(threadName)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
+logger = logging.getLogger(__name__)
 
 
 class ImageProcessor(threading.Thread):
     def run(self):
         while not SHUTDOWN_SIGNAL.is_set():
             while not ImageQueue.empty():
-                logging.info('working on the given image')
+                logger.info('working on the given image')
                 self.consume_image_task()
 
     def consume_image_task(self):
@@ -105,7 +106,7 @@ class FrameProcessor(threading.Thread):
     def run(self):
         while not SHUTDOWN_SIGNAL.is_set():
             while not TaskQueue.empty():
-                logging.info("Got a task to do")
+                logger.info("Got a task to do")
                 self.detect_object()
 
     @staticmethod
@@ -176,11 +177,11 @@ class FrameProcessor(threading.Thread):
         # FIXME to test blocking feature
         _t = time.time()
         task = TaskQueue.get(block=True)
-        logging.info(f'Time elapse {time.time() - _t}')
+        logger.info(f'Time elapse {time.time() - _t}')
 
         _start_time = time.time()
 
-        logging.info(f'Task {task}')
+        logger.info(f'Task {task}')
 
         yolo_channel = grpc.insecure_channel(YOLO_CHANNEL_ADDRESS)
         yolo_stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(yolo_channel)
@@ -192,7 +193,7 @@ class FrameProcessor(threading.Thread):
         picked_frame = None
 
         # FIXME
-        logging.info(
+        logger.info(
             f'before query: {session.query(Frame).filter(Frame.name == str(frame_num)).filter(Frame.processing_status == Status.Initialized).all()}'
         )
 
@@ -203,33 +204,33 @@ class FrameProcessor(threading.Thread):
                     Status.Initialized).one_or_none()
         except MultipleResultsFound as m_err:
             # FIXME
-            logging.info(
+            logger.info(
                 f'after query: {session.query(Frame).filter(Frame.name == str(frame_num)).filter(Frame.processing_status == Status.Initialized).all()}'
             )
 
-            logging.error(
+            logger.error(
                 f'Found too many frames with name {frame_num}: {m_err}')
         except Exception as err:
-            logging.error(err)
+            logger.error(err)
 
         if picked_frame:
             try:
                 picked_frame.processing_status = Status.Processing
                 session.commit()
             except Exception as err:
-                logging.error(err)
+                logger.error(err)
 
             img_name = f'{frame_num}.jpg'
             img_data = self.extract_one_frame(video_path, frame_num)
 
-            logging.debug(f"Sending extracted frame {task[1]} to YOLO")
+            logger.debug(f"Sending extracted frame {task[1]} to YOLO")
             detected_objects = yolo_stub.DetFrame(
                 det_yolov3_pb2.DetFrameRequest(data=img_data,
                                                name=img_name,
                                                cls=object_name))
 
             boxes = self.get_bounding_boxes(detected_objects.res)
-            logging.debug(f"bounding box of {object_name}: {boxes}")
+            logger.debug(f"bounding box of {object_name}: {boxes}")
 
             try:
                 picked_frame.processing_status = Status.Finished
@@ -247,7 +248,7 @@ class FrameProcessor(threading.Thread):
 
                     ImageQueue.put((img_name, img_data, boxes))
             except Exception as err:
-                logging.error(
+                logger.error(
                     f'Working on task {task} but encounter error: {err}')
                 session.rollback()
 
@@ -255,7 +256,7 @@ class FrameProcessor(threading.Thread):
 
         yolo_channel.close()
 
-        logging.info(f'Take {time.time() - _start_time} m second to finish')
+        logger.info(f'Take {time.time() - _start_time} m second to finish')
 
 
 class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
@@ -269,6 +270,10 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
             directory_path=FAKE_IMAGE_DIRECTOR_PATH)
 
     def detect_object_in_video(self, request, context):
+
+        # FIXME
+        logger.error(f'Moterh fuck, they call me {time.time()}')
+
         object_name = request.object_name
         video_name = request.video_name
 
@@ -276,49 +281,52 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
         try:
             selected_video = session.query(Video).filter(
                 Video.name == video_name).one_or_none()
-            logging.debug(
+            logger.debug(
                 f'finding video: {video_name} result: {selected_video}')
 
             if selected_video:
-                # FIXME any frames in db???
-                logging.info(
-                    f'frames in db: {session.query(Frame).join(Video).filter(Video.name == video_name).all()}'
-                )
-
                 frame_ids = FrameProcessor.extract_frame_nums(
                     selected_video.path)
-
-                # FIXME
-                temp_list = [
-                    str(hash('_'.join([str(gg),
-                                       str(selected_video.id)])))
-                    for gg in frame_ids
-                ]
-
-                logging.info(
-                    f'frame indices {frame_ids}, temp_list {len(temp_list)}, distinct {len(list(set(temp_list)))}'
-                )
 
                 _frame_list = [
                     Frame(str(f_id), selected_video.id, selected_video,
                           Status.Initialized) for f_id in frame_ids
                 ]
 
+                # FIXME any frames in db???
+                temp_res = session.query(Frame).join(Video).filter(
+                    Video.name == video_name).all()
+                logger.info(f'frames in db: num: {len(temp_res)} {temp_res}')
+                gg_set = set([ccc.name for ccc in temp_res])
+                zz_set = set([xxx.name for xxx in _frame_list])
+                logger.warning(
+                    f'Any duplicate between {gg_set.union(zz_set)}?')
+                if gg_set.union(zz_set):
+                    logger.warning(f'what is this thread???')
+                    raise Exception(f'fuck!!!!!!!!!!! why?')
+
                 session.bulk_save_objects(_frame_list)
                 session.commit()
+
+                # FIXME
+                temp_res_another = session.query(Frame).join(Video).filter(
+                    Video.name == video_name).all()
+                logger.info(
+                    f'frames in db: num: {len(temp_res_another)} = {len(temp_res)} + {len(frame_ids)}'
+                )
 
                 for f_id in frame_ids:
                     TaskQueue.put((selected_video.id, selected_video.path,
                                    f_id, object_name))
             else:
-                logging.warning(f'Failed to find video with name {video_name}')
+                logger.warning(f'Failed to find video with name {video_name}')
 
         except MultipleResultsFound as m_err:
-            logging.error(
+            logger.error(
                 f'Found multiple result when finding video with name {video_name}: {m_err}'
             )
         except Exception as err:
-            logging.error(f"Failed to insert frame data into DB: {err}")
+            logger.error(f"Failed to insert frame data into DB: {err}")
 
             session.rollback()
         finally:
@@ -334,7 +342,7 @@ def grpc_serve():
         diva_servicer, server)
     server.add_insecure_port(f'[::]:{DIVA_CHANNEL_PORT}')
     server.start()
-    logging.info("GRPC server is runing")
+    logger.info("GRPC server is runing")
 
     return server
 
@@ -354,7 +362,7 @@ def detection_serve():
         image_worker.start()
         thread_list.append(image_worker)
 
-    logging.info("workers are runing")
+    logger.info("workers are runing")
 
     # NOTE should not join since we don't want the program got blocked here
     # for _t in thread_list:
@@ -377,7 +385,7 @@ def deploy_operator_on_camera(operator_path: str,
     while op_data != b"":
         response = camStub.DeployOp(cam_cloud_pb2.Chunk(data=op_data))
         if response.msg != 'OK':
-            logging.warning('DIVA deploy op fails!!!')
+            logger.warning('DIVA deploy op fails!!!')
             return
         op_data = f.read(CHUNK_SIZE)
     f.close()
@@ -460,7 +468,7 @@ if __name__ == '__main__':
 
     init_db()
 
-    logging.info("Init threads")
+    logger.info("Init threads")
 
     detection_serve()
 
@@ -471,11 +479,11 @@ if __name__ == '__main__':
         while True:
             time.sleep(60 * 60 * 24)
     except KeyboardInterrupt:
-        logging.info('cloud receiver stops!!!')
+        logger.info('cloud receiver stops!!!')
         SHUTDOWN_SIGNAL.set()
         _server.stop(0)
     except Exception as err:
-        logging.warning(err)
+        logger.warning(err)
         SHUTDOWN_SIGNAL.set()
         _server.stop(1)
 
