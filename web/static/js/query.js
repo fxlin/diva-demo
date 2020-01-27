@@ -23,9 +23,9 @@ document.addEventListener('DOMContentLoaded', function(){
             } else {
                 window.clearTimeout(pollingTime);
             }
-            let arrimg = computeReturn['file'].split(',');
+            let arrImg = computeReturn['file'].split(',');
             let time = computeReturn['t'].split(',');
-            console.log(arrimg);
+            console.log(arrImg);
             document.getElementById('work').style.display = "block";
             document.getElementById('workimage').style.display = "block";
             document.getElementById('demo_tab').style.display = "block";
@@ -36,9 +36,9 @@ document.addEventListener('DOMContentLoaded', function(){
                     child = document.getElementById('results').lastElementChild;
                 }
             }
-            for (let i = 0; i < arrimg.length; i += 1) {
+            for (let i = 0; i < arrImg.length; i += 1) {
                 let img = new Image();
-                img.src = './static/output/' + arrimg[i];
+                img.src = './static/output/' + arrImg[i];
                 img.width = 400;
                 img.height = 300;
                 img.addEventListener('click', function () {
@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', function(){
             url: "/display",
          }).done(function (computeReturn) {
              // display_images();
+            console.log("going to call to retrieve images from database in 10 seconds");
             pollingTime = window.setTimeout(display_images, 10000);
         });
     }

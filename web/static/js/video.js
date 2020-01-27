@@ -12,17 +12,17 @@ document.addEventListener('DOMContentLoaded', function(){
             video('/static/video/output.mp4');
         }, false);
 
-    function video(a) {
+    function video(a){
         vid = a;
-       document.getElementById('vidtitle').style.display = "block";
-       document.getElementById('video').style.display = "block";
-       document.getElementById('video_tab').style.display = "block";
-       if(document.getElementById('videodisplay').src === a){
+        document.getElementById('vidtitle').style.display = "block";
+        document.getElementById('video').style.display = "block";
+        document.getElementById('video_tab').style.display = "block";
+        if(document.getElementById('videodisplay').src === a){
 
-       }
-       else {
-           document.getElementById('videodisplay').src = a;
-       }
+        }
+        else {
+            document.getElementById('videodisplay').src = a;
+        }
     }
 
 },false);
