@@ -9,9 +9,17 @@ from models.element import Element
 def request_frames(video_name):
     session = db_session()
     session.begin()
-    processed_frames = session.query(Frame.name).join(Video).filter(Video.name == video_name).filter(Frame.processing_status == Status.Finished).all()
+    processed_frames = session.query(Frame.name).join(Video).filter(Video.name == video_name)\
+        .filter(Frame.processing_status == Status.Finished).all()
     all_frames = session.query(Frame.name).join(Video).filter(Video.name == video_name).all()
     return processed_frames if len(processed_frames) == len(all_frames) else False
+
+
+def request_coordinates(frame_id, time):
+    session = db_session()
+    session.begin()
+    coordinates = session.query(Element.box_coordinate).join(Video).filter(Frame.id == frame_id).limit(300).all()
+    return coordinates
 
 
 #  Test to see if it works properly

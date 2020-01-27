@@ -39,15 +39,26 @@ def display():
 
 
 @app.route('/retrieve', methods=['GET', 'POST'])
-def retrieve():
+def retrieve_frames():
+    time = list()
     video_name = request.json['video'].split('/')[-1]
     print(video_name)
     name = query.request_frames(video_name)
     if name:
         return jsonify(file=name)
-    ','.join(name)
-    return jsonify(file=name)
+    for i in name:
+        time.append(str(int(i.split('.')[0]) // 10))
+    name = ','.join(name)
+    time = ','.join(time)
+    return jsonify(file=name, t=time)
 
+
+@app.route('/coordinates', methods=['GET', 'POST'])
+def retrieve_coordinates():
+    frame_id = request.json['frame']
+    time = request.json['time']
+    coordinates = query.request_coordinates(frame_id, time)
+    return jsonify(coordinates=coordinates)
 
 if __name__ == '__main__':
     app.run('0.0.0.0', 10000)

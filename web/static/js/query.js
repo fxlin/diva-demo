@@ -9,22 +9,22 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 
     function display_images() {
-        var computeReturn = $.ajax({
+        let computeReturn = $.ajax({
             method: "POST",
             contentType: 'application/json',
             dataType: "json",
             data: JSON.stringify({'video': vid}),
             url: "/retrieve",
-         }).done(function (computeReturn) {
+        }).done(function (computeReturn) {
             console.log(computeReturn);
-            if(computeReturn['file'] === false){
+            if (computeReturn['file'] === false) {
                 pollingTime = window.setTimeout(display_images, 10000);
                 return;
-            }
-            else{
+            } else {
                 window.clearTimeout(pollingTime);
             }
-            arrimg = computeReturn['file'].split(',');
+            let arrimg = computeReturn['file'].split(',');
+            let time = computeReturn['t'].split(',');
             console.log(arrimg);
             document.getElementById('work').style.display = "block";
             document.getElementById('workimage').style.display = "block";
@@ -36,17 +36,14 @@ document.addEventListener('DOMContentLoaded', function(){
                     child = document.getElementById('results').lastElementChild;
                 }
             }
-            for (let i = 1; i < arrimg.length; i += 2) {
+            for (let i = 0; i < arrimg.length; i += 1) {
                 let img = new Image();
-                let dir = arrimg[0] +'/' + arrimg[i];
-                img.src = dir;
-                img.src = "{{ url_for('download_file', filename=" + arrimg[i] + ") }}";
+                img.src = './static/output/' + arrimg[i];
                 img.width = 400;
                 img.height = 300;
                 img.addEventListener('click', function () {
-                    array(parseInt(arrimg[i + 1]))
+                    array(parseInt(time[i]))
                 }, false);
-                // img.addEventListener('click', function(val){return function(){array(val);};}(i), false);
                 document.getElementById('results').appendChild(img);
 
             }
@@ -56,14 +53,14 @@ document.addEventListener('DOMContentLoaded', function(){
     function call_diva() {
         console.log(vid);
         console.log(obj);
-        var computeReturn = $.ajax({
+        let computeReturn = $.ajax({
             method: "POST",
             contentType: 'application/json',
             dataType: "json",
             data: JSON.stringify({'video': vid, 'object':obj}),
             url: "/display",
          }).done(function (computeReturn) {
-             display_images()
+             display_images();
         });
     }
 
