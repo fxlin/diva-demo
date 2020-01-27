@@ -34,7 +34,7 @@ class Frame(Base):
         self.video_id = video_id
         self.video = video
         self.processing_status = status
-        self.unique_id = ",".join([name, str(video_id)])
+        self.unique_id = "_".join([name, str(video_id)])
 
     def add_elements(self, elements):
         if elements:

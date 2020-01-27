@@ -39,7 +39,8 @@ class TestFrameProcessor(unittest.TestCase):
 
 
 class TestImageProcessor(unittest.TestCase):
-    def tearDownClass(self):
+    @staticmethod
+    def tearDownClass(cls):
         if os.path.exists(TEMP_IMAGE_PATH):
             os.remove(TEMP_IMAGE_PATH)
 
@@ -52,8 +53,6 @@ class TestImageProcessor(unittest.TestCase):
 
         self.assertTrue(os.path.exists(TEMP_IMAGE_PATH),
                         f'file {TEMP_IMAGE_PATH} does not exist')
-
-        # FIXME compare images
 
 
 if __name__ == "__main__":

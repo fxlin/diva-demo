@@ -190,6 +190,12 @@ class FrameProcessor(threading.Thread):
 
         session = db_session()
         picked_frame = None
+
+        # FIXME
+        logging.info(
+            f'before query: {session.query(Frame).filter(Frame.name == str(frame_num)).filter(Frame.processing_status == Status.Initialized).all()}'
+        )
+
         try:
             picked_frame = session.query(Frame).filter(
                 Frame.name == str(frame_num)).filter(
@@ -198,9 +204,9 @@ class FrameProcessor(threading.Thread):
         except MultipleResultsFound as m_err:
             # FIXME
             logging.info(
-                session.query(Frame).filter(
-                    Frame.name == str(frame_num)).filter(
-                        Frame.processing_status == Status.Initialized).all())
+                f'after query: {session.query(Frame).filter(Frame.name == str(frame_num)).filter(Frame.processing_status == Status.Initialized).all()}'
+            )
+
             logging.error(
                 f'Found too many frames with name {frame_num}: {m_err}')
         except Exception as err:
@@ -274,8 +280,21 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
                 f'finding video: {video_name} result: {selected_video}')
 
             if selected_video:
+                # FIXME any frames in db???
+                logging.info(
+                    f'frames in db: {session.query(Frame).join(Video).filter(Video.name == video_name).all()}'
+                )
+
                 frame_ids = FrameProcessor.extract_frame_nums(
                     selected_video.path)
+
+                # FIXME
+                temp_list = [
+                    '_'.join(gg, str(selected_video.id)) for gg in frame_ids
+                ]
+                logging.info(
+                    f'frame indices {frame_ids}, temp_list {len(temp_list)}, distinct {len(list(set(temp_list)))}'
+                )
 
                 _frame_list = [
                     Frame(str(f_id), selected_video.id, selected_video,
