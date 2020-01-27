@@ -290,9 +290,11 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
 
                 # FIXME
                 temp_list = [
-                    str(hash('_'.join([name, str(selected_video.id)])))
+                    str(hash('_'.join([str(gg),
+                                       str(selected_video.id)])))
                     for gg in frame_ids
                 ]
+
                 logging.info(
                     f'frame indices {frame_ids}, temp_list {len(temp_list)}, distinct {len(list(set(temp_list)))}'
                 )
