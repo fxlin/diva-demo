@@ -23,7 +23,9 @@ class TestProcessVideo(unittest.TestCase):
 
     def setUp(self):
         source_path = os.path.join(self.SAMPLE_FOLDER, self.SOURCE_VIDEO)
-        p = os.path.join(self.SAMPLE_FOLDER, self.SAMPLE_VIDEO)
+        # FIXME test
+        # p = os.path.join(self.SAMPLE_FOLDER, self.SAMPLE_VIDEO)
+        p = os.path.join(os.curdir, self.SAMPLE_FOLDER, self.SAMPLE_VIDEO)
 
         source_video = ffmpeg.input(source_path)
 

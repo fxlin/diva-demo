@@ -111,6 +111,7 @@ class FrameProcessor(threading.Thread):
     def video_info(video_path: str) -> dict:
         if not os.path.exists(video_path):
             if not os.path.exists(os.path.join(os.curdir, video_path)):
+                logging.info(f'video path {video_path} or {os.path.join(os.curdir, video_path)}')
                 raise ValueError(f"path {video_path} does not exist")
             video_path = os.path.join(os.curdir, video_path)
 
@@ -119,7 +120,7 @@ class FrameProcessor(threading.Thread):
         video_stream = next((stream for stream in probe['streams']
                              if stream['codec_type'] == 'video'), None)
         if video_stream is None:
-            raise ValueError(f'{video_path} is invalid\nNo video stream found')
+            raise ValueError(f'{video_path} is invalid: No video stream found')
 
         return video_stream
 
