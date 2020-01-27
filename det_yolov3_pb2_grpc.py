@@ -15,7 +15,7 @@ class DetYOLOv3Stub(object):
       channel: A grpc.Channel.
     """
     self.DetFrame = channel.unary_unary(
-        '/DetYOLOv3/DetFrame',
+        '/det_yolov3.DetYOLOv3/DetFrame',
         request_serializer=det__yolov3__pb2.DetFrameRequest.SerializeToString,
         response_deserializer=det__yolov3__pb2.Score.FromString,
         )
@@ -42,5 +42,5 @@ def add_DetYOLOv3Servicer_to_server(servicer, server):
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
-      'DetYOLOv3', rpc_method_handlers)
+      'det_yolov3.DetYOLOv3', rpc_method_handlers)
   server.add_generic_rpc_handlers((generic_handler,))

@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+package det_yolov3;
+
 service DetYOLOv3 {
     rpc DetFrame (DetFrameRequest) returns (Score) {}
 }

@@ -13,6 +13,7 @@ from google.protobuf import symbol_database as _symbol_database
 _sym_db = _symbol_database.Default()
 
 
+from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 
 
 DESCRIPTOR = _descriptor.FileDescriptor(
@@ -20,8 +21,9 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='server_diva',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x11server_diva.proto\x12\x0bserver_diva\"\x1f\n\x0fquery_statement\x12\x0c\n\x04name\x18\x01 \x01(\t\"<\n\x11object_video_pair\x12\x13\n\x0bobject_name\x18\x01 \x01(\t\x12\x12\n\nvideo_name\x18\x02 \x01(\t\"#\n\tdirectory\x12\x16\n\x0e\x64irectory_path\x18\x01 \x01(\t\"F\n\x0c\x62ounding_box\x12\x0c\n\x04xmin\x18\x01 \x01(\x01\x12\x0c\n\x04ymin\x18\x02 \x01(\x01\x12\x0c\n\x04xmax\x18\x03 \x01(\x01\x12\x0c\n\x04ymax\x18\x04 \x01(\x01\"H\n\x0bimage_paths\x12\r\n\x05paths\x18\x01 \x03(\t\x12*\n\x07\x62ox_arr\x18\x02 \x03(\x0b\x32\x19.server_diva.bounding_box2\xb1\x01\n\x0bserver_diva\x12L\n\x12request_frame_path\x12\x1c.server_diva.query_statement\x1a\x16.server_diva.directory\"\x00\x12T\n\x16\x64\x65tect_object_in_video\x12\x1e.server_diva.object_video_pair\x1a\x18.server_diva.image_paths\"\x00\x62\x06proto3')
-)
+  serialized_pb=_b('\n\x11server_diva.proto\x12\x0bserver_diva\x1a\x1bgoogle/protobuf/empty.proto\"\x1f\n\x0fquery_statement\x12\x0c\n\x04name\x18\x01 \x01(\t\"<\n\x11object_video_pair\x12\x13\n\x0bobject_name\x18\x01 \x01(\t\x12\x12\n\nvideo_name\x18\x02 \x01(\t\"#\n\tdirectory\x12\x16\n\x0e\x64irectory_path\x18\x01 \x01(\t\"F\n\x0c\x62ounding_box\x12\x0c\n\x04xmin\x18\x01 \x01(\x01\x12\x0c\n\x04ymin\x18\x02 \x01(\x01\x12\x0c\n\x04xmax\x18\x03 \x01(\x01\x12\x0c\n\x04ymax\x18\x04 \x01(\x01\"H\n\x0bimage_paths\x12\r\n\x05paths\x18\x01 \x03(\t\x12*\n\x07\x62ox_arr\x18\x02 \x03(\x0b\x32\x19.server_diva.bounding_box2\xaf\x01\n\x0bserver_diva\x12L\n\x12request_frame_path\x12\x1c.server_diva.query_statement\x1a\x16.server_diva.directory\"\x00\x12R\n\x16\x64\x65tect_object_in_video\x12\x1e.server_diva.object_video_pair\x1a\x16.google.protobuf.Empty\"\x00\x62\x06proto3')
+  ,
+  dependencies=[google_dot_protobuf_dot_empty__pb2.DESCRIPTOR,])
 
 
 
@@ -52,8 +54,8 @@ _QUERY_STATEMENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=34,
-  serialized_end=65,
+  serialized_start=63,
+  serialized_end=94,
 )
 
 
@@ -90,8 +92,8 @@ _OBJECT_VIDEO_PAIR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=67,
-  serialized_end=127,
+  serialized_start=96,
+  serialized_end=156,
 )
 
 
@@ -121,8 +123,8 @@ _DIRECTORY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=129,
-  serialized_end=164,
+  serialized_start=158,
+  serialized_end=193,
 )
 
 
@@ -173,8 +175,8 @@ _BOUNDING_BOX = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=166,
-  serialized_end=236,
+  serialized_start=195,
+  serialized_end=265,
 )
 
 
@@ -211,8 +213,8 @@ _IMAGE_PATHS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=238,
-  serialized_end=310,
+  serialized_start=267,
+  serialized_end=339,
 )
 
 _IMAGE_PATHS.fields_by_name['box_arr'].message_type = _BOUNDING_BOX
@@ -266,8 +268,8 @@ _SERVER_DIVA = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=313,
-  serialized_end=490,
+  serialized_start=342,
+  serialized_end=517,
   methods=[
   _descriptor.MethodDescriptor(
     name='request_frame_path',
@@ -284,7 +286,7 @@ _SERVER_DIVA = _descriptor.ServiceDescriptor(
     index=1,
     containing_service=None,
     input_type=_OBJECT_VIDEO_PAIR,
-    output_type=_IMAGE_PATHS,
+    output_type=google_dot_protobuf_dot_empty__pb2._EMPTY,
     serialized_options=None,
   ),
 ])

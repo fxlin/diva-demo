@@ -15,22 +15,22 @@ class DivaCameraStub(object):
       channel: A grpc.Channel.
     """
     self.InitDiva = channel.unary_unary(
-        '/DivaCamera/InitDiva',
+        '/camera.DivaCamera/InitDiva',
         request_serializer=cam__cloud__pb2.InitDivaRequest.SerializeToString,
         response_deserializer=cam__cloud__pb2.StrMsg.FromString,
         )
     self.GetFrame = channel.unary_unary(
-        '/DivaCamera/GetFrame',
+        '/camera.DivaCamera/GetFrame',
         request_serializer=cam__cloud__pb2.GetFrameRequest.SerializeToString,
         response_deserializer=cam__cloud__pb2.Frame.FromString,
         )
     self.DeployOp = channel.unary_unary(
-        '/DivaCamera/DeployOp',
+        '/camera.DivaCamera/DeployOp',
         request_serializer=cam__cloud__pb2.Chunk.SerializeToString,
         response_deserializer=cam__cloud__pb2.StrMsg.FromString,
         )
     self.DeployOpNotify = channel.unary_unary(
-        '/DivaCamera/DeployOpNotify',
+        '/camera.DivaCamera/DeployOpNotify',
         request_serializer=cam__cloud__pb2.DeployOpRequest.SerializeToString,
         response_deserializer=cam__cloud__pb2.StrMsg.FromString,
         )
@@ -93,5 +93,5 @@ def add_DivaCameraServicer_to_server(servicer, server):
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
-      'DivaCamera', rpc_method_handlers)
+      'camera.DivaCamera', rpc_method_handlers)
   server.add_generic_rpc_handlers((generic_handler,))

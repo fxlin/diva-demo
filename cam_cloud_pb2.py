@@ -17,10 +17,10 @@ _sym_db = _symbol_database.Default()
 
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='cam_cloud.proto',
-  package='',
+  package='camera',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x0f\x63\x61m_cloud.proto\"-\n\x0f\x44\x65ployOpRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x63rop\x18\x02 \x01(\t\"#\n\x0fInitDivaRequest\x12\x10\n\x08img_path\x18\x01 \x01(\t\"\x1f\n\x0fGetFrameRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\"#\n\x05\x46rame\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"\x15\n\x06StrMsg\x12\x0b\n\x03msg\x18\x01 \x01(\t\"\x15\n\x05\x43hunk\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x32\xab\x01\n\nDivaCamera\x12\'\n\x08InitDiva\x12\x10.InitDivaRequest\x1a\x07.StrMsg\"\x00\x12&\n\x08GetFrame\x12\x10.GetFrameRequest\x1a\x06.Frame\"\x00\x12\x1d\n\x08\x44\x65ployOp\x12\x06.Chunk\x1a\x07.StrMsg\"\x00\x12-\n\x0e\x44\x65ployOpNotify\x12\x10.DeployOpRequest\x1a\x07.StrMsg\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\x0f\x63\x61m_cloud.proto\x12\x06\x63\x61mera\"-\n\x0f\x44\x65ployOpRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x63rop\x18\x02 \x01(\t\"#\n\x0fInitDivaRequest\x12\x10\n\x08img_path\x18\x01 \x01(\t\"\x1f\n\x0fGetFrameRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\"#\n\x05\x46rame\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"\x15\n\x06StrMsg\x12\x0b\n\x03msg\x18\x01 \x01(\t\"\x15\n\x05\x43hunk\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x32\xe3\x01\n\nDivaCamera\x12\x35\n\x08InitDiva\x12\x17.camera.InitDivaRequest\x1a\x0e.camera.StrMsg\"\x00\x12\x34\n\x08GetFrame\x12\x17.camera.GetFrameRequest\x1a\r.camera.Frame\"\x00\x12+\n\x08\x44\x65ployOp\x12\r.camera.Chunk\x1a\x0e.camera.StrMsg\"\x00\x12;\n\x0e\x44\x65ployOpNotify\x12\x17.camera.DeployOpRequest\x1a\x0e.camera.StrMsg\"\x00\x62\x06proto3')
 )
 
 
@@ -28,20 +28,20 @@ DESCRIPTOR = _descriptor.FileDescriptor(
 
 _DEPLOYOPREQUEST = _descriptor.Descriptor(
   name='DeployOpRequest',
-  full_name='DeployOpRequest',
+  full_name='camera.DeployOpRequest',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='name', full_name='DeployOpRequest.name', index=0,
+      name='name', full_name='camera.DeployOpRequest.name', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='crop', full_name='DeployOpRequest.crop', index=1,
+      name='crop', full_name='camera.DeployOpRequest.crop', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -59,20 +59,20 @@ _DEPLOYOPREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=19,
-  serialized_end=64,
+  serialized_start=27,
+  serialized_end=72,
 )
 
 
 _INITDIVAREQUEST = _descriptor.Descriptor(
   name='InitDivaRequest',
-  full_name='InitDivaRequest',
+  full_name='camera.InitDivaRequest',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='img_path', full_name='InitDivaRequest.img_path', index=0,
+      name='img_path', full_name='camera.InitDivaRequest.img_path', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -90,20 +90,20 @@ _INITDIVAREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=66,
-  serialized_end=101,
+  serialized_start=74,
+  serialized_end=109,
 )
 
 
 _GETFRAMEREQUEST = _descriptor.Descriptor(
   name='GetFrameRequest',
-  full_name='GetFrameRequest',
+  full_name='camera.GetFrameRequest',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='name', full_name='GetFrameRequest.name', index=0,
+      name='name', full_name='camera.GetFrameRequest.name', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -121,27 +121,27 @@ _GETFRAMEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=103,
-  serialized_end=134,
+  serialized_start=111,
+  serialized_end=142,
 )
 
 
 _FRAME = _descriptor.Descriptor(
   name='Frame',
-  full_name='Frame',
+  full_name='camera.Frame',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='name', full_name='Frame.name', index=0,
+      name='name', full_name='camera.Frame.name', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='data', full_name='Frame.data', index=1,
+      name='data', full_name='camera.Frame.data', index=1,
       number=2, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
@@ -159,20 +159,20 @@ _FRAME = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=136,
-  serialized_end=171,
+  serialized_start=144,
+  serialized_end=179,
 )
 
 
 _STRMSG = _descriptor.Descriptor(
   name='StrMsg',
-  full_name='StrMsg',
+  full_name='camera.StrMsg',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='msg', full_name='StrMsg.msg', index=0,
+      name='msg', full_name='camera.StrMsg.msg', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -190,20 +190,20 @@ _STRMSG = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=173,
-  serialized_end=194,
+  serialized_start=181,
+  serialized_end=202,
 )
 
 
 _CHUNK = _descriptor.Descriptor(
   name='Chunk',
-  full_name='Chunk',
+  full_name='camera.Chunk',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='data', full_name='Chunk.data', index=0,
+      name='data', full_name='camera.Chunk.data', index=0,
       number=1, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
@@ -221,8 +221,8 @@ _CHUNK = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=196,
-  serialized_end=217,
+  serialized_start=204,
+  serialized_end=225,
 )
 
 DESCRIPTOR.message_types_by_name['DeployOpRequest'] = _DEPLOYOPREQUEST
@@ -236,42 +236,42 @@ _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 DeployOpRequest = _reflection.GeneratedProtocolMessageType('DeployOpRequest', (_message.Message,), {
   'DESCRIPTOR' : _DEPLOYOPREQUEST,
   '__module__' : 'cam_cloud_pb2'
-  # @@protoc_insertion_point(class_scope:DeployOpRequest)
+  # @@protoc_insertion_point(class_scope:camera.DeployOpRequest)
   })
 _sym_db.RegisterMessage(DeployOpRequest)
 
 InitDivaRequest = _reflection.GeneratedProtocolMessageType('InitDivaRequest', (_message.Message,), {
   'DESCRIPTOR' : _INITDIVAREQUEST,
   '__module__' : 'cam_cloud_pb2'
-  # @@protoc_insertion_point(class_scope:InitDivaRequest)
+  # @@protoc_insertion_point(class_scope:camera.InitDivaRequest)
   })
 _sym_db.RegisterMessage(InitDivaRequest)
 
 GetFrameRequest = _reflection.GeneratedProtocolMessageType('GetFrameRequest', (_message.Message,), {
   'DESCRIPTOR' : _GETFRAMEREQUEST,
   '__module__' : 'cam_cloud_pb2'
-  # @@protoc_insertion_point(class_scope:GetFrameRequest)
+  # @@protoc_insertion_point(class_scope:camera.GetFrameRequest)
   })
 _sym_db.RegisterMessage(GetFrameRequest)
 
 Frame = _reflection.GeneratedProtocolMessageType('Frame', (_message.Message,), {
   'DESCRIPTOR' : _FRAME,
   '__module__' : 'cam_cloud_pb2'
-  # @@protoc_insertion_point(class_scope:Frame)
+  # @@protoc_insertion_point(class_scope:camera.Frame)
   })
 _sym_db.RegisterMessage(Frame)
 
 StrMsg = _reflection.GeneratedProtocolMessageType('StrMsg', (_message.Message,), {
   'DESCRIPTOR' : _STRMSG,
   '__module__' : 'cam_cloud_pb2'
-  # @@protoc_insertion_point(class_scope:StrMsg)
+  # @@protoc_insertion_point(class_scope:camera.StrMsg)
   })
 _sym_db.RegisterMessage(StrMsg)
 
 Chunk = _reflection.GeneratedProtocolMessageType('Chunk', (_message.Message,), {
   'DESCRIPTOR' : _CHUNK,
   '__module__' : 'cam_cloud_pb2'
-  # @@protoc_insertion_point(class_scope:Chunk)
+  # @@protoc_insertion_point(class_scope:camera.Chunk)
   })
 _sym_db.RegisterMessage(Chunk)
 
@@ -279,16 +279,16 @@ _sym_db.RegisterMessage(Chunk)
 
 _DIVACAMERA = _descriptor.ServiceDescriptor(
   name='DivaCamera',
-  full_name='DivaCamera',
+  full_name='camera.DivaCamera',
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=220,
-  serialized_end=391,
+  serialized_start=228,
+  serialized_end=455,
   methods=[
   _descriptor.MethodDescriptor(
     name='InitDiva',
-    full_name='DivaCamera.InitDiva',
+    full_name='camera.DivaCamera.InitDiva',
     index=0,
     containing_service=None,
     input_type=_INITDIVAREQUEST,
@@ -297,7 +297,7 @@ _DIVACAMERA = _descriptor.ServiceDescriptor(
   ),
   _descriptor.MethodDescriptor(
     name='GetFrame',
-    full_name='DivaCamera.GetFrame',
+    full_name='camera.DivaCamera.GetFrame',
     index=1,
     containing_service=None,
     input_type=_GETFRAMEREQUEST,
@@ -306,7 +306,7 @@ _DIVACAMERA = _descriptor.ServiceDescriptor(
   ),
   _descriptor.MethodDescriptor(
     name='DeployOp',
-    full_name='DivaCamera.DeployOp',
+    full_name='camera.DivaCamera.DeployOp',
     index=2,
     containing_service=None,
     input_type=_CHUNK,
@@ -315,7 +315,7 @@ _DIVACAMERA = _descriptor.ServiceDescriptor(
   ),
   _descriptor.MethodDescriptor(
     name='DeployOpNotify',
-    full_name='DivaCamera.DeployOpNotify',
+    full_name='camera.DivaCamera.DeployOpNotify',
     index=3,
     containing_service=None,
     input_type=_DEPLOYOPREQUEST,

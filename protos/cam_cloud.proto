@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+package camera;
+
 service DivaCamera {
     rpc InitDiva (InitDivaRequest) returns (StrMsg) {}
     rpc GetFrame (GetFrameRequest) returns (Frame) {}

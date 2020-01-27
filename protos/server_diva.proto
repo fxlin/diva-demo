@@ -1,10 +1,11 @@
 syntax = "proto3";
 
+import "google/protobuf/empty.proto";
 package server_diva;
 
 service server_diva {
     rpc request_frame_path(query_statement) returns (directory) {}
-    rpc detect_object_in_video(object_video_pair) returns (image_paths) {}
+    rpc detect_object_in_video(object_video_pair) returns (google.protobuf.Empty) {}
 }
 
 message query_statement {
