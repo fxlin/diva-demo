@@ -60,7 +60,8 @@ document.addEventListener('DOMContentLoaded', function(){
             data: JSON.stringify({'video': vid, 'object':obj}),
             url: "/display",
          }).done(function (computeReturn) {
-             display_images();
+             // display_images();
+            pollingTime = window.setTimeout(display_images, 10000);
         });
     }
 
