@@ -15,9 +15,6 @@ class Video(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True)
     path = Column(String)
-    frames = relationship("Frame",
-                          back_populates="video",
-                          cascade="all,delete-orphan,delete")
 
     created_at = Column(DateTime, server_default=datetime.datetime.utcnow)
     updated_at = Column(DateTime,

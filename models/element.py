@@ -13,7 +13,10 @@ class Element(Base):
     object_class = Column(String)
     box_coordinate = Column(String)
     frame_id = Column(Integer, ForeignKey('frame.id'), nullable=False)
-    frame = relationship("Frame", back_populates="elements", order_by=id)
+    frame = relationship(Frame,
+                         backref=backref('elements',
+                                         uselist=True,
+                                         cascade="all,delete-orphan,delete"))
 
     created_at = Column(DateTime, server_default=datetime.datetime.utcnow)
     updated_at = Column(DateTime,

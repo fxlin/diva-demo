@@ -2,6 +2,7 @@ from enum import IntEnum
 from sqlalchemy import Column, String, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 from models.common import Base
+from models.video import Video
 
 
 class Status(IntEnum):
@@ -18,12 +19,11 @@ class Frame(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String)
     video_id = Column(Integer, ForeignKey('video.id'), nullable=False)
-    video = relationship("Video", back_populates="frames", order_by=id)
-    elements = relationship("Element",
-                            back_populates="frame",
-                            cascade="all,delete-orphan,delete")
+    video = relationship(Video,
+                         backref=backref('frames',
+                                         uselist=True,
+                                         cascade="all,delete-orphan,delete"))
     processing_status = Column(Integer)
-
     # https://stackoverflow.com/questions/13370317/sqlalchemy-default-datetime/13370382
     created_at = Column(DateTime, server_default=datetime.datetime.utcnow)
     updated_at = Column(DateTime,
