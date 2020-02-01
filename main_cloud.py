@@ -63,9 +63,8 @@ logger = logging.getLogger(__name__)
 class ImageProcessor(threading.Thread):
     def run(self):
         while not SHUTDOWN_SIGNAL.is_set():
-            while not ImageQueue.empty():
-                logger.info('working on the given image')
-                self.consume_image_task()
+            logger.info('working on the given image')
+            self.consume_image_task()
 
     def consume_image_task(self):
         task = ImageQueue.get(block=True)
@@ -105,9 +104,8 @@ class ImageProcessor(threading.Thread):
 class FrameProcessor(threading.Thread):
     def run(self):
         while not SHUTDOWN_SIGNAL.is_set():
-            while not TaskQueue.empty():
-                logger.info("Got a task to do")
-                self.detect_object()
+            logger.info("Got a task to do")
+            self.detect_object()
 
     @staticmethod
     def video_info(video_path: str) -> dict:
