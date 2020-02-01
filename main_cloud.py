@@ -63,6 +63,9 @@ logger = logging.getLogger(__name__)
 class ImageProcessor(threading.Thread):
     def run(self):
         while not SHUTDOWN_SIGNAL.is_set():
+            # solution for race condition:
+            # https://stackoverflow.com/questions/44219288/
+            # should-i-bother-locking-the-queue-when-i-put-to-or-get-from-it/44219646
             logger.info('working on the given image')
             self.consume_image_task()
 
@@ -294,11 +297,16 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
                 # FIXME any frames in db???
                 temp_res = session.query(Frame).join(Video).filter(
                     Video.name == video_name).all()
+                logging.info(
+                    f"number of current frames in memory: {len(_frame_list)}")
                 logger.info(f'frames in db: num: {len(temp_res)} {temp_res}')
                 gg_set = set([ccc.name for ccc in temp_res])
                 zz_set = set([xxx.name for xxx in _frame_list])
                 logger.warning(
-                    f'Any duplicate between {gg_set.union(zz_set)}?')
+                    f'Any duplicate between {gg_set.intersection(zz_set)}?')
+                if set(temp_res).intersection(set(_frame_list)):
+                    logger.warning('dont worry this is not a big deal. remove the rest of them')
+
                 if gg_set.intersection(zz_set):
                     logger.warning(f'what is this thread???')
                     raise Exception(f'fuck!!!!!!!!!!! why?')
