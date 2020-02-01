@@ -24,6 +24,12 @@ class Frame(Base):
                             cascade="all,delete-orphan,delete")
     processing_status = Column(Integer)
 
+    # https://stackoverflow.com/questions/13370317/sqlalchemy-default-datetime/13370382
+    created_at = Column(DateTime, server_default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime,
+                        server_default=datetime.datetime.utcnow,
+                        onupdate=datetime.datetime.utcnow)
+
     def __init__(self,
                  name: str,
                  video_id: int,

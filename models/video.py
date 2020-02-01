@@ -19,6 +19,11 @@ class Video(Base):
                           back_populates="video",
                           cascade="all,delete-orphan,delete")
 
+    created_at = Column(DateTime, server_default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime,
+                        server_default=datetime.datetime.utcnow,
+                        onupdate=datetime.datetime.utcnow)
+
     def __init__(self, name: str, path: str):
         self.name = name
         self.path = path

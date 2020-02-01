@@ -1,6 +1,7 @@
 from typing import Tuple
+import datetime
 
-from sqlalchemy import Column, String, Integer, ForeignKey
+from sqlalchemy import Column, String, Integer, ForeignKey, DateTime
 from sqlalchemy.orm import relationship, backref
 from models.common import Base
 from models.frame import Frame
@@ -13,6 +14,11 @@ class Element(Base):
     box_coordinate = Column(String)
     frame_id = Column(Integer, ForeignKey('frame.id'), nullable=False)
     frame = relationship("Frame", back_populates="elements", order_by=id)
+
+    created_at = Column(DateTime, server_default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime,
+                        server_default=datetime.datetime.utcnow,
+                        onupdate=datetime.datetime.utcnow)
 
     def __init__(self, object_class: str, box_coordinate: str, frame_id: int):
         self.object_class = object_class
