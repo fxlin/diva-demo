@@ -1,5 +1,5 @@
 from enum import IntEnum
-from sqlalchemy import Column, String, Integer, ForeignKey, DateTime
+from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, func
 from sqlalchemy.orm import relationship, backref
 from models.common import Base
 from models.video import Video
@@ -43,7 +43,7 @@ class Frame(Base):
     def add_elements(self, elements):
         if elements:
             for e in elements:
-                self.elements.append(f)
+                self.elements.append(e)
 
     def __repr__(self):
         return f"<{self.__tablename__} id:{self.id} name:{self.name} video_id:{self.video_id} elements:{self.elements}>"

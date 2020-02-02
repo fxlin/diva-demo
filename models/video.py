@@ -3,7 +3,6 @@ File for Video table
 """
 
 from sqlalchemy import Column, String, Integer, DateTime, func
-from sqlalchemy.orm import relationship, backref
 from models.common import Base
 
 

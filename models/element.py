@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from sqlalchemy import Column, String, Integer, ForeignKey, DateTime
+from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, func
 from sqlalchemy.orm import relationship, backref
 from models.common import Base
 from models.frame import Frame
