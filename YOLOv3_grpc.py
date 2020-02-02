@@ -2,8 +2,6 @@
 # coding=utf-8
 
 import time
-import utils
-import keras
 from concurrent import futures
 import logging
 import grpc
@@ -132,7 +130,6 @@ def run_det(image_data: np.ndarray, target_class: str) -> str:
 #         ret.append(res_str)
 #     print("YOLOv3-det time: %.2f ms" % (1000 * (time.time() - start)))
 #     return '|'.join(ret)
-
 
 
 class DetYOLOv3Servicer(det_yolov3_pb2_grpc.DetYOLOv3Servicer):
