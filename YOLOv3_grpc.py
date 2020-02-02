@@ -137,7 +137,9 @@ class DetYOLOv3Servicer(det_yolov3_pb2_grpc.DetYOLOv3Servicer):
 
         # img = Image.frombytes('RGBA', (720, 1280), img_data, decoder_name='jpeg', 'jpg')
         # TODO: resolution shall not be hard-coded
-        img = cv2.resize(img_data, (IMAGE_H, IMAGE_W),
+
+        img = cv2.resize(np.frombuffer(img_data, dtype=np.uint8),
+                         (IMAGE_H, IMAGE_W),
                          interpolation=cv2.INTER_NEAREST)
         img = img / 255.0
         det_res = run_det(img, object_class)

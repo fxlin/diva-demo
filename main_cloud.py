@@ -138,6 +138,9 @@ class FrameProcessor(threading.Thread):
             raise Exception(
                 f'Cannot not extract {frame_num}th frame from {in_filename}')
 
+        # FIXME
+        logger.warning(f'image dtype {frame.dtype}')
+
         return frame
 
     @staticmethod
@@ -220,7 +223,7 @@ class FrameProcessor(threading.Thread):
 
             logger.debug(f"Sending extracted frame {task[1]} to YOLO")
             detected_objects = yolo_stub.DetFrame(
-                det_yolov3_pb2.DetFrameRequest(data=img_data,
+                det_yolov3_pb2.DetFrameRequest(data=img_data.tobytes(),
                                                name=img_name,
                                                cls=object_name))
 
