@@ -190,23 +190,22 @@ class FrameProcessor(threading.Thread):
         video_id, video_path, = task[0], task[1]
         frame_num, object_name = task[2], task[3]
 
-        session = db_session()
         picked_frame = None
 
         # FIXME
         logger.info(
-            f'before query: {session.query(Frame).filter(Frame.name == str(frame_num)).filter(Frame.processing_status == Status.Initialized).all()}'
+            f'before query: {db_session.query(Frame).filter(Frame.name == str(frame_num)).filter(Frame.processing_status == Status.Initialized).all()}'
         )
 
         try:
-            picked_frame = session.query(Frame).filter(
+            picked_frame = db_session.query(Frame).filter(
                 Frame.name == str(frame_num)).filter(
                     Frame.processing_status ==
                     Status.Initialized).one_or_none()
         except MultipleResultsFound as m_err:
             # FIXME
             logger.info(
-                f'after query: {session.query(Frame).filter(Frame.name == str(frame_num)).filter(Frame.processing_status == Status.Initialized).all()}'
+                f'after query: {db_session.query(Frame).filter(Frame.name == str(frame_num)).filter(Frame.processing_status == Status.Initialized).all()}'
             )
 
             logger.error(
@@ -217,7 +216,7 @@ class FrameProcessor(threading.Thread):
         if picked_frame:
             try:
                 picked_frame.processing_status = Status.Processing
-                session.commit()
+                db_session.commit()
             except Exception as err:
                 logger.error(err)
 
@@ -235,7 +234,7 @@ class FrameProcessor(threading.Thread):
 
             try:
                 picked_frame.processing_status = Status.Finished
-                session.commit()
+                db_session.flush()
 
                 if boxes:
                     temp_b = map(
@@ -244,14 +243,14 @@ class FrameProcessor(threading.Thread):
                         map(
                             lambda y: Element(object_name, y, picked_frame.
                                               frame_id, picked_frame), temp_b))
-                    session.bulk_save_objects(ele_list)
-                    session.commit()
+                    db_session.bulk_save_objects(ele_list)
+                    db_session.commit()
 
                     ImageQueue.put((img_name, img_data, boxes))
             except Exception as err:
                 logger.error(
                     f'Working on task {task} but encounter error: {err}')
-                session.rollback()
+                db_session.rollback()
 
         db_session.remove()
 
@@ -278,9 +277,8 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
         object_name = request.object_name
         video_name = request.video_name
 
-        session = db_session()
         try:
-            selected_video = session.query(Video).filter(
+            selected_video = db_session.query(Video).filter(
                 Video.name == video_name).one_or_none()
             logger.debug(
                 f'finding video: {video_name} result: {selected_video}')
@@ -295,7 +293,7 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
                 ]
 
                 # FIXME any frames in db???
-                temp_res = session.query(Frame).join(Video).filter(
+                temp_res = db_session.query(Frame).join(Video).filter(
                     Video.name == video_name).all()
                 logging.info(
                     f"number of current frames in memory: {len(_frame_list)}")
@@ -313,11 +311,11 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
                     logger.warning(f'what is this thread???')
                     raise Exception(f'fuck!!!!!!!!!!! why?')
 
-                session.bulk_save_objects(_frame_list)
-                session.commit()
+                db_session.bulk_save_objects(_frame_list)
+                db_session.commit()
 
                 # FIXME
-                temp_res_another = session.query(Frame).join(Video).filter(
+                temp_res_another = db_session.query(Frame).join(Video).filter(
                     Video.name == video_name).all()
                 logger.info(
                     f'frames in db: num: {len(temp_res_another)} = {len(temp_res)} + {len(frame_ids)}'
@@ -336,7 +334,7 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
         except Exception as err:
             logger.error(f"Failed to insert frame data into DB: {err}")
 
-            session.rollback()
+            db_session.rollback()
         finally:
             db_session.remove()
 
