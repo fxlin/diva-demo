@@ -234,7 +234,8 @@ class FrameProcessor(threading.Thread):
 
             try:
                 picked_frame.processing_status = Status.Finished
-                db_session.flush()
+                db_session.add(picked_frame)
+                db_session.commit()
 
                 if boxes:
                     temp_b = map(
