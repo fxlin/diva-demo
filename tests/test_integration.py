@@ -1,6 +1,5 @@
 import unittest
 import os
-import ffmpeg
 import time
 
 import grpc
@@ -10,7 +9,6 @@ import server_diva_pb2
 from variables import DIVA_CHANNEL_ADDRESS
 
 from sqlalchemy.orm import Session
-from sqlalchemy import func, distinct
 from models.common import db_session, init_db
 from models.frame import Frame, Status
 from models.video import Video

@@ -1,12 +1,9 @@
 import unittest
 import os
 
-import numpy as np
 from PIL import Image
 
-from models.common import db_session, init_db
-from models.video import Video
-from models.frame import Frame
+from models.common import init_db
 
 from main_cloud import ImageProcessor, FrameProcessor, YOLO_SCORE_THRE
 

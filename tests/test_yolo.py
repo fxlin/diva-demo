@@ -1,10 +1,4 @@
 import unittest
-import time
-import re
-
-import grpc
-import server_diva_pb2_grpc
-import server_diva_pb2
 
 import numpy as np
 from PIL import Image
