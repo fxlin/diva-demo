@@ -1,6 +1,6 @@
 from enum import IntEnum
 from sqlalchemy import Column, String, Integer, ForeignKey, DateTime
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from models.common import Base
 from models.video import Video
 
