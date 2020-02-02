@@ -18,10 +18,10 @@ class Element(Base):
                                          uselist=True,
                                          cascade="all,delete-orphan,delete"))
 
-    created_at = Column(DateTime, server_default=datetime.datetime.utcnow())
+    created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime,
-                        server_default=datetime.datetime.utcnow(),
-                        onupdate=datetime.datetime.utcnow())
+                        server_default=func.now(),
+                        onupdate=func.now())
 
     def __init__(self, object_class: str, box_coordinate: str, frame_id: int):
         self.object_class = object_class

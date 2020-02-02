@@ -2,8 +2,7 @@
 File for Video table
 """
 
-import datetime
-from sqlalchemy import Column, String, Integer, DateTime
+from sqlalchemy import Column, String, Integer, DateTime, func
 from sqlalchemy.orm import relationship
 from models.common import Base
 
@@ -17,10 +16,10 @@ class Video(Base):
     name = Column(String, unique=True)
     path = Column(String)
 
-    created_at = Column(DateTime, server_default=datetime.datetime.utcnow())
+    created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime,
-                        server_default=datetime.datetime.utcnow(),
-                        onupdate=datetime.datetime.utcnow())
+                        server_default=func.now(),
+                        onupdate=func.now())
 
     def __init__(self, name: str, path: str):
         self.name = name

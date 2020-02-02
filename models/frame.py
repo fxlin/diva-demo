@@ -26,10 +26,10 @@ class Frame(Base):
                                          cascade="all,delete-orphan,delete"))
     processing_status = Column(Integer)
     # https://stackoverflow.com/questions/13370317/sqlalchemy-default-datetime/13370382
-    created_at = Column(DateTime, server_default=datetime.datetime.utcnow())
+    created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime,
-                        server_default=datetime.datetime.utcnow(),
-                        onupdate=datetime.datetime.utcnow())
+                        server_default=func.now(),
+                        onupdate=func.now())
 
     def __init__(self,
                  name: str,
