@@ -2,18 +2,16 @@
 Ingest video frames and perform object detection on frames.
 """
 
-import os, sys
-import traceback
+import os
+import sys
 import logging
 from concurrent import futures
 import time
 import threading
 from queue import Queue
 from typing import List, Tuple
-
 import cv2
 import numpy as np
-import ffmpeg
 
 import grpc
 import det_yolov3_pb2
@@ -111,31 +109,40 @@ class FrameProcessor(threading.Thread):
             self.detect_object()
 
     @staticmethod
-    def video_info(video_path: str) -> dict:
+    def video_frame(video_path: str) -> int:
         if not os.path.exists(video_path):
             raise ValueError(f"path {video_path} does not exist")
 
-        probe = ffmpeg.probe(video_path)
-
-        video_stream = next((stream for stream in probe['streams']
-                             if stream['codec_type'] == 'video'), None)
-        if video_stream is None:
-            raise ValueError(f'{video_path} is invalid: No video stream found')
-
-        return video_stream
+        cap = cv2.VideoCapture(video_path)
+        # cap.get(cv2.cv.CV_CAP_PROP_FPS)
+        res = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        cap.release()
+        return res
 
     @staticmethod
-    def read_frame_as_jpeg(in_filename: str, frame_num: int):
-        out, err = (ffmpeg.input(in_filename).filter(
-            'select', 'gte(n,{})'.format(frame_num)).output(
-                'pipe:', vframes=1, format='image2',
-                vcodec='mjpeg').run(capture_stdout=True))
-        return out
+    def extract_one_frame(in_filename: str, frame_num: int) -> np.ndarray:
+        if not os.path.exists(in_filename):
+            raise ValueError(f'video does not exist: {in_filename}')
+
+        cap = cv2.VideoCapture(in_filename)
+        total_frames = FrameProcessor.video_frame(in_filename)
+
+        if frame_num >= 0 & frame_num <= total_frames:
+            # set frame position
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_num)
+
+        ret, frame = cap.read()
+        cap.release()
+
+        if not ret:
+            raise Exception(
+                f'Cannot not extract {frame_num}th frame from {in_filename}')
+
+        return frame
 
     @staticmethod
     def extract_frame_nums(video_path: str) -> 'List[int]':
-        video_stream = FrameProcessor.video_info(video_path)
-        num_of_frames = int(video_stream['nb_frames'])
+        num_of_frames = FrameProcessor.video_frame(video_path)
 
         index = 0
         frame_list = []
@@ -143,13 +150,6 @@ class FrameProcessor(threading.Thread):
             frame_list.append(index)
             index += 10
         return frame_list
-
-    @staticmethod
-    def extract_one_frame(video_path: str, frame_num: int) -> np.ndarray:
-        if not os.path.exists(video_path):
-            raise ValueError(f'video does not exist: {video_path}')
-
-        return FrameProcessor.read_frame_as_jpeg(video_path, frame_num)
 
     @staticmethod
     def get_bounding_boxes(yolo_result: str
@@ -192,11 +192,6 @@ class FrameProcessor(threading.Thread):
 
         picked_frame = None
 
-        # FIXME
-        logger.info(
-            f'before query: {db_session.query(Frame).filter(Frame.name == str(frame_num)).filter(Frame.processing_status == Status.Initialized).all()}'
-        )
-
         try:
             picked_frame = db_session.query(Frame).filter(
                 Frame.name == str(frame_num)).filter(
@@ -216,8 +211,7 @@ class FrameProcessor(threading.Thread):
         if picked_frame:
             try:
                 picked_frame.processing_status = Status.Processing
-
-                db_session.flush()
+                db_session.commit()
             except Exception as err:
                 logger.error(err)
 
@@ -239,8 +233,8 @@ class FrameProcessor(threading.Thread):
                 setattr(picked_frame, 'processing_status', Status.Finished)
 
                 # db_session.add(picked_frame)
-                db_session.flush()
-                # db_session.commit()
+                # db_session.flush()
+                db_session.commit()
 
                 if boxes:
                     temp_b = map(
