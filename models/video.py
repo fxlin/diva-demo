@@ -2,7 +2,8 @@
 File for Video table
 """
 
-from sqlalchemy import Column, String, Integer
+import datetime
+from sqlalchemy import Column, String, Integer, DateTime
 from sqlalchemy.orm import relationship
 from models.common import Base
 
