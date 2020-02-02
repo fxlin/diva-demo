@@ -227,7 +227,7 @@ class FrameProcessor(threading.Thread):
                                                width=img_data.shape[1],
                                                channel=img_data.shape[2])
             detected_objects = yolo_stub.DetFrame(
-                det_yolov3_pb2.DetFrameRequest(img_payload,
+                det_yolov3_pb2.DetFrameRequest(image=img_payload,
                                                name=img_name,
                                                cls=object_name))
 
