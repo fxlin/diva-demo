@@ -239,7 +239,7 @@ class FrameProcessor(threading.Thread):
                 setattr(picked_frame, 'processing_status', Status.Finished)
 
                 # db_session.add(picked_frame)
-                db_session..flush()
+                db_session.flush()
                 # db_session.commit()
 
                 if boxes:
@@ -298,34 +298,13 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
                           Status.Initialized) for f_id in frame_ids
                 ]
 
-                # # FIXME any frames in db???
-                # temp_res = db_session.query(Frame).join(Video).filter(
-                #     Video.name == video_name).all()
-                # logging.info(
-                #     f"number of current frames in memory: {len(_frame_list)}")
-                # logger.info(f'frames in db: num: {len(temp_res)} {temp_res}')
-                # gg_set = set([ccc.name for ccc in temp_res])
-                # zz_set = set([xxx.name for xxx in _frame_list])
-                # logger.warning(
-                #     f'Any duplicate between {gg_set.intersection(zz_set)}?')
-                # if set(temp_res).intersection(set(_frame_list)):
-                #     logger.warning(
-                #         'dont worry this is not a big deal. remove the rest of them'
-                #     )
-
-                # if gg_set.intersection(zz_set):
-                #     logger.warning(f'what is this thread???')
-                #     raise Exception(f'fuck!!!!!!!!!!! why?')
-
-                db_session.bulk_save_objects(_frame_list)
+                # db_session.bulk_save_objects(_frame_list)
+                db_session.add_all(_frame_list)
                 db_session.commit()
 
                 # FIXME
                 temp_res_another = db_session.query(Frame).join(Video).filter(
                     Video.name == video_name).all()
-                # logger.info(
-                #     f'frames in db: num: {len(temp_res_another)} = {len(temp_res)} + {len(frame_ids)}'
-                # )
                 logger.info(
                     f'frames in db: num: {len(temp_res_another)} =? {len(frame_ids)}'
                 )
