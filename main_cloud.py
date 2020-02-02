@@ -242,8 +242,8 @@ class FrameProcessor(threading.Thread):
                         lambda x: Element.coordinate_iterable_to_str(x), boxes)
                     ele_list = list(
                         map(
-                            lambda y: Element(object_name, y, _frame.frame_id,
-                                              _frame), temp_b))
+                            lambda y: Element(object_name, y, picked_frame.
+                                              frame_id, picked_frame), temp_b))
                     session.bulk_save_objects(ele_list)
                     session.commit()
 
@@ -305,7 +305,9 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
                 logger.warning(
                     f'Any duplicate between {gg_set.intersection(zz_set)}?')
                 if set(temp_res).intersection(set(_frame_list)):
-                    logger.warning('dont worry this is not a big deal. remove the rest of them')
+                    logger.warning(
+                        'dont worry this is not a big deal. remove the rest of them'
+                    )
 
                 if gg_set.intersection(zz_set):
                     logger.warning(f'what is this thread???')
