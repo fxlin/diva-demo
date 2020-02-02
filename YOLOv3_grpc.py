@@ -1,14 +1,12 @@
 #! /usr/bin/env python
 # coding=utf-8
 
-import os
 import time
 from concurrent import futures
 import logging
 import grpc
 import sys
 import cv2
-from PIL import Image
 import numpy as np
 import tensorflow as tf
 from variables import YOLO_CHANNEL_PORT
@@ -30,7 +28,7 @@ FORMAT = '%(asctime)-15s %(levelname)8s %(thread)d %(threadName)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
 logger = logging.getLogger(__name__)
 
-IMAGE_H, IMAGE_W = 608, 608
+IMAGE_H, IMAGE_W = 416, 416
 # classes = util.read_coco_names('./tensorflow-yolov3/data/coco.names')
 # num_classes = len(classes)
 # gpu_nms_graph = tf.Graph()
@@ -67,7 +65,8 @@ def filter_bbox(bboxes: 'List',
         if classes[class_ind] != target_class or score < threshold:
             continue
 
-        # FIXME should return number or string? ex: (coor[0], coor[1], coor[2], coor[3])
+        # FIXME should return number or string?
+        # ex: (coor[0], coor[1], coor[2], coor[3])
         coor_str = ','.join(
             str(number) for number in ([score] + coor.tolist()))
 
@@ -77,14 +76,17 @@ def filter_bbox(bboxes: 'List',
 
 
 def run_det(image_data: np.ndarray, target_class: str) -> str:
-    start = time.time()
-
     original_image_size = image_data.shape[:2]
 
-    image_data = utils.image_preporcess(image_data, [IMAGE_H, IMAGE_W])
+    image_data = utils.image_preporcess(np.copy(image_data),
+                                        [IMAGE_H, IMAGE_W])
     image_data = image_data[np.newaxis, ...].astype(np.float32)
 
+    prev_time = time.time()
     pred_bbox = model.predict(image_data)
+    curr_time = time.time()
+    exec_time = curr_time - prev_time
+
     pred_bbox = [tf.reshape(x, (-1, tf.shape(x)[-1])) for x in pred_bbox]
     pred_bbox = tf.concat(pred_bbox, axis=0)
 
@@ -97,7 +99,7 @@ def run_det(image_data: np.ndarray, target_class: str) -> str:
 
     temp = filter_bbox(bboxes=bboxes, target_class=target_class)
 
-    logger.info("YOLOv3-det time: %.2f ms" % (time.time() - start))
+    logger.info("YOLOv3-det time: %.2f ms" % (1000 * exec_time))
 
     return temp
 
@@ -129,7 +131,7 @@ def run_det(image_data: np.ndarray, target_class: str) -> str:
 
 class DetYOLOv3Servicer(det_yolov3_pb2_grpc.DetYOLOv3Servicer):
     def DetFrame(self, request, context):
-        img_data = request.data
+        img_data = request.image
         object_class = request.cls
         name = request.name
 
@@ -138,10 +140,9 @@ class DetYOLOv3Servicer(det_yolov3_pb2_grpc.DetYOLOv3Servicer):
         # img = Image.frombytes('RGBA', (720, 1280), img_data, decoder_name='jpeg', 'jpg')
         # TODO: resolution shall not be hard-coded
 
-        img = cv2.resize(np.frombuffer(img_data, dtype=np.uint8),
-                         (IMAGE_H, IMAGE_W),
-                         interpolation=cv2.INTER_NEAREST)
-        img = img / 255.0
+        img = np.frombuffer(img_data.data, dtype=np.uint8).reshape(
+            (img_data.height, img_data.width, img_data.channel))
+
         det_res = run_det(img, object_class)
         return det_yolov3_pb2.Score(res=det_res)
 

@@ -6,8 +6,15 @@ service DetYOLOv3 {
     rpc DetFrame (DetFrameRequest) returns (Score) {}
 }
 
-message DetFrameRequest {
+message Image {
     bytes data = 1;
+    int32 height = 2;
+    int32 width = 3;
+    int32 channel = 4;
+}
+
+message DetFrameRequest {
+    Image image = 1;
     string name = 2;
     string cls = 3;
 }

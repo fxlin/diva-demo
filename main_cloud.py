@@ -222,8 +222,12 @@ class FrameProcessor(threading.Thread):
             img_data = self.extract_one_frame(video_path, frame_num)
 
             logger.debug(f"Sending extracted frame {task[1]} to YOLO")
+            img_payload = det_yolov3_pb2.Image(data=img_data.tobytes(),
+                                               height=img_data.shape[0],
+                                               width=img_data.shape[1],
+                                               channel=img_data.shape[2])
             detected_objects = yolo_stub.DetFrame(
-                det_yolov3_pb2.DetFrameRequest(data=img_data.tobytes(),
+                det_yolov3_pb2.DetFrameRequest(img_payload,
                                                name=img_name,
                                                cls=object_name))
 
