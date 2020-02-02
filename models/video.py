@@ -17,10 +17,10 @@ class Video(Base):
     name = Column(String, unique=True)
     path = Column(String)
 
-    created_at = Column(DateTime, server_default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, server_default=datetime.datetime.utcnow())
     updated_at = Column(DateTime,
-                        server_default=datetime.datetime.utcnow,
-                        onupdate=datetime.datetime.utcnow)
+                        server_default=datetime.datetime.utcnow(),
+                        onupdate=datetime.datetime.utcnow())
 
     def __init__(self, name: str, path: str):
         self.name = name
