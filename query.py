@@ -7,18 +7,19 @@ from models.element import Element
 
 
 def request_frames(video_name):
-    session = db_session()
-    session.begin()
-    processed_frames = session.query(Frame.name).join(Video).filter(Video.name == video_name)\
+    processed_frames = db_session.query(Frame.name).all()
+    print(processed_frames)
+    processed_frames = db_session.query(Frame.name).join(Video).filter(Video.name == video_name)\
         .filter(Frame.processing_status == Status.Finished).all()
-    all_frames = session.query(Frame.name).join(Video).filter(Video.name == video_name).all()
+    all_frames = db_session.query(Frame.name).join(Video).filter(Video.name == video_name).all()
+    db_session.close()
+    print(processed_frames, all_frames)
     return processed_frames if len(processed_frames) == len(all_frames) else False
 
 
 def request_coordinates(frame_id, time):
-    session = db_session()
-    session.begin()
-    coordinates = session.query(Element.box_coordinate).join(Video).filter(Frame.id == frame_id).limit(300).all()
+    coordinates = db_session.query(Element.box_coordinate).join(Video).filter(Frame.id == frame_id).limit(300).all()
+    db_session.close()
     return coordinates
 
 

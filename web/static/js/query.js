@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 
     function display_images() {
+        console.log('done waiting');
         let computeReturn = $.ajax({
             method: "POST",
             contentType: 'application/json',
@@ -49,7 +50,6 @@ document.addEventListener('DOMContentLoaded', function(){
             }
         });
     }
-
     function call_diva() {
         console.log(vid);
         console.log(obj);
