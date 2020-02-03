@@ -197,8 +197,8 @@ class FrameProcessor(threading.Thread):
         yolo_channel = grpc.insecure_channel(YOLO_CHANNEL_ADDRESS)
         yolo_stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(yolo_channel)
 
-        video_id, video_path, = task[0], task[1]
-        frame_num, object_name = task[2], task[3]
+        video_id, video_name, video_path, = task[0], task[1], task[2]
+        frame_num, object_name = task[3], task[4]
 
         picked_frame: Frame = None
 
@@ -224,11 +224,16 @@ class FrameProcessor(threading.Thread):
                 logger.error(err)
 
             try:
-                img_name = os.path.join(CONTROLLER_PICTURE_DIRECTORY,
-                                        f'{frame_num}.jpg')
+                v_name = '_'.join(video_name.split('.')[:-1])
+                image_dir = os.path.join(CONTROLLER_PICTURE_DIRECTORY, v_name)
+                if not os.path.exists(image_dir):
+                    os.mkdir(image_dir)
+
+                img_name = os.path.join(image_dir, f'{frame_num}.jpg')
                 img_data = self.extract_one_frame(video_path, frame_num)
 
-                logger.debug(f"Sending extracted frame {task[1]} to YOLO")
+                logger.debug(f"Sending extracted frame {frame_num} to YOLO")
+
                 img_payload = det_yolov3_pb2.Image(data=img_data.tobytes(),
                                                    height=img_data.shape[0],
                                                    width=img_data.shape[1],
@@ -309,8 +314,8 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
                 db_session.commit()
 
                 for f_id in frame_ids:
-                    TaskQueue.put((selected_video.id, selected_video.path,
-                                   f_id, object_name))
+                    TaskQueue.put((selected_video.id, selected_video.name,
+                                   selected_video.path, f_id, object_name))
             else:
                 logger.warning(f'Failed to find video with name {video_name}')
 
