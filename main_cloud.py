@@ -279,23 +279,16 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
     """
     Implement server_divaServicer of gRPC
     """
-    def request_frame_path(self, request, context):
-        # FIXME should use name to find corresponding folder
-        # desired_object_name = request.name
-        return server_diva_pb2.directory(
-            directory_path=FAKE_IMAGE_DIRECTOR_PATH)
-
     def detect_object_in_video(self, request, context):
         object_name = request.object_name
         video_name = request.video_name
+
+        res = server_diva_pb2.detection_result()
 
         try:
             db_session()
             selected_video = db_session.query(Video).filter(
                 Video.name == video_name).one_or_none()
-            logger.debug(
-                f'finding video: {video_name} result: {selected_video}')
-
             associated_frames = db_session.query(Frame).join(Video).filter(
                 Video.name == video_name).all()
 
@@ -317,20 +310,24 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
                     TaskQueue.put((selected_video.id, selected_video.name,
                                    selected_video.path, f_id, object_name))
             else:
-                logger.warning(f'Failed to find video with name {video_name}')
+                if selected_video is None:
+                    logger.warning(
+                        f'Failed to find video with name {video_name}')
 
+            res.retval = empty_pb2.Empty()
         except MultipleResultsFound as m_err:
-            logger.error(
-                f'Found multiple result when finding video with name {video_name}: {m_err}'
-            )
+            _msg = f'Found multiple result when finding video with name {video_name}: {m_err}'
+            logger.error(_msg)
+            res.error = _msg
         except Exception as err:
-            logger.error(f"Failed to insert frame data into DB: {err}")
-
+            _msg = f"Failed to insert frame data into DB: {err}"
+            logger.error(_msg)
             db_session.rollback()
+            res.error = _msg
         finally:
             db_session.remove()
 
-        return empty_pb2.Empty()
+        return res
 
 
 def grpc_serve():

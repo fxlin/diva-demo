@@ -4,32 +4,17 @@ import "google/protobuf/empty.proto";
 package server_diva;
 
 service server_diva {
-    rpc request_frame_path(query_statement) returns (directory) {}
-    rpc detect_object_in_video(object_video_pair) returns (google.protobuf.Empty) {}
+    rpc detect_object_in_video(object_video_pair) returns (detection_result) {}
 }
 
-message query_statement {
-    string name = 1;
+message detection_result {
+    oneof payload {
+        google.protobuf.Empty retval = 1;
+        string error = 2;
+    }
 }
 
 message object_video_pair {
-    string object_name = 1;
-    string video_name = 2;
-}
-
-message directory {
-    string directory_path = 1;
-}
-
-message bounding_box {
-    // xmin,ymin,xmax,ymax
-    double xmin = 1;
-    double ymin = 2;
-    double xmax = 3;
-    double ymax = 4;
-}
-
-message image_paths {
-    repeated string paths = 1;
-    repeated bounding_box box_arr = 2;
+    string object_name = 3;
+    string video_name = 4;
 }
