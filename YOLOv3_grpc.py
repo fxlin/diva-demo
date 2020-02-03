@@ -3,6 +3,7 @@
 
 import time
 from concurrent import futures
+from typing import List
 import logging
 import grpc
 import sys
@@ -28,7 +29,7 @@ FORMAT = '%(asctime)-15s %(levelname)8s %(thread)d %(threadName)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
 logger = logging.getLogger(__name__)
 
-IMAGE_H, IMAGE_W = 608, 608 
+IMAGE_H, IMAGE_W = 608, 608
 # classes = util.read_coco_names('./tensorflow-yolov3/data/coco.names')
 # num_classes = len(classes)
 # gpu_nms_graph = tf.Graph()
@@ -44,10 +45,7 @@ for i, fm in enumerate(feature_maps):
 model = tf.keras.Model(input_layer, bbox_tensors)
 utils.load_weights(model, "./yolov3.weights")
 
-IMAGE_H, IMAGE_W = 608, 608
-# classes = util.read_coco_names('./tensorflow-yolov3/data/coco.names')
-# num_classes = len(classes)
-# gpu_nms_graph = tf.Graph()
+CLASSES = utils.read_class_names(cfg.YOLO.CLASSES)
 
 
 def filter_bbox(bboxes: 'List',
