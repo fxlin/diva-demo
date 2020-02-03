@@ -15,8 +15,10 @@ cd <PATH_TO_DIVA_FORK_FOLDER>
 git pull swh demo && make build-cloud && make init-postgres
 ```
 '''{shell}
+
+
+
+```{shell}
 #  how to run web server: python -m web/web_server
 #  output folder: ./web/static/output/
-
-
-'''
+```
