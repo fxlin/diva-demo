@@ -284,6 +284,7 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
         video_name = request.video_name
 
         res = server_diva_pb2.detection_result()
+        res.retval = empty_pb2.Empty()
 
         try:
             db_session()
@@ -311,10 +312,10 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
                                    selected_video.path, f_id, object_name))
             else:
                 if selected_video is None:
-                    logger.warning(
-                        f'Failed to find video with name {video_name}')
+                    _msg = f'Failed to find video with name {video_name}'
+                    logger.warning(_msg)
+                    res.error = _msg
 
-            res.retval = empty_pb2.Empty()
         except MultipleResultsFound as m_err:
             _msg = f'Found multiple result when finding video with name {video_name}: {m_err}'
             logger.error(_msg)
