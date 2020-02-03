@@ -6,7 +6,7 @@ import server_diva_pb2_grpc
 from variables import DIVA_CHANNEL_ADDRESS
 from flask import Flask, render_template, request
 from flask import jsonify, send_from_directory
-import query
+import web.query as query
 
 
 OUTPUT_DIR = './result/retrieval_imgs/'
@@ -49,7 +49,8 @@ def retrieve_frames():
         return jsonify(file=name)
     print('finished')
     for i in name:
-        time.append(str(int(i.split('.')[0]) // 10))
+        #time.append(str(int(i.split('.')[0]) // 10))
+        time.append(str(int(i) // 10))
     name = ','.join(name)
     time = ','.join(time)
     return jsonify(file=name, t=time)

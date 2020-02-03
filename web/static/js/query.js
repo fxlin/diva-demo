@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function(){
             }
             for (let i = 0; i < arrImg.length; i += 1) {
                 let img = new Image();
-                img.src = './static/output/' + arrImg[i];
+                img.src = './static/output/' + arrImg[i] + '.jpg';
                 img.width = 400;
                 img.height = 300;
                 img.addEventListener('click', function () {

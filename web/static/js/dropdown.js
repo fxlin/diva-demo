@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
 
     document.getElementById("bike").addEventListener("click", function() {
-            dropdown_menu('bicycle');
+            dropdown_menu('motorbike');
         }, false);
 
 
