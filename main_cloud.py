@@ -54,7 +54,7 @@ TaskQueue = Queue(0)
 ImageQueue = Queue(10)
 
 FORMAT = '%(asctime)-15s %(levelname)8s %(thread)d %(threadName)s %(message)s'
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, format=FORMAT)
 logger = logging.getLogger(__name__)
 
 
@@ -194,8 +194,7 @@ class FrameProcessor(threading.Thread):
 
         _start_time = time.time()
 
-        # FIXME
-        # logger.debug(f'Task {task}')
+        logger.debug(f'Task {task}')
 
         yolo_channel = grpc.insecure_channel(YOLO_CHANNEL_ADDRESS)
         yolo_stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(yolo_channel)
@@ -235,8 +234,7 @@ class FrameProcessor(threading.Thread):
                 img_name = os.path.join(image_dir, f'{frame_num}.jpg')
                 img_data = self.extract_one_frame(video_path, frame_num)
 
-                # FIXME
-                # logger.debug(f"Sending extracted frame {frame_num} to YOLO")
+                logger.debug(f"Sending extracted frame {frame_num} to YOLO")
 
                 img_payload = det_yolov3_pb2.Image(data=img_data.tobytes(),
                                                    height=img_data.shape[0],
@@ -248,8 +246,7 @@ class FrameProcessor(threading.Thread):
                                                    cls=object_name))
 
                 boxes = self.get_bounding_boxes(detected_objects.res)
-                #FIXME
-                # logger.debug(f"bounding box of {object_name}: {boxes}")
+                logger.debug(f"bounding box of {object_name}: {boxes}")
 
                 setattr(picked_frame, 'processing_status', Status.Finished)
                 db_session.commit()
@@ -277,8 +274,7 @@ class FrameProcessor(threading.Thread):
 
         yolo_channel.close()
 
-        # FIXME
-        # logger.info(f'Take {time.time() - _start_time} m second to finish')
+        logger.debug(f'Take {time.time() - _start_time} m second to finish')
 
 
 class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
@@ -465,7 +461,6 @@ def runDiva():
 
 
 if __name__ == '__main__':
-    # FIXME
     logging.getLogger('sqlalchemy').setLevel(logging.WARNING)
 
     init_db()
