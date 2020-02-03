@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function(){
         }, false);
 
      document.getElementById("video3").addEventListener("click", function() {
-            video('/static/video/output.mp4');
+            video('/static/video/example.mp4');
         }, false);
 
     function video(a){

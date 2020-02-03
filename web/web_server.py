@@ -44,7 +44,7 @@ def retrieve_frames():
     video_name = request.json['video'].split('/')[-1]
     print(video_name)
     name = query.request_frames(video_name)
-    if name:
+    if not name:
         print('not finished')
         return jsonify(file=name)
     print('finished')
