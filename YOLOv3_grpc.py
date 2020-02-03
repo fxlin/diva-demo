@@ -28,7 +28,7 @@ FORMAT = '%(asctime)-15s %(levelname)8s %(thread)d %(threadName)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
 logger = logging.getLogger(__name__)
 
-IMAGE_H, IMAGE_W = 416, 416
+IMAGE_H, IMAGE_W = 608, 608 
 # classes = util.read_coco_names('./tensorflow-yolov3/data/coco.names')
 # num_classes = len(classes)
 # gpu_nms_graph = tf.Graph()

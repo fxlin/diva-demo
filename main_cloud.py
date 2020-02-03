@@ -98,8 +98,8 @@ class ImageProcessor(threading.Thread):
             x1, y1, x2, y2 = item[0], item[1], item[2], item[3]
             img = draw_box(img, x1, y1, x2, y2)
 
-        result = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-        cv2.imwrite(img_name, result)
+        # result = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        cv2.imwrite(img_name, img)
 
         del img_data
         del img
@@ -211,13 +211,11 @@ class FrameProcessor(threading.Thread):
                     Frame.processing_status ==
                     Status.Initialized).one_or_none()
         except MultipleResultsFound as m_err:
-            # FIXME
-            logger.info(
-                f'after query: {db_session.query(Frame).filter(Frame.name == str(frame_num)).filter(Frame.processing_status == Status.Initialized).all()}'
-            )
-
             logger.error(
                 f'Found too many frames with name {frame_num}: {m_err}')
+            logger.debug(
+                f'after query: {db_session.query(Frame).filter(Frame.name == str(frame_num)).filter(Frame.processing_status == Status.Initialized).all()}'
+            )
         except Exception as err:
             logger.error(err)
 
@@ -229,7 +227,8 @@ class FrameProcessor(threading.Thread):
                 logger.error(err)
 
             try:
-                img_name = f'{frame_num}.jpg'
+                # FIXME remove tmp
+                img_name = f'/tmp/{frame_num}.jpg'
                 img_data = self.extract_one_frame(video_path, frame_num)
 
                 logger.debug(f"Sending extracted frame {task[1]} to YOLO")

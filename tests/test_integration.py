@@ -75,7 +75,8 @@ class TestProcessVideo(unittest.TestCase):
                     Frame.processing_status ==
                     Status.Finished).distinct().all()
 
-            if len(processed_frames) == len(all_frames) != 0:
+            if len(processed_frames) >= (len(all_frames) //
+                                         2) and len(all_frames) != 0:
                 break
             elif (time.time() - begin) > 60 * 5:
                 print(
