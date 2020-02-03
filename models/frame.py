@@ -9,6 +9,7 @@ class Status(IntEnum):
     Initialized = 1
     Processing = 2
     Finished = 3
+    Failed = 4
 
 
 class Frame(Base):

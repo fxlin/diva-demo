@@ -87,19 +87,27 @@ class ImageProcessor(threading.Thread):
         if not res_items:
             return
 
-        img = cv2.cvtColor(np.asarray(img_data), cv2.COLOR_RGB2BGR)
+        # FIXME frame is retrived from openCV
+        # reference https://github.com/YunYang1994/TensorFlow2.0-Examples/
+        # blob/master/4-Object_Detection/YOLOV3/video_demo.py
+        # image = utils.draw_bbox(frame, res_items)
+        # result = np.asarray(image)
+
+        img = np.asarray(img_data)
         for item in res_items:
             x1, y1, x2, y2 = item[0], item[1], item[2], item[3]
             img = draw_box(img, x1, y1, x2, y2)
 
-        # FIXME test
-        img_fname = img_name
-        # img_fname = os.path.join(RESULT_IMAGE_PATH, img_name)
-
-        cv2.imwrite(img_fname, img)
+        result = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+        cv2.imwrite(img_name, result)
 
         del img_data
         del img
+
+
+class ImageDoesNotExistException(Exception):
+    """Image does not exist"""
+    pass
 
 
 class FrameProcessor(threading.Thread):
@@ -124,22 +132,24 @@ class FrameProcessor(threading.Thread):
         if not os.path.exists(in_filename):
             raise ValueError(f'video does not exist: {in_filename}')
 
-        cap = cv2.VideoCapture(in_filename)
         total_frames = FrameProcessor.video_frame(in_filename)
+        if frame_num < 0 or frame_num > total_frames:
+            raise Exception(
+                f'desired frame {frame_num} is out of range [0, {total_frames}]'
+            )
 
-        if frame_num >= 0 & frame_num <= total_frames:
-            # set frame position
-            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_num)
+        cap = cv2.VideoCapture(in_filename)
+        if cap.isOpened():
+            raise Exception(f'video {in_filename} is not open yet')
 
+        # set frame position
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_num)
         ret, frame = cap.read()
         cap.release()
 
         if not ret:
-            raise Exception(
+            raise ImageDoesNotExistException(
                 f'Cannot not extract {frame_num}th frame from {in_filename}')
-
-        # FIXME
-        logger.warning(f'image dtype {frame.dtype}')
 
         return frame
 
@@ -218,29 +228,24 @@ class FrameProcessor(threading.Thread):
             except Exception as err:
                 logger.error(err)
 
-            img_name = f'{frame_num}.jpg'
-            img_data = self.extract_one_frame(video_path, frame_num)
-
-            logger.debug(f"Sending extracted frame {task[1]} to YOLO")
-            img_payload = det_yolov3_pb2.Image(data=img_data.tobytes(),
-                                               height=img_data.shape[0],
-                                               width=img_data.shape[1],
-                                               channel=img_data.shape[2])
-            detected_objects = yolo_stub.DetFrame(
-                det_yolov3_pb2.DetFrameRequest(image=img_payload,
-                                               name=img_name,
-                                               cls=object_name))
-
-            boxes = self.get_bounding_boxes(detected_objects.res)
-            logger.debug(f"bounding box of {object_name}: {boxes}")
-
             try:
-                # picked_frame.processing_status = Status.Finished
-                # FIXME
-                setattr(picked_frame, 'processing_status', Status.Finished)
+                img_name = f'{frame_num}.jpg'
+                img_data = self.extract_one_frame(video_path, frame_num)
 
-                # db_session.add(picked_frame)
-                # db_session.flush()
+                logger.debug(f"Sending extracted frame {task[1]} to YOLO")
+                img_payload = det_yolov3_pb2.Image(data=img_data.tobytes(),
+                                                   height=img_data.shape[0],
+                                                   width=img_data.shape[1],
+                                                   channel=img_data.shape[2])
+                detected_objects = yolo_stub.DetFrame(
+                    det_yolov3_pb2.DetFrameRequest(image=img_payload,
+                                                   name=img_name,
+                                                   cls=object_name))
+
+                boxes = self.get_bounding_boxes(detected_objects.res)
+                logger.debug(f"bounding box of {object_name}: {boxes}")
+
+                setattr(picked_frame, 'processing_status', Status.Finished)
                 db_session.commit()
 
                 if boxes:
@@ -254,6 +259,10 @@ class FrameProcessor(threading.Thread):
                     db_session.commit()
 
                     ImageQueue.put((img_name, img_data, boxes))
+            except ImageDoesNotExistException:
+                picked_frame.processing_status = Status.Failed
+                logger.warning(f'frame {frame_num} cannot be processed')
+                db_session.commit()
             except Exception as err:
                 logger.error(
                     f'Working on task {task} but encounter error: {err}')
