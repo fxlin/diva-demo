@@ -20,14 +20,14 @@ import cam_cloud_pb2
 import cam_cloud_pb2_grpc
 import server_diva_pb2_grpc
 import server_diva_pb2
-# FIXME
 from google.protobuf import empty_pb2
 
 from util import ClockLog
 
-from variables import CAMERA_CHANNEL_ADDRESS, YOLO_CHANNEL_ADDRESS, IMAGE_PATH, OP_FNAME_PATH
-from variables import FAKE_IMAGE_DIRECTOR_PATH, DIVA_CHANNEL_ADDRESS, DIVA_CHANNEL_PORT
-from variables import RESULT_IMAGE_PATH
+from variables import CAMERA_CHANNEL_ADDRESS, YOLO_CHANNEL_ADDRESS
+from variables import IMAGE_PATH, OP_FNAME_PATH
+from variables import FAKE_IMAGE_DIRECTOR_PATH, DIVA_CHANNEL_PORT
+from variables import RESULT_IMAGE_PATH, CONTROLLER_PICTURE_DIRECTORY
 
 from constants.grpc_constant import INIT_DIVA_SUCCESS
 
@@ -188,14 +188,11 @@ class FrameProcessor(threading.Thread):
         """
         task: (video_id, video_path, frame_number, object_of_interest)
         """
-        # FIXME to test blocking feature
-        _t = time.time()
         task = TaskQueue.get(block=True)
-        logger.info(f'Time elapse {time.time() - _t}')
 
         _start_time = time.time()
 
-        logger.info(f'Task {task}')
+        logger.debug(f'Task {task}')
 
         yolo_channel = grpc.insecure_channel(YOLO_CHANNEL_ADDRESS)
         yolo_stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(yolo_channel)
@@ -227,8 +224,8 @@ class FrameProcessor(threading.Thread):
                 logger.error(err)
 
             try:
-                # FIXME remove tmp
-                img_name = f'/tmp/{frame_num}.jpg'
+                img_name = os.path.join(CONTROLLER_PICTURE_DIRECTORY,
+                                        [f'{frame_num}.jpg'])
                 img_data = self.extract_one_frame(video_path, frame_num)
 
                 logger.debug(f"Sending extracted frame {task[1]} to YOLO")
@@ -284,20 +281,21 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
             directory_path=FAKE_IMAGE_DIRECTOR_PATH)
 
     def detect_object_in_video(self, request, context):
-
-        # FIXME
-        logger.error(f'Moterh fuck, they call me {time.time()}')
-
         object_name = request.object_name
         video_name = request.video_name
 
         try:
+            db_session()
             selected_video = db_session.query(Video).filter(
                 Video.name == video_name).one_or_none()
             logger.debug(
                 f'finding video: {video_name} result: {selected_video}')
 
-            if selected_video:
+            associated_frames = db_session.query(Frame).join(Video).filter(
+                Video.name == video_name).all()
+
+            # make sure video exist and prevent duplicated requests
+            if selected_video and len(associated_frames) == 0:
                 frame_ids = FrameProcessor.extract_frame_nums(
                     selected_video.path)
 
@@ -309,13 +307,6 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
                 # db_session.bulk_save_objects(_frame_list)
                 db_session.add_all(_frame_list)
                 db_session.commit()
-
-                # FIXME
-                temp_res_another = db_session.query(Frame).join(Video).filter(
-                    Video.name == video_name).all()
-                logger.info(
-                    f'frames in db: num: {len(temp_res_another)} =? {len(frame_ids)}'
-                )
 
                 for f_id in frame_ids:
                     TaskQueue.put((selected_video.id, selected_video.path,

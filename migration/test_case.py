@@ -12,8 +12,7 @@ from variables import CONTROLLER_VIDEO_DIRECTORY
 from migration.xsel_server import add_fixtures
 
 video_list = [('temp_video.mp4',
-               os.path.join(os.curdir, CONTROLLER_VIDEO_DIRECTORY,
-                            'temp_video.mp4'))]
+               os.path.join(CONTROLLER_VIDEO_DIRECTORY, 'temp_video.mp4'))]
 
 FORMAT = '%(asctime)-15s %(thread)d %(threadName)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
@@ -23,7 +22,7 @@ logging.info("Begin to generate fixtures")
 
 _SOURCE_VIDEO = 'example.mp4'
 _SAMPLE_VIDEO = 'temp_video.mp4'
-_SAMPLE_FOLDER = os.path.join('video')
+_SAMPLE_FOLDER = CONTROLLER_VIDEO_DIRECTORY
 
 source_path = os.path.join(_SAMPLE_FOLDER, _SOURCE_VIDEO)
 # FIXME test

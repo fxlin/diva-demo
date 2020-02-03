@@ -10,15 +10,12 @@ from models.video import Video
 from variables import CONTROLLER_VIDEO_DIRECTORY
 
 # FIXME
-fixture_list = [('sonic.mp4',
-                 os.path.join(os.curdir, CONTROLLER_VIDEO_DIRECTORY,
-                              'sonic.mp4')),
-                ('traffic_cam_vid.mp4',
-                 os.path.join(os.curdir, CONTROLLER_VIDEO_DIRECTORY,
-                              'traffic_cam_vid.mp4')),
-                ('example.mp4',
-                 os.path.join(os.curdir, CONTROLLER_VIDEO_DIRECTORY,
-                              'example.mp4'))]
+fixture_list = [
+    ('sonic.mp4', os.path.join(CONTROLLER_VIDEO_DIRECTORY, 'sonic.mp4')),
+    ('traffic_cam_vid.mp4',
+     os.path.join(CONTROLLER_VIDEO_DIRECTORY, 'traffic_cam_vid.mp4')),
+    ('example.mp4', os.path.join(CONTROLLER_VIDEO_DIRECTORY, 'example.mp4'))
+]
 
 FORMAT = '%(asctime)-15s %(thread)d %(threadName)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
