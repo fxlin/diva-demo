@@ -14,8 +14,6 @@ cd <PATH_TO_DIVA_FORK_FOLDER>
 # optional, initialize db
 git pull swh demo && make build-cloud && make init-postgres
 ```
-'''{shell}
-
 
 
 ```{shell}
