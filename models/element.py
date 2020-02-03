@@ -22,11 +22,10 @@ class Element(Base):
                         server_default=func.now(),
                         onupdate=func.now())
 
-    def __init__(self, object_class: str, box_coordinate: str, frame_id: int, frame: Frame):
+    def __init__(self, object_class: str, box_coordinate: str, frame_id: int):
         self.object_class = object_class
         self.box_coordinate = box_coordinate
         self.frame_id = frame_id
-        self.frame = Frame
 
     @staticmethod
     def coordinate_iterable_to_str(

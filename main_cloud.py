@@ -252,9 +252,8 @@ class FrameProcessor(threading.Thread):
                     temp_b = map(
                         lambda x: Element.coordinate_iterable_to_str(x), boxes)
                     ele_list = list(
-                        map(
-                            lambda y: Element(object_name, y, picked_frame.id,
-                                              picked_frame), temp_b))
+                        map(lambda y: Element(object_name, y, picked_frame.id),
+                            temp_b))
                     db_session.bulk_save_objects(ele_list)
                     db_session.commit()
 
