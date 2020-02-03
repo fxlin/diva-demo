@@ -139,7 +139,7 @@ class FrameProcessor(threading.Thread):
             )
 
         cap = cv2.VideoCapture(in_filename)
-        if cap.isOpened():
+        if not cap.isOpened():
             raise Exception(f'video {in_filename} is not open yet')
 
         # set frame position
