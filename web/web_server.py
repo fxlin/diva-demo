@@ -6,7 +6,7 @@ import server_diva_pb2_grpc
 from variables import DIVA_CHANNEL_ADDRESS
 from flask import Flask, render_template, request
 from flask import jsonify, send_from_directory
-import query
+import web.query as query
 
 
 OUTPUT_DIR = './result/retrieval_imgs/'
