@@ -69,13 +69,14 @@ class ImageProcessor(threading.Thread):
 
     def consume_image_task(self):
         task = ImageQueue.get(block=True)
-        if not task or len(task) == 0:
-            return
 
-        image_name = task[0]
-        image_data = task[1]
-        bounding_boxes = task[2]
-        self.process_frame(image_name, image_data, bounding_boxes)
+        try:
+            image_name = task[0]
+            image_data = task[1]
+            bounding_boxes = task[2]
+            self.process_frame(image_name, image_data, bounding_boxes)
+        except Exception as err:
+            logger.error(f'Task {task} failed. {err}')
 
     @staticmethod
     def process_frame(img_name: str, img_data,
@@ -99,6 +100,7 @@ class ImageProcessor(threading.Thread):
             img = draw_box(img, x1, y1, x2, y2)
 
         # result = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+
         cv2.imwrite(img_name, img)
 
         del img_data
@@ -192,7 +194,8 @@ class FrameProcessor(threading.Thread):
 
         _start_time = time.time()
 
-        logger.debug(f'Task {task}')
+        # FIXME
+        # logger.debug(f'Task {task}')
 
         yolo_channel = grpc.insecure_channel(YOLO_CHANNEL_ADDRESS)
         yolo_stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(yolo_channel)
@@ -232,7 +235,8 @@ class FrameProcessor(threading.Thread):
                 img_name = os.path.join(image_dir, f'{frame_num}.jpg')
                 img_data = self.extract_one_frame(video_path, frame_num)
 
-                logger.debug(f"Sending extracted frame {frame_num} to YOLO")
+                # FIXME
+                # logger.debug(f"Sending extracted frame {frame_num} to YOLO")
 
                 img_payload = det_yolov3_pb2.Image(data=img_data.tobytes(),
                                                    height=img_data.shape[0],
@@ -244,7 +248,8 @@ class FrameProcessor(threading.Thread):
                                                    cls=object_name))
 
                 boxes = self.get_bounding_boxes(detected_objects.res)
-                logger.debug(f"bounding box of {object_name}: {boxes}")
+                #FIXME
+                # logger.debug(f"bounding box of {object_name}: {boxes}")
 
                 setattr(picked_frame, 'processing_status', Status.Finished)
                 db_session.commit()
@@ -272,7 +277,8 @@ class FrameProcessor(threading.Thread):
 
         yolo_channel.close()
 
-        logger.info(f'Take {time.time() - _start_time} m second to finish')
+        # FIXME
+        # logger.info(f'Take {time.time() - _start_time} m second to finish')
 
 
 class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
@@ -459,8 +465,8 @@ def runDiva():
 
 
 if __name__ == '__main__':
-
-    logging.getLogger('sqlalchemy').setLevel(logging.INFO)
+    # FIXME
+    logging.getLogger('sqlalchemy').setLevel(logging.WARNING)
 
     init_db()
 
