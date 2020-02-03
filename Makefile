@@ -61,14 +61,6 @@ run-postgres:
 init-postgres:
 	docker run --network=${NETWORK_NAME} --rm -it --name init_db  ${DOCKER_USERNAME}/diva-cloud:latest python -m migration.xsel_server
 
-run-postgres:
-	docker run --network=${NETWORK_NAME} -it --name ${DEFAULT_POSTGRES_HOST} -p ${DEFAULT_POSTGRES_PORT}:${DEFAULT_POSTGRES_PORT} \
-		-e POSTGRES_PASSWORD=${DEFAULT_POSTGRES_PASSWORD} \
-		-e POSTGRES_DB=${DEFAULT_POSTGRES_DB} -d postgres:latest
-
-init-postgres:
-	docker run --network=${NETWORK_NAME} --rm -it --name init_db  ${DOCKER_USERNAME}/diva-cloud:latest python -m migration.xsel_server
-
 fixture-postgres:
 	docker run --network=${NETWORK_NAME} --rm -it --name init_db  ${DOCKER_USERNAME}/diva-cloud:latest python -m migration.test_case
 
