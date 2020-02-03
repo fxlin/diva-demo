@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, MetaData
 from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, scoped_session
@@ -22,9 +22,9 @@ Base.query = db_session.query_property()
 
 
 def init_db():
-    import models.element
-    import models.frame
     import models.video
+    import models.frame
+    import models.element
     Base.metadata.create_all(bind=engine)
 
 
