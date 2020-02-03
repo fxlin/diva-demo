@@ -12,7 +12,6 @@ from queue import Queue
 from typing import List, Tuple
 import cv2
 import numpy as np
-import ffmpeg
 
 import grpc
 import det_yolov3_pb2
@@ -371,99 +370,6 @@ def detection_serve():
     # for _t in thread_list:
     #     _t.join()
 
-class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
-    """
-    Implement server_divaServicer of gRPC
-    """
-    # def __init__(self):
-    #     super().__init__(self)
-
-    def request_frame_path(self, request, context):
-        # FIXME should use name to find corresponding folder
-        # desired_object_name = request.name
-        return server_diva_pb2.directory(
-            directory_path=FAKE_IMAGE_DIRECTOR_PATH)
-
-    def detect_object_in_video(self, request, context):
-        object_name = request.object_name
-        video_name = request.video_name
-
-        session = db_session()
-
-        session.begin()
-        try:
-            selected_video = session.query(Video).filter(
-                Video.name == video_name).one_or_none()
-            logging.debug(
-                f'finding video: {video_name} result: {selected_video}')
-
-            if selected_video:
-                frame_ids = FrameProcessor.extract_frame_nums(
-                    selected_video.path)
-                logging.debug(f"adding {len(frame_ids)} tasks in queue")
-
-                _frame_list = []
-
-                for f_id in frame_ids:
-                    _frame_list.append(
-                        Frame(str(f_id), selected_video.id, selected_video,
-                              Status.Initialized))
-                    TaskQueue.put((selected_video.id, selected_video.path,
-                                   f_id, object_name))
-
-                session.bulk_save_objects(_frame_list)
-                session.commit()
-            else:
-                logging.warning(f'Failed to find video with name {video_name}')
-
-        except MultipleResultsFound as m_err:
-            logging.error(
-                f'Found multiple result when finding video with name {video_name}: {m_err}'
-            )
-        except Exception as err:
-            logging.error(err)
-            session.rollback()
-        finally:
-            db_session.remove()
-
-        # FIXME should return nothing
-        path_arr = []
-        return server_diva_pb2.image_paths(path=path_arr)
-
-
-def grpc_serve():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    diva_servicer = DivaGRPCServer()
-    server_diva_pb2_grpc.add_server_divaServicer_to_server(
-        diva_servicer, server)
-    server.add_insecure_port(f'[::]:{DIVA_CHANNEL_PORT}')
-    server.start()
-    logging.info("GRPC server is runing")
-
-    return server
-
-
-def detection_serve():
-    thread_list = []
-
-    for _ in range(FRAME_PROCESSOR_WORKER_NUM):
-        temp = FrameProcessor()
-        temp.setDaemon(True)
-        temp.start()
-        thread_list.append(temp)
-
-    for _ in range(IMAGE_PROCESSOR_WORKER_NUM):
-        image_worker = ImageProcessor()
-        image_worker.setDaemon(True)
-        image_worker.start()
-        thread_list.append(image_worker)
-
-    logging.info("workers are runing")
-
-    # NOTE should not join since we don't want the program got blocked here
-    # for _t in thread_list:
-    #     _t.join()
-
 
 def draw_box(img, x1, y1, x2, y2):
     rw = float(img.shape[1]) / DET_SIZE
@@ -582,3 +488,5 @@ if __name__ == '__main__':
         logger.warning(err)
         SHUTDOWN_SIGNAL.set()
         _server.stop(1)
+
+    # runDiva()
