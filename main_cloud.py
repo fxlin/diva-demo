@@ -284,7 +284,7 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
         video_name = request.video_name
 
         res = server_diva_pb2.detection_result()
-        res.retval = empty_pb2.Empty()
+        res.retval.CopyFrom(empty_pb2.Empty())
 
         try:
             db_session()
