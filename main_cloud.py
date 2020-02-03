@@ -203,7 +203,7 @@ class FrameProcessor(threading.Thread):
         video_id, video_path, = task[0], task[1]
         frame_num, object_name = task[2], task[3]
 
-        picked_frame = None
+        picked_frame: Frame = None
 
         try:
             picked_frame = db_session.query(Frame).filter(
@@ -253,8 +253,8 @@ class FrameProcessor(threading.Thread):
                         lambda x: Element.coordinate_iterable_to_str(x), boxes)
                     ele_list = list(
                         map(
-                            lambda y: Element(object_name, y, picked_frame.
-                                              frame_id, picked_frame), temp_b))
+                            lambda y: Element(object_name, y, picked_frame.id,
+                                              picked_frame), temp_b))
                     db_session.bulk_save_objects(ele_list)
                     db_session.commit()
 
