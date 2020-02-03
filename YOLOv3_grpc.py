@@ -7,7 +7,6 @@ from typing import List
 import logging
 import grpc
 import sys
-import cv2
 import numpy as np
 import tensorflow as tf
 from variables import YOLO_CHANNEL_PORT
@@ -103,31 +102,6 @@ def run_det(image_data: np.ndarray, target_class: str) -> str:
     logger.info("YOLOv3-det time: %.2f ms" % (1000 * exec_time))
 
     return temp
-
-
-# config = tf.ConfigProto()
-# config.gpu_options.per_process_gpu_memory_fraction = 0.3
-# keras.backend.set_session(tf.Session(config=config))
-
-# input_tensor, output_tensors = utils.read_pb_return_tensors(
-#     gpu_nms_graph, "./tensorflow-yolov3/checkpoint/yolov3_gpu_nms.pb",
-#     ["Placeholder:0", "concat_10:0", "concat_11:0", "concat_12:0"])
-# sess = tf.Session(graph=gpu_nms_graph)
-
-# def run_det(img, cls):
-#     start = time.time()
-#     boxes, scores, labels = sess.run(
-#         output_tensors, feed_dict={input_tensor: np.expand_dims(img, axis=0)})
-#     ret = []
-#     for i in range(len(boxes)):
-#         bbox, score, label = boxes[i], scores[i], classes[labels[i]]
-#         if label != cls:
-#             continue
-#         res_str = ','.join([str(x) for x in ([score] + bbox.tolist())])
-#         print('Detect res: ', res_str)
-#         ret.append(res_str)
-#     print("YOLOv3-det time: %.2f ms" % (1000 * (time.time() - start)))
-#     return '|'.join(ret)
 
 
 class DetYOLOv3Servicer(det_yolov3_pb2_grpc.DetYOLOv3Servicer):
