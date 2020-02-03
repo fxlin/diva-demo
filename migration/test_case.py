@@ -27,7 +27,7 @@ _SAMPLE_FOLDER = CONTROLLER_VIDEO_DIRECTORY
 source_path = os.path.join(_SAMPLE_FOLDER, _SOURCE_VIDEO)
 # FIXME test
 # p = os.path.join(self.SAMPLE_FOLDER, self.SAMPLE_VIDEO)
-p = os.path.join(os.curdir, _SAMPLE_FOLDER, _SAMPLE_VIDEO)
+p = os.path.join(_SAMPLE_FOLDER, _SAMPLE_VIDEO)
 
 
 def generate_test_video(source_path: str, output_path: str):

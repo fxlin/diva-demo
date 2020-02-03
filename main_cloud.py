@@ -225,7 +225,7 @@ class FrameProcessor(threading.Thread):
 
             try:
                 img_name = os.path.join(CONTROLLER_PICTURE_DIRECTORY,
-                                        [f'{frame_num}.jpg'])
+                                        f'{frame_num}.jpg')
                 img_data = self.extract_one_frame(video_path, frame_num)
 
                 logger.debug(f"Sending extracted frame {task[1]} to YOLO")
