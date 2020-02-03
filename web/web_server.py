@@ -49,7 +49,8 @@ def retrieve_frames():
         return jsonify(file=name)
     print('finished')
     for i in name:
-        time.append(str(int(i.split('.')[0]) // 10))
+        #time.append(str(int(i.split('.')[0]) // 10))
+        time.append(str(int(i) // 10))
     name = ','.join(name)
     time = ','.join(time)
     return jsonify(file=name, t=time)
