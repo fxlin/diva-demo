@@ -5,18 +5,20 @@ Init DB
 import os
 import sys
 import logging
-from sqlalchemy import MetaData
 from models.common import db_session, init_db
 from models.video import Video
-from variables import VIDEO_FOLDER
+from variables import CONTROLLER_VIDEO_DIRECTORY
 
 # FIXME
-fixture_list = [('sonic.mp4', os.path.join(os.curdir, VIDEO_FOLDER,
-                                           'sonic.mp4')),
+fixture_list = [('sonic.mp4',
+                 os.path.join(os.curdir, CONTROLLER_VIDEO_DIRECTORY,
+                              'sonic.mp4')),
                 ('traffic_cam_vid.mp4',
-                 os.path.join(os.curdir, VIDEO_FOLDER, 'traffic_cam_vid.mp4')),
+                 os.path.join(os.curdir, CONTROLLER_VIDEO_DIRECTORY,
+                              'traffic_cam_vid.mp4')),
                 ('example.mp4',
-                 os.path.join(os.curdir, VIDEO_FOLDER, 'example.mp4'))]
+                 os.path.join(os.curdir, CONTROLLER_VIDEO_DIRECTORY,
+                              'example.mp4'))]
 
 FORMAT = '%(asctime)-15s %(thread)d %(threadName)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)

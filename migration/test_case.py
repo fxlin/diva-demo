@@ -8,12 +8,12 @@ import logging
 import time
 import ffmpeg
 from models.common import db_session, init_db
-from models.video import Video
-from variables import VIDEO_FOLDER
+from variables import CONTROLLER_VIDEO_DIRECTORY
 from migration.xsel_server import add_fixtures
 
 video_list = [('temp_video.mp4',
-               os.path.join(os.curdir, VIDEO_FOLDER, 'temp_video.mp4'))]
+               os.path.join(os.curdir, CONTROLLER_VIDEO_DIRECTORY,
+                            'temp_video.mp4'))]
 
 FORMAT = '%(asctime)-15s %(thread)d %(threadName)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
