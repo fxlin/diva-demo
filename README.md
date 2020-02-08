@@ -7,12 +7,14 @@ Quick Start
 eval "$(ssh-agent -s)"
 ssh-add <SSH_KEY_PATH> # add ssh key into ssh-agent
 
-docker stop mypgdb && docker rm mypgdb && make run-postgres
+# Init DB
+docker stop mypgdb && docker rm mypgdb && make run-postgres && sleep 10 && make init-postgres && make fixture-postgres
 
-cd <PATH_TO_DIVA_FORK_FOLDER>
 
-# optional, initialize db
-git pull swh demo && make build-cloud && make init-postgres
+make setup-env
+make run-yolo
+make run-cloud
+
 ```
 
 ## WEB
