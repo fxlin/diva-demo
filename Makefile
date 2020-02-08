@@ -17,6 +17,8 @@ WEB_SERVER_PORT=10000
 YOLO_SERVICE_PORT=10088
 CLOUD_SERVICE_PORT=10090
 
+PERSISTENT_VOLUME='/tmp/diva_test'
+WEB_SERVER_IMAGE_VOLUME='/var/yolov3/web/static/output'
 
 run-all:
 	@make run-cloud
@@ -35,8 +37,12 @@ start-network:
 remove-network:
 	docker network rm ${NETWORK_NAME}
 
+setup-env: start-network
+	@echo "check if ${PERSISTENT_VOLUME} exists"
+	@[ ! -d "${PERSISTENT_VOLUME}" ] && mkdir -p "${PERSISTENT_VOLUME}"
+
 run-cloud:
-	docker run --network=${NETWORK_NAME} -it -d -p ${CLOUD_SERVICE_PORT}:${CLOUD_SERVICE_PORT} --name cloud -v ${VIDEO_DATA_PATH}:${VIDEO_DATA_PATH_IN_CONTAINER}:ro ${DOCKER_USERNAME}/diva-cloud:latest
+	docker run --network=${NETWORK_NAME} -it -d -p ${CLOUD_SERVICE_PORT}:${CLOUD_SERVICE_PORT} --name cloud -v ${VIDEO_DATA_PATH}:${VIDEO_DATA_PATH_IN_CONTAINER}:ro -v ${PERSISTENT_VOLUME}:${WEB_SERVER_IMAGE_VOLUME}:wo ${DOCKER_USERNAME}/diva-cloud:latest
 
 run-cloud-without-disk:
 	docker run --network=${NETWORK_NAME} -it -d -p ${CLOUD_SERVICE_PORT}:${CLOUD_SERVICE_PORT} --name cloud ${DOCKER_USERNAME}/diva-cloud:latest
@@ -51,7 +57,7 @@ run-yolo-with-port:
 	docker run --network=${NETWORK_NAME} -it  -d --gpus all --name=yolo -p ${YOLO_SERVICE_PORT}:${YOLO_SERVICE_PORT} ${DOCKER_USERNAME}/diva-yolo:latest
 
 run-webserver:
-	docker run --network=${NETWORK_NAME} -it -p ${WEB_SERVER_PORT}:${WEB_SERVER_PORT} -d --name=webserver ${DOCKER_USERNAME}/diva-webserver:latest
+	docker run --network=${NETWORK_NAME} -it -p ${WEB_SERVER_PORT}:${WEB_SERVER_PORT} -v ${PERSISTENT_VOLUME}:${WEB_SERVER_IMAGE_VOLUME} -d --name=webserver ${DOCKER_USERNAME}/diva-webserver:latest
 
 run-postgres:
 	docker run --network=${NETWORK_NAME} -it --name ${DEFAULT_POSTGRES_HOST} -p ${DEFAULT_POSTGRES_PORT}:${DEFAULT_POSTGRES_PORT} \
