@@ -42,15 +42,10 @@ document.addEventListener('DOMContentLoaded', function(){
             url: "/retrieve",
         }).done(function (computeReturn) {
             console.log(computeReturn);
-            if (computeReturn['file'] === false) {
-                pollingTime = window.setTimeout(display_images, 10000);
-                return;
-            } else {
-                window.clearTimeout(pollingTime);
-            }
             let arrImg = computeReturn['file'].split(',');
             let time = computeReturn['t'].split(',');
             console.log(arrImg);
+            console.log(time);
             document.getElementById('work').style.display = "block";
             document.getElementById('workimage').style.display = "block";
             document.getElementById('demo_tab').style.display = "block";
@@ -70,8 +65,14 @@ document.addEventListener('DOMContentLoaded', function(){
                     array(parseInt(time[i]))
                 }, false);
                 document.getElementById('results').appendChild(img);
-
             }
+            if (computeReturn['status'] === false) {
+                pollingTime = window.setTimeout(display_images, 10000);
+            } else {
+                window.clearTimeout(pollingTime);
+                document.getElementById("query").disabled = false;
+            }
+
         });
     }
 
@@ -80,6 +81,7 @@ document.addEventListener('DOMContentLoaded', function(){
         vid_name = vid;
         console.log(vid);
         console.log(obj);
+        document.getElementById("query").disabled = true;
         let computeReturn = $.ajax({
             method: "POST",
             contentType: 'application/json',
@@ -87,8 +89,15 @@ document.addEventListener('DOMContentLoaded', function(){
             data: JSON.stringify({'video': vid, 'object':obj}),
             url: "/display",
          }).done(function (computeReturn) {
-            console.log("going to call to retrieve images from database in 10 seconds");
-            pollingTime = window.setTimeout(display_images, 10000);
+             if (document.getElementById('results').childNodes.length > 0) {
+                let child = document.getElementById('results').lastElementChild;
+                while (child) {
+                    document.getElementById('results').removeChild(child);
+                    child = document.getElementById('results').lastElementChild;
+                }
+             }
+             console.log("going to call to retrieve images from database in 10 seconds");
+             pollingTime = window.setTimeout(display_images, 10000);
         });
     }
 
