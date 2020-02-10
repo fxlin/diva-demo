@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function(){
 
     let pollingTime = null;
-    let vid_name = null;
+    let vid_name = '';
 
 
     document.getElementById("query").addEventListener("click", function() {
@@ -41,11 +41,16 @@ document.addEventListener('DOMContentLoaded', function(){
             data: JSON.stringify({'video': vid}),
             url: "/retrieve",
         }).done(function (computeReturn) {
+            //  Print statements for debugging
             console.log(computeReturn);
+
             let arrImg = computeReturn['file'].split(',');
             let time = computeReturn['t'].split(',');
+
+            //  Print statements for debugging
             console.log(arrImg);
             console.log(time);
+
             document.getElementById('work').style.display = "block";
             document.getElementById('workimage').style.display = "block";
             document.getElementById('demo_tab').style.display = "block";
@@ -79,8 +84,11 @@ document.addEventListener('DOMContentLoaded', function(){
 
     function call_diva() {
         vid_name = vid;
+
+        //  Print statements for debugging
         console.log(vid);
         console.log(obj);
+
         document.getElementById("query").disabled = true;
         let computeReturn = $.ajax({
             method: "POST",
