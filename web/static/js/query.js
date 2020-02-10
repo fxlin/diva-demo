@@ -22,7 +22,11 @@ document.addEventListener('DOMContentLoaded', function(){
         temp = temp[temp.length-1];
         temp = temp.split('.');
         for (i=0; i < temp.length - 1; i++){
+            if(i > 0){
+                video_name += '.';
+            }
             video_name += temp[i];
+
         }
         return video_name;
     }
