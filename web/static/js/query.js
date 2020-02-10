@@ -1,12 +1,32 @@
 document.addEventListener('DOMContentLoaded', function(){
+
     let pollingTime = null;
+    let vid_name = null;
+
+
     document.getElementById("query").addEventListener("click", function() {
             call_diva();
         }, false);
 
+
     function array(num){
         document.getElementById('videodisplay').currentTime = num;
     }
+
+
+    function retrieve_video_name(){
+        let i;
+        let temp;
+        let video_name = '';
+        temp = vid_name.split('/');
+        temp = temp[temp.length-1];
+        temp = temp.split('.');
+        for (i=0; i < temp.length - 1; i++){
+            video_name += temp[i];
+        }
+        return video_name;
+    }
+
 
     function display_images() {
         console.log('done waiting');
@@ -39,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function(){
             }
             for (let i = 0; i < arrImg.length; i += 1) {
                 let img = new Image();
-                img.src = './static/output/' + arrImg[i] + '.jpg';
+                img.src = './static/output/' + retrieve_video_name() + '/' + arrImg[i] + '.jpeg';
                 img.width = 400;
                 img.height = 300;
                 img.addEventListener('click', function () {
@@ -50,7 +70,10 @@ document.addEventListener('DOMContentLoaded', function(){
             }
         });
     }
+
+
     function call_diva() {
+        vid_name = vid;
         console.log(vid);
         console.log(obj);
         let computeReturn = $.ajax({
@@ -60,7 +83,6 @@ document.addEventListener('DOMContentLoaded', function(){
             data: JSON.stringify({'video': vid, 'object':obj}),
             url: "/display",
          }).done(function (computeReturn) {
-             // display_images();
             console.log("going to call to retrieve images from database in 10 seconds");
             pollingTime = window.setTimeout(display_images, 10000);
         });
