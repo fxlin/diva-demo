@@ -4,6 +4,7 @@ package det_yolov3;
 
 service DetYOLOv3 {
     rpc DetFrame (DetFrameRequest) returns (Score) {}
+    rpc Detect (DetectionRequest) returns (DetectionOutput) {}
 }
 
 message Image {
@@ -21,4 +22,27 @@ message DetFrameRequest {
 
 message Score {
     string res = 1;
+}
+
+message DetectionRequest {
+    Image image = 1;
+    string name = 2;
+    float threshold = 3;
+}
+
+message Element {
+    double confidence = 1;
+    int32 x1 = 2;
+    int32 y1 = 3;
+    int32 x2 = 4;
+    int32 y2 = 5;
+}
+
+message Elements {
+    string class_name = 1;
+    repeated Element element = 2;
+}
+
+message DetectionOutput {
+    repeated Elements elements = 1;
 }
