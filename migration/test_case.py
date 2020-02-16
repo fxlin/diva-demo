@@ -6,7 +6,7 @@ import os
 import sys
 import logging
 import time
-import ffmpeg
+import cv2 as cv
 from models.common import db_session, init_db
 from variables import CONTROLLER_VIDEO_DIRECTORY
 from migration.xsel_server import add_fixtures
@@ -30,16 +30,38 @@ source_path = os.path.join(_SAMPLE_FOLDER, _SOURCE_VIDEO)
 p = os.path.join(_SAMPLE_FOLDER, _SAMPLE_VIDEO)
 
 
-def generate_test_video(source_path: str, output_path: str):
-    source_video = ffmpeg.input(source_path)
+def generate_test_video(source_path: str, output_path: str, start_second: int,
+                        end_second: int):
+    source_video = cv.VideoCapture(source_path)
+
+    if not source_video.isOpened():
+        raise Exception("Video is not opened")
+
+    target_width = source_video.get(cv.CAP_PROP_FRAME_WIDTH)  # float
+    target_height = source_video.get(cv.CAP_PROP_FRAME_HEIGHT)  # float
+    target_fps = source_video.get(cv.CAP_PROP_FPS)
+
+    source_video.set(cv.CAP_PROP_POS_FRAMES, target_fps * start_second)
+    counter = target_fps * end_second
+
+    _fourcc = cv.VideoWriter_fourcc(*'MP4V')
+    output_video = cv.VideoWriter(output_path, _fourcc, target_fps,
+                                  (target_width, target_height))
+
+    logging.info(f'time {time.time()}')
+    while counter >= 0:
+        frame = source_video.read()
+        output_video.write(frame)
+        counter -= 1
+    logging.info(f'time {time.time()} file {p} exists? {os.path.exists(p)}')
+
+    source_video.release()
+    output_video.release()
 
     # 00:00:10 - 00:00:20
-    # FPS is 30
-    FPS = 30
-    logging.info(f'time {time.time()}')
-    source_video.trim(start_frame=10 * FPS,
-                      end_frame=20 * FPS).output(output_path).run()
-    logging.info(f'time {time.time()} file {p} exists? {os.path.exists(p)}')
+    # ffmpeg
+    # source_video.trim(start_frame=10 * FPS,
+    #                   end_frame=20 * FPS).output(output_path).run()
 
 
 if __name__ == "__main__":
