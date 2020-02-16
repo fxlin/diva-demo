@@ -18,7 +18,8 @@ YOLO_SERVICE_PORT=10088
 CLOUD_SERVICE_PORT=10090
 
 PERSISTENT_VOLUME='/tmp/diva_test'
-WEB_SERVER_IMAGE_VOLUME='/var/yolov3/web/static/output'
+WEB_SERVER_IMAGE_VOLUME='/var/web/web/static/output'
+CONTROLLER_SERVER_IMAGE_VOLUME='/var/yolov3/web/static/output'
 
 run-all:
 	@make run-cloud
@@ -42,13 +43,16 @@ setup-env: start-network
 	@[ ! -d "${PERSISTENT_VOLUME}" ] && mkdir -p "${PERSISTENT_VOLUME}"
 
 run-cloud:
-	docker run --network=${NETWORK_NAME} -it -d -p ${CLOUD_SERVICE_PORT}:${CLOUD_SERVICE_PORT} --name cloud -v ${VIDEO_DATA_PATH}:${VIDEO_DATA_PATH_IN_CONTAINER}:ro -v ${PERSISTENT_VOLUME}:${WEB_SERVER_IMAGE_VOLUME}:wo ${DOCKER_USERNAME}/diva-cloud:latest
+	docker run --network=${NETWORK_NAME} -it -d -p ${CLOUD_SERVICE_PORT}:${CLOUD_SERVICE_PORT} --name cloud -v ${VIDEO_DATA_PATH}:${VIDEO_DATA_PATH_IN_CONTAINER}:ro -v ${PERSISTENT_VOLUME}:${CONTROLLER_SERVER_IMAGE_VOLUME} ${DOCKER_USERNAME}/diva-cloud:latest
 
 run-cloud-without-disk:
 	docker run --network=${NETWORK_NAME} -it -d -p ${CLOUD_SERVICE_PORT}:${CLOUD_SERVICE_PORT} --name cloud ${DOCKER_USERNAME}/diva-cloud:latest
 
 run-camera:
 	docker run --network=${NETWORK_NAME} -it -d --gpus all --name camera -v ${CAMERA_RESULT_PATH}:${CAMERA_RESULT_PATH_IN_CONTAINER} ${DOCKER_USERNAME}/diva-camera:latest
+
+run-camera-pi:
+	docker run --network=${NETWORK_NAME} --device=/dev/vcsm --device=/dev/vchiq -d --gpus all --name camera -v ${CAMERA_RESULT_PATH}:${CAMERA_RESULT_PATH_IN_CONTAINER} ${DOCKER_USERNAME}/diva-camera:latest
 
 run-yolo:
 	docker run --network=${NETWORK_NAME} -it  -d --gpus all --name=yolo ${DOCKER_USERNAME}/diva-yolo:latest
