@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='det_yolov3',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x10\x64\x65t-yolov3.proto\x12\ndet_yolov3\"E\n\x05Image\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0e\n\x06height\x18\x02 \x01(\x05\x12\r\n\x05width\x18\x03 \x01(\x05\x12\x0f\n\x07\x63hannel\x18\x04 \x01(\x05\"N\n\x0f\x44\x65tFrameRequest\x12 \n\x05image\x18\x01 \x01(\x0b\x32\x11.det_yolov3.Image\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0b\n\x03\x63ls\x18\x03 \x01(\t\"\x14\n\x05Score\x12\x0b\n\x03res\x18\x01 \x01(\t\"U\n\x10\x44\x65tectionRequest\x12 \n\x05image\x18\x01 \x01(\x0b\x32\x11.det_yolov3.Image\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x11\n\tthreshold\x18\x03 \x01(\x02\"M\n\x07\x45lement\x12\x12\n\nconfidence\x18\x01 \x01(\x01\x12\n\n\x02x1\x18\x02 \x01(\x05\x12\n\n\x02y1\x18\x03 \x01(\x05\x12\n\n\x02x2\x18\x04 \x01(\x05\x12\n\n\x02y2\x18\x05 \x01(\x05\"D\n\x08\x45lements\x12\x12\n\nclass_name\x18\x01 \x01(\t\x12$\n\x07\x65lement\x18\x02 \x03(\x0b\x32\x13.det_yolov3.Element\"9\n\x0f\x44\x65tectionOutput\x12&\n\x08\x65lements\x18\x01 \x03(\x0b\x32\x14.det_yolov3.Elements2\x90\x01\n\tDetYOLOv3\x12<\n\x08\x44\x65tFrame\x12\x1b.det_yolov3.DetFrameRequest\x1a\x11.det_yolov3.Score\"\x00\x12\x45\n\x06\x44\x65tect\x12\x1c.det_yolov3.DetectionRequest\x1a\x1b.det_yolov3.DetectionOutput\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\x10\x64\x65t-yolov3.proto\x12\ndet_yolov3\"E\n\x05Image\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0e\n\x06height\x18\x02 \x01(\x05\x12\r\n\x05width\x18\x03 \x01(\x05\x12\x0f\n\x07\x63hannel\x18\x04 \x01(\x05\"N\n\x0f\x44\x65tFrameRequest\x12 \n\x05image\x18\x01 \x01(\x0b\x32\x11.det_yolov3.Image\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0b\n\x03\x63ls\x18\x03 \x01(\t\"\x14\n\x05Score\x12\x0b\n\x03res\x18\x01 \x01(\t\"U\n\x10\x44\x65tectionRequest\x12 \n\x05image\x18\x01 \x01(\x0b\x32\x11.det_yolov3.Image\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x11\n\tthreshold\x18\x03 \x01(\x02\"a\n\x07\x45lement\x12\x12\n\nclass_name\x18\x01 \x01(\t\x12\x12\n\nconfidence\x18\x02 \x01(\x01\x12\n\n\x02x1\x18\x03 \x01(\x05\x12\n\n\x02y1\x18\x04 \x01(\x05\x12\n\n\x02x2\x18\x05 \x01(\x05\x12\n\n\x02y2\x18\x06 \x01(\x05\"8\n\x0f\x44\x65tectionOutput\x12%\n\x08\x65lements\x18\x01 \x03(\x0b\x32\x13.det_yolov3.Element2\x90\x01\n\tDetYOLOv3\x12<\n\x08\x44\x65tFrame\x12\x1b.det_yolov3.DetFrameRequest\x1a\x11.det_yolov3.Score\"\x00\x12\x45\n\x06\x44\x65tect\x12\x1c.det_yolov3.DetectionRequest\x1a\x1b.det_yolov3.DetectionOutput\"\x00\x62\x06proto3')
 )
 
 
@@ -207,36 +207,43 @@ _ELEMENT = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='confidence', full_name='det_yolov3.Element.confidence', index=0,
-      number=1, type=1, cpp_type=5, label=1,
+      name='class_name', full_name='det_yolov3.Element.class_name', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='confidence', full_name='det_yolov3.Element.confidence', index=1,
+      number=2, type=1, cpp_type=5, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='x1', full_name='det_yolov3.Element.x1', index=1,
-      number=2, type=5, cpp_type=1, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='y1', full_name='det_yolov3.Element.y1', index=2,
+      name='x1', full_name='det_yolov3.Element.x1', index=2,
       number=3, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='x2', full_name='det_yolov3.Element.x2', index=3,
+      name='y1', full_name='det_yolov3.Element.y1', index=3,
       number=4, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='y2', full_name='det_yolov3.Element.y2', index=4,
+      name='x2', full_name='det_yolov3.Element.x2', index=4,
       number=5, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='y2', full_name='det_yolov3.Element.y2', index=5,
+      number=6, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -254,45 +261,7 @@ _ELEMENT = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=292,
-  serialized_end=369,
-)
-
-
-_ELEMENTS = _descriptor.Descriptor(
-  name='Elements',
-  full_name='det_yolov3.Elements',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='class_name', full_name='det_yolov3.Elements.class_name', index=0,
-      number=1, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b("").decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='element', full_name='det_yolov3.Elements.element', index=1,
-      number=2, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  serialized_options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=371,
-  serialized_end=439,
+  serialized_end=389,
 )
 
 
@@ -322,20 +291,18 @@ _DETECTIONOUTPUT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=441,
-  serialized_end=498,
+  serialized_start=391,
+  serialized_end=447,
 )
 
 _DETFRAMEREQUEST.fields_by_name['image'].message_type = _IMAGE
 _DETECTIONREQUEST.fields_by_name['image'].message_type = _IMAGE
-_ELEMENTS.fields_by_name['element'].message_type = _ELEMENT
-_DETECTIONOUTPUT.fields_by_name['elements'].message_type = _ELEMENTS
+_DETECTIONOUTPUT.fields_by_name['elements'].message_type = _ELEMENT
 DESCRIPTOR.message_types_by_name['Image'] = _IMAGE
 DESCRIPTOR.message_types_by_name['DetFrameRequest'] = _DETFRAMEREQUEST
 DESCRIPTOR.message_types_by_name['Score'] = _SCORE
 DESCRIPTOR.message_types_by_name['DetectionRequest'] = _DETECTIONREQUEST
 DESCRIPTOR.message_types_by_name['Element'] = _ELEMENT
-DESCRIPTOR.message_types_by_name['Elements'] = _ELEMENTS
 DESCRIPTOR.message_types_by_name['DetectionOutput'] = _DETECTIONOUTPUT
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
@@ -374,13 +341,6 @@ Element = _reflection.GeneratedProtocolMessageType('Element', (_message.Message,
   })
 _sym_db.RegisterMessage(Element)
 
-Elements = _reflection.GeneratedProtocolMessageType('Elements', (_message.Message,), {
-  'DESCRIPTOR' : _ELEMENTS,
-  '__module__' : 'det_yolov3_pb2'
-  # @@protoc_insertion_point(class_scope:det_yolov3.Elements)
-  })
-_sym_db.RegisterMessage(Elements)
-
 DetectionOutput = _reflection.GeneratedProtocolMessageType('DetectionOutput', (_message.Message,), {
   'DESCRIPTOR' : _DETECTIONOUTPUT,
   '__module__' : 'det_yolov3_pb2'
@@ -396,8 +356,8 @@ _DETYOLOV3 = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=501,
-  serialized_end=645,
+  serialized_start=450,
+  serialized_end=594,
   methods=[
   _descriptor.MethodDescriptor(
     name='DetFrame',

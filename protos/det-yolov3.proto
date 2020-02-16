@@ -31,18 +31,14 @@ message DetectionRequest {
 }
 
 message Element {
-    double confidence = 1;
-    int32 x1 = 2;
-    int32 y1 = 3;
-    int32 x2 = 4;
-    int32 y2 = 5;
-}
-
-message Elements {
     string class_name = 1;
-    repeated Element element = 2;
+    double confidence = 2;
+    int32 x1 = 3;
+    int32 y1 = 4;
+    int32 x2 = 5;
+    int32 y2 = 6;
 }
 
 message DetectionOutput {
-    repeated Elements elements = 1;
+    repeated Element elements = 1;
 }

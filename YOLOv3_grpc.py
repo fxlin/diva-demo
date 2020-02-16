@@ -47,12 +47,10 @@ utils.load_weights(model, "./yolov3.weights")
 CLASSES = utils.read_class_names(cfg.YOLO.CLASSES)
 
 
-def filter_bbox(bboxes: 'List',
-                target_class: str,
-                classes=CLASSES,
-                threshold=0.3) -> str:
+def filter_bbox(bboxes: 'List', target_class="", classes=CLASSES) -> str:
     """
-    bboxes: [x_min, y_min, x_max, y_max, probability, cls_id] format coordinates.
+    bboxes: [x_min, y_min, x_max, y_max, probability, cls_id] format
+    coordinates.
     """
 
     filtered_bbox = []
@@ -62,7 +60,7 @@ def filter_bbox(bboxes: 'List',
         score = bbox[4]
         class_ind = int(bbox[5])
 
-        if classes[class_ind] != target_class or score < threshold:
+        if target_class and classes[class_ind] != target_class:
             continue
 
         # FIXME should return number or string?
@@ -75,7 +73,33 @@ def filter_bbox(bboxes: 'List',
     return '|'.join(filtered_bbox)
 
 
-def run_det(image_data: np.ndarray, target_class: str) -> str:
+def bboxes_to_grpc_elements(bboxes: List[List[float]]):
+    """
+    List[det_yolov3_pb2.Element]
+    """
+    ele_list = []
+    for bbox in bboxes:
+
+        coor = np.array(bbox[:4], dtype=np.int32)
+        class_ind = int(bbox[5])
+
+        # NOTE if we decide to use different class set, make sure
+        # we update classess accordingly
+        data = {
+            'confidence': bbox[4],
+            'class_name': CLASSES[class_ind],
+            'x1': coor[0],
+            'y1': coor[1],
+            'x2': coor[2],
+            'y2': coor[3]
+        }
+
+        ele_list.append(det_yolov3_pb2.Element(**data))
+
+    return ele_list
+
+
+def _detect(image_data: np.ndarray, score_threshold) -> 'List[List[float]]':
     original_image_size = image_data.shape[:2]
 
     image_data = utils.image_preporcess(np.copy(image_data),
@@ -94,14 +118,12 @@ def run_det(image_data: np.ndarray, target_class: str) -> str:
     # is not square
     # input_size
     bboxes = utils.postprocess_boxes(pred_bbox, original_image_size, IMAGE_H,
-                                     0.3)
+                                     score_threshold)
     bboxes = utils.nms(bboxes, 0.45, method='nms')
-
-    temp = filter_bbox(bboxes=bboxes, target_class=target_class)
 
     logger.info("YOLOv3-det time: %.2f ms" % (1000 * exec_time))
 
-    return temp
+    return bboxes
 
 
 class DetYOLOv3Servicer(det_yolov3_pb2_grpc.DetYOLOv3Servicer):
@@ -112,14 +134,37 @@ class DetYOLOv3Servicer(det_yolov3_pb2_grpc.DetYOLOv3Servicer):
 
         logger.info(f'Processing {name} with target amid at {object_class}')
 
-        # img = Image.frombytes('RGBA', (720, 1280), img_data, decoder_name='jpeg', 'jpg')
+        # img = Image.frombytes('RGBA', (720, 1280),
+        # img_data, decoder_name='jpeg', 'jpg')
         # TODO: resolution shall not be hard-coded
 
         img = np.frombuffer(img_data.data, dtype=np.uint8).reshape(
             (img_data.height, img_data.width, img_data.channel))
 
-        det_res = run_det(img, object_class)
+        bboxes = _detect(img, 0.3)
+        det_res = filter_bbox(bboxes=bboxes, target_class=object_class)
+
         return det_yolov3_pb2.Score(res=det_res)
+
+    def Detect(self, request, context):
+        img_data = request.image
+        threshold = request.threshold
+        name = request.name
+
+        msg = f'Processing {name}, expecting to have score above {threshold}'
+        logger.info(msg)
+
+        # img = Image.frombytes('RGBA', (720, 1280),
+        # img_data, decoder_name='jpeg', 'jpg')
+        # TODO: resolution shall not be hard-coded
+
+        img = np.frombuffer(img_data.data, dtype=np.uint8).reshape(
+            (img_data.height, img_data.width, img_data.channel))
+
+        bboxes = _detect(img, 0.3)
+        element_list = bboxes_to_grpc_elements(bboxes)
+
+        return det_yolov3_pb2.DetectionOutput(elements=element_list)
 
 
 def serve():
