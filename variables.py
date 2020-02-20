@@ -35,3 +35,9 @@ DEFAULT_POSTGRES_HOST = "mypgdb"
 # JPG_ROOT_PATH = '/host/4TB_hybridvs_data/YOLO-RES-720P/jpg'
 # CSV_ROOT_PATH = '/host/4TB_hybridvs_data/YOLO-RES-720P/out'
 # RES_ROOT_PATH = '/host/4TB_hybridvs_data/YOLO-RES-720P/exp'
+
+
+class NO_DESIRED_OBJECT(Exception):
+    """does not contain desired object"""
+    def __str__(self):
+        return """does not contain desired object"""

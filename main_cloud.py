@@ -26,14 +26,16 @@ from util import ClockLog
 
 from variables import CAMERA_CHANNEL_ADDRESS, YOLO_CHANNEL_ADDRESS
 from variables import IMAGE_PATH, OP_FNAME_PATH
-from variables import FAKE_IMAGE_DIRECTOR_PATH, DIVA_CHANNEL_PORT
+from variables import DIVA_CHANNEL_PORT, CONTROLLER_VIDEO_DIRECTORY
 from variables import RESULT_IMAGE_PATH, CONTROLLER_PICTURE_DIRECTORY
+from variables import NO_DESIRED_OBJECT
 
 from constants.grpc_constant import INIT_DIVA_SUCCESS
 
 from sqlalchemy.orm.exc import MultipleResultsFound
 from models.common import db_session, init_db
-from models.video import Video
+from models.camera import Camera
+from models.video import Video, VideoStatus
 from models.frame import Frame, Status
 from models.element import Element
 
@@ -136,9 +138,8 @@ class FrameProcessor(threading.Thread):
 
         total_frames = FrameProcessor.video_frame(in_filename)
         if frame_num < 0 or frame_num > total_frames:
-            raise Exception(
-                f'desired frame {frame_num} is out of range [0, {total_frames}]'
-            )
+            err_msg = f'frame {frame_num} is out of range [0, {total_frames}]'
+            raise Exception(err_msg)
 
         cap = cv2.VideoCapture(in_filename)
         if not cap.isOpened():
@@ -199,7 +200,8 @@ class FrameProcessor(threading.Thread):
         yolo_channel = grpc.insecure_channel(YOLO_CHANNEL_ADDRESS)
         yolo_stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(yolo_channel)
 
-        video_id, video_name, video_path, = task[0], task[1], task[2]
+        #video_id
+        _, video_name, video_path, = task[0], task[1], task[2]
         frame_num, object_name = task[3], task[4]
 
         picked_frame: Frame = None
@@ -212,9 +214,11 @@ class FrameProcessor(threading.Thread):
         except MultipleResultsFound as m_err:
             logger.error(
                 f'Found too many frames with name {frame_num}: {m_err}')
-            logger.debug(
-                f'after query: {db_session.query(Frame).filter(Frame.name == str(frame_num)).filter(Frame.processing_status == Status.Initialized).all()}'
-            )
+
+            picked_frame = db_session.query(Frame).filter(
+                Frame.name == str(frame_num)).filter(
+                    Frame.processing_status == Status.Initialized).one()
+
         except Exception as err:
             logger.error(err)
 
@@ -281,6 +285,90 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
     """
     Implement server_divaServicer of gRPC
     """
+    def register_camera(self, request, context):
+        """
+        Add camera info into DB
+        """
+        name, ip = request.name, request.camera_ip
+        ret_msg = f"camera {name}:{ip} is successfully registered."
+        ret_code = grpc.StatusCode.OK
+
+        db_session()
+        try:
+            temp = db_session.query(Camera).filter(Camera.name == name).filter(
+                Camera.ip == ip).one_or_none()
+            if temp is None:
+                db_session.add(Camera(name, ip))
+        except MultipleResultsFound as m_err:
+            msg = f'duplicated record with name: {name}, {ip} in Camera table'
+            logger.error(msg + f': {m_err}')
+        except Exception as err:
+            logger.error(err)
+            ret_msg = f'Failed to register camera {name} at {ip}'
+            ret_code = grpc.StatusCode.UNKNOWN
+        finally:
+            db_session.remove()
+
+        return server_diva_pb2.response(status_code=ret_code, message=ret_msg)
+
+    def detect_object_in_frame(self, request, context):
+        """
+        Function that process ranked frame received from camera.
+
+        1. search desired objects from given image
+        2. response to the camera
+        """
+        # FIXME threshold should not be a constant
+        threshold = YOLO_SCORE_THRE
+        image_struct = request.image
+        targets = request.targets
+        # score = request.confidence_score
+        _camera = request.camera
+        timestamp = int(request.timestamp)
+        img_name = f'{_camera.name}_{timestamp}.jpg'
+
+        payload = det_yolov3_pb2.DetectionRequest(image=image_struct,
+                                                  name=img_name,
+                                                  threshold=threshold,
+                                                  targets=targets)
+
+        yolo_channel = grpc.insecure_channel(YOLO_CHANNEL_ADDRESS)
+        yolo_stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(yolo_channel)
+        elements_in_frame = yolo_stub.Detect(payload)
+        yolo_channel.close()
+
+        if len(elements_in_frame) == 0:
+            return server_diva_pb2.response(
+                status_code=grpc.StatusCode.NOT_FOUND,
+                message=str(NO_DESIRED_OBJECT("")))
+
+        # FIXME exception handling
+        ret_msg = "Frame has been processed"
+        ret_code = grpc.StatusCode.OK
+
+        db_session()
+        try:
+            camera_record = db_session.query(Camera).filter(
+                Camera.name == _camera.name).filter(
+                    Camera.ip == _camera.camera_ip).one()
+
+            video_name = f'{_camera.name}_{timestamp}_{timestamp+5}.jpg'
+            video_path = os.path.join(CONTROLLER_VIDEO_DIRECTORY, video_name)
+            _video = Video(video_name, video_path, camera_record.id,
+                           camera_record, VideoStatus.REQUESTING)
+            db_session.add(_video)
+
+        except Exception as err:
+            db_session.rollback()
+            logger.error(f"Failed to run detect_object_in_frame {err}")
+            ret_code = grpc.StatusCode.UNKNOWN
+            ret_msg = f"Failed to process the given frame {err}"
+
+        finally:
+            db_session.remove()
+
+        return server_diva_pb2.response(status_code=ret_code, message=ret_msg)
+
     def detect_object_in_video(self, request, context):
         object_name = request.object_name
         video_name = request.video_name
