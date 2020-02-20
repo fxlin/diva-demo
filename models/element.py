@@ -1,6 +1,7 @@
 from typing import Tuple
 
-from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, func
+from sqlalchemy import Column, String, Integer, ForeignKey, DateTime
+from sqlalchemy import func, Float
 from sqlalchemy.orm import relationship, backref
 from models.common import Base
 from models.frame import Frame
@@ -11,6 +12,7 @@ class Element(Base):
     id = Column(Integer, primary_key=True)
     object_class = Column(String)
     box_coordinate = Column(String)
+    confidence_score = Column(Float)
     frame_id = Column(Integer, ForeignKey('frame.id'), nullable=False)
     frame = relationship(Frame,
                          backref=backref('elements',
@@ -22,10 +24,12 @@ class Element(Base):
                         server_default=func.now(),
                         onupdate=func.now())
 
-    def __init__(self, object_class: str, box_coordinate: str, frame_id: int):
+    def __init__(self, object_class: str, confidence_score: float,
+                 box_coordinate: str, frame_id: int):
         self.object_class = object_class
         self.box_coordinate = box_coordinate
         self.frame_id = frame_id
+        self.confidence_score = confidence_score
 
     @staticmethod
     def coordinate_iterable_to_str(

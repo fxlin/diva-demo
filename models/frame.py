@@ -47,7 +47,15 @@ class Frame(Base):
                 self.elements.append(e)
 
     def __repr__(self):
-        return f"<{self.__tablename__} id:{self.id} name:{self.name} video_id:{self.video_id} elements:{self.elements}>"
+        msg = " ".join([
+            "<", f"{self.__tablename__}", f"id:{self.id}", f"name:{self.name}",
+            f"video_id:{self.video_id}", f"elements:{self.elements}", ">"
+        ])
+        return msg
 
     def __str__(self):
-        return f"<{self.__tablename__} id:{self.id} name:{self.name} video_id:{self.video_id} elements:{self.elements}>"
+        msg = " ".join([
+            "<", f"{self.__tablename__}", f"id:{self.id}", f"name:{self.name}",
+            f"video_id:{self.video_id}", f"elements:{self.elements}", ">"
+        ])
+        return msg
