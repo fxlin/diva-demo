@@ -47,20 +47,43 @@ utils.load_weights(model, "./yolov3.weights")
 CLASSES = utils.read_class_names(cfg.YOLO.CLASSES)
 
 
-def filter_bbox(bboxes: 'List', target_class="", classes=CLASSES) -> str:
+def filter_bbox(bboxes: 'List', target_class: List[str],
+                classes=CLASSES) -> str:
+    """
+    filter out element with undesired labels
+    bboxes: [x_min, y_min, x_max, y_max, probability, cls_id] format
+    coordinates.
+    """
+    filtered_bbox = []
+    target_set = set(target_class)
+
+    for _, bbox in enumerate(bboxes):
+        class_ind = int(bbox[5])
+
+        if target_class and classes[class_ind] not in target_set:
+            continue
+
+        filtered_bbox.append(bbox)
+
+    return filtered_bbox
+
+
+def _filter_bbox(bboxes: 'List', target_class: List[str],
+                 classes=CLASSES) -> str:
     """
     bboxes: [x_min, y_min, x_max, y_max, probability, cls_id] format
     coordinates.
     """
 
     filtered_bbox = []
+    target_set = set(target_class)
 
     for _, bbox in enumerate(bboxes):
         coor = np.array(bbox[:4], dtype=np.int32)
         score = bbox[4]
         class_ind = int(bbox[5])
 
-        if target_class and classes[class_ind] != target_class:
+        if target_class and classes[class_ind] not in target_set:
             continue
 
         # FIXME should return number or string?
@@ -100,6 +123,9 @@ def bboxes_to_grpc_elements(bboxes: List[List[float]]):
 
 
 def _detect(image_data: np.ndarray, score_threshold) -> 'List[List[float]]':
+    """
+    List all elements detected in the given images
+    """
     original_image_size = image_data.shape[:2]
 
     image_data = utils.image_preporcess(np.copy(image_data),
@@ -128,6 +154,9 @@ def _detect(image_data: np.ndarray, score_threshold) -> 'List[List[float]]':
 
 class DetYOLOv3Servicer(det_yolov3_pb2_grpc.DetYOLOv3Servicer):
     def DetFrame(self, request, context):
+        """
+        Search one specific object in the given image
+        """
         img_data = request.image
         object_class = request.cls
         name = request.name
@@ -142,14 +171,19 @@ class DetYOLOv3Servicer(det_yolov3_pb2_grpc.DetYOLOv3Servicer):
             (img_data.height, img_data.width, img_data.channel))
 
         bboxes = _detect(img, 0.3)
-        det_res = filter_bbox(bboxes=bboxes, target_class=object_class)
+        det_res = _filter_bbox(bboxes=bboxes, target_class=[object_class])
 
         return det_yolov3_pb2.Score(res=det_res)
 
     def Detect(self, request, context):
+        """
+        Search all or certain objects in the given image.
+        If targets is empty, keep all elements. Otherwise, only keep
+        """
         img_data = request.image
         threshold = request.threshold
         name = request.name
+        targets = request.targets
 
         msg = f'Processing {name}, expecting to have score above {threshold}'
         logger.info(msg)
@@ -161,7 +195,11 @@ class DetYOLOv3Servicer(det_yolov3_pb2_grpc.DetYOLOv3Servicer):
         img = np.frombuffer(img_data.data, dtype=np.uint8).reshape(
             (img_data.height, img_data.width, img_data.channel))
 
-        bboxes = _detect(img, 0.3)
+        bboxes = _detect(img, threshold)
+
+        if targets:
+            bboxes = filter_bbox(bboxes=bboxes, target_class=targets)
+
         element_list = bboxes_to_grpc_elements(bboxes)
 
         return det_yolov3_pb2.DetectionOutput(elements=element_list)
