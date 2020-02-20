@@ -1,10 +1,13 @@
 syntax = "proto3";
-
-import "google/protobuf/empty.proto";
 package server_diva;
 
+import "google/protobuf/empty.proto";
+import "det_yolov3.proto";
+
 service server_diva {
-    rpc detect_object_in_video(object_video_pair) returns (detection_result) {}
+    rpc detect_object_in_video(object_video_pair) returns (detection_result) {};
+    rpc register_camera(camera_info) returns (response) {};
+    rpc detect_object_in_frame(frame_from_camera) returns (response) {};
 }
 
 message detection_result {
@@ -12,6 +15,23 @@ message detection_result {
         google.protobuf.Empty retval = 1;
         string error = 2;
     }
+}
+
+message frame_from_camera {
+    det_yolov3.Image image = 1;
+    float confidence_score = 2;
+    camera_info camera = 3;
+    float timestamp = 4;
+}
+
+message camera_info {
+    string camera_ip = 1;
+    string name = 2;
+}
+
+message response {
+    int32 status_code = 1;
+    string message = 2;
 }
 
 message object_video_pair {

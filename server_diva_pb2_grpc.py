@@ -19,6 +19,16 @@ class server_divaStub(object):
         request_serializer=server__diva__pb2.object_video_pair.SerializeToString,
         response_deserializer=server__diva__pb2.detection_result.FromString,
         )
+    self.register_camera = channel.unary_unary(
+        '/server_diva.server_diva/register_camera',
+        request_serializer=server__diva__pb2.camera_info.SerializeToString,
+        response_deserializer=server__diva__pb2.response.FromString,
+        )
+    self.detect_object_in_frame = channel.unary_unary(
+        '/server_diva.server_diva/detect_object_in_frame',
+        request_serializer=server__diva__pb2.frame_from_camera.SerializeToString,
+        response_deserializer=server__diva__pb2.response.FromString,
+        )
 
 
 class server_divaServicer(object):
@@ -32,6 +42,20 @@ class server_divaServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def register_camera(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def detect_object_in_frame(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_server_divaServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -39,6 +63,16 @@ def add_server_divaServicer_to_server(servicer, server):
           servicer.detect_object_in_video,
           request_deserializer=server__diva__pb2.object_video_pair.FromString,
           response_serializer=server__diva__pb2.detection_result.SerializeToString,
+      ),
+      'register_camera': grpc.unary_unary_rpc_method_handler(
+          servicer.register_camera,
+          request_deserializer=server__diva__pb2.camera_info.FromString,
+          response_serializer=server__diva__pb2.response.SerializeToString,
+      ),
+      'detect_object_in_frame': grpc.unary_unary_rpc_method_handler(
+          servicer.detect_object_in_frame,
+          request_deserializer=server__diva__pb2.frame_from_camera.FromString,
+          response_serializer=server__diva__pb2.response.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
