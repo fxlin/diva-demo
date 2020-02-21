@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 
 
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
-import det_yolov3_pb2 as det__yolov3__pb2
+import common_pb2 as common__pb2
 
 
 DESCRIPTOR = _descriptor.FileDescriptor(
@@ -22,9 +22,9 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='server_diva',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x11server_diva.proto\x12\x0bserver_diva\x1a\x1bgoogle/protobuf/empty.proto\x1a\x10\x64\x65t_yolov3.proto\"X\n\x10\x64\x65tection_result\x12(\n\x06retval\x18\x01 \x01(\x0b\x32\x16.google.protobuf.EmptyH\x00\x12\x0f\n\x05\x65rror\x18\x02 \x01(\tH\x00\x42\t\n\x07payload\"\x8c\x01\n\x11\x66rame_from_camera\x12 \n\x05image\x18\x01 \x01(\x0b\x32\x11.det_yolov3.Image\x12\x18\n\x10\x63onfidence_score\x18\x02 \x01(\x02\x12(\n\x06\x63\x61mera\x18\x03 \x01(\x0b\x32\x18.server_diva.camera_info\x12\x11\n\ttimestamp\x18\x04 \x01(\x02\".\n\x0b\x63\x61mera_info\x12\x11\n\tcamera_ip\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\"0\n\x08response\x12\x13\n\x0bstatus_code\x18\x01 \x01(\x05\x12\x0f\n\x07message\x18\x02 \x01(\t\"<\n\x11object_video_pair\x12\x13\n\x0bobject_name\x18\x03 \x01(\t\x12\x12\n\nvideo_name\x18\x04 \x01(\t2\x81\x02\n\x0bserver_diva\x12Y\n\x16\x64\x65tect_object_in_video\x12\x1e.server_diva.object_video_pair\x1a\x1d.server_diva.detection_result\"\x00\x12\x44\n\x0fregister_camera\x12\x18.server_diva.camera_info\x1a\x15.server_diva.response\"\x00\x12Q\n\x16\x64\x65tect_object_in_frame\x12\x1e.server_diva.frame_from_camera\x1a\x15.server_diva.response\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\x11server_diva.proto\x12\x0bserver_diva\x1a\x1bgoogle/protobuf/empty.proto\x1a\x0c\x63ommon.proto\"X\n\x10\x64\x65tection_result\x12(\n\x06retval\x18\x01 \x01(\x0b\x32\x16.google.protobuf.EmptyH\x00\x12\x0f\n\x05\x65rror\x18\x02 \x01(\tH\x00\x42\t\n\x07payload\"\x88\x01\n\x11\x66rame_from_camera\x12\x1c\n\x05image\x18\x01 \x01(\x0b\x32\r.common.Image\x12\x18\n\x10\x63onfidence_score\x18\x02 \x01(\x02\x12(\n\x06\x63\x61mera\x18\x03 \x01(\x0b\x32\x18.server_diva.camera_info\x12\x11\n\ttimestamp\x18\x04 \x01(\x05\".\n\x0b\x63\x61mera_info\x12\x11\n\tcamera_ip\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\"0\n\x08response\x12\x13\n\x0bstatus_code\x18\x01 \x01(\x05\x12\x0f\n\x07message\x18\x02 \x01(\t\"<\n\x11object_video_pair\x12\x13\n\x0bobject_name\x18\x03 \x01(\t\x12\x12\n\nvideo_name\x18\x04 \x01(\t2\x81\x02\n\x0bserver_diva\x12Y\n\x16\x64\x65tect_object_in_video\x12\x1e.server_diva.object_video_pair\x1a\x1d.server_diva.detection_result\"\x00\x12\x44\n\x0fregister_camera\x12\x18.server_diva.camera_info\x1a\x15.server_diva.response\"\x00\x12Q\n\x16\x64\x65tect_object_in_frame\x12\x1e.server_diva.frame_from_camera\x1a\x15.server_diva.response\"\x00\x62\x06proto3')
   ,
-  dependencies=[google_dot_protobuf_dot_empty__pb2.DESCRIPTOR,det__yolov3__pb2.DESCRIPTOR,])
+  dependencies=[google_dot_protobuf_dot_empty__pb2.DESCRIPTOR,common__pb2.DESCRIPTOR,])
 
 
 
@@ -65,8 +65,8 @@ _DETECTION_RESULT = _descriptor.Descriptor(
       name='payload', full_name='server_diva.detection_result.payload',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=81,
-  serialized_end=169,
+  serialized_start=77,
+  serialized_end=165,
 )
 
 
@@ -100,8 +100,8 @@ _FRAME_FROM_CAMERA = _descriptor.Descriptor(
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='timestamp', full_name='server_diva.frame_from_camera.timestamp', index=3,
-      number=4, type=2, cpp_type=6, label=1,
-      has_default_value=False, default_value=float(0),
+      number=4, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
@@ -117,8 +117,8 @@ _FRAME_FROM_CAMERA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=172,
-  serialized_end=312,
+  serialized_start=168,
+  serialized_end=304,
 )
 
 
@@ -155,8 +155,8 @@ _CAMERA_INFO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=314,
-  serialized_end=360,
+  serialized_start=306,
+  serialized_end=352,
 )
 
 
@@ -193,8 +193,8 @@ _RESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=362,
-  serialized_end=410,
+  serialized_start=354,
+  serialized_end=402,
 )
 
 
@@ -231,8 +231,8 @@ _OBJECT_VIDEO_PAIR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=412,
-  serialized_end=472,
+  serialized_start=404,
+  serialized_end=464,
 )
 
 _DETECTION_RESULT.fields_by_name['retval'].message_type = google_dot_protobuf_dot_empty__pb2._EMPTY
@@ -242,7 +242,7 @@ _DETECTION_RESULT.fields_by_name['retval'].containing_oneof = _DETECTION_RESULT.
 _DETECTION_RESULT.oneofs_by_name['payload'].fields.append(
   _DETECTION_RESULT.fields_by_name['error'])
 _DETECTION_RESULT.fields_by_name['error'].containing_oneof = _DETECTION_RESULT.oneofs_by_name['payload']
-_FRAME_FROM_CAMERA.fields_by_name['image'].message_type = det__yolov3__pb2._IMAGE
+_FRAME_FROM_CAMERA.fields_by_name['image'].message_type = common__pb2._IMAGE
 _FRAME_FROM_CAMERA.fields_by_name['camera'].message_type = _CAMERA_INFO
 DESCRIPTOR.message_types_by_name['detection_result'] = _DETECTION_RESULT
 DESCRIPTOR.message_types_by_name['frame_from_camera'] = _FRAME_FROM_CAMERA
@@ -294,8 +294,8 @@ _SERVER_DIVA = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=475,
-  serialized_end=732,
+  serialized_start=467,
+  serialized_end=724,
   methods=[
   _descriptor.MethodDescriptor(
     name='detect_object_in_video',

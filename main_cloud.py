@@ -20,6 +20,7 @@ import cam_cloud_pb2
 import cam_cloud_pb2_grpc
 import server_diva_pb2_grpc
 import server_diva_pb2
+import common_pb2
 from google.protobuf import empty_pb2
 
 from util import ClockLog
@@ -200,7 +201,7 @@ class FrameProcessor(threading.Thread):
         yolo_channel = grpc.insecure_channel(YOLO_CHANNEL_ADDRESS)
         yolo_stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(yolo_channel)
 
-        #video_id
+        # video_id
         _, video_name, video_path, = task[0], task[1], task[2]
         frame_num, object_name = task[3], task[4]
 
@@ -240,10 +241,10 @@ class FrameProcessor(threading.Thread):
 
                 logger.debug(f"Sending extracted frame {frame_num} to YOLO")
 
-                img_payload = det_yolov3_pb2.Image(data=img_data.tobytes(),
-                                                   height=img_data.shape[0],
-                                                   width=img_data.shape[1],
-                                                   channel=img_data.shape[2])
+                img_payload = common_pb2.Image(data=img_data.tobytes(),
+                                               height=img_data.shape[0],
+                                               width=img_data.shape[1],
+                                               channel=img_data.shape[2])
                 detected_objects = yolo_stub.DetFrame(
                     det_yolov3_pb2.DetFrameRequest(image=img_payload,
                                                    name=img_name,

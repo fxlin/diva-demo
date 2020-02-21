@@ -2,7 +2,7 @@ syntax = "proto3";
 package server_diva;
 
 import "google/protobuf/empty.proto";
-import "det_yolov3.proto";
+import "common.proto";
 
 service server_diva {
     rpc detect_object_in_video(object_video_pair) returns (detection_result) {};
@@ -18,10 +18,10 @@ message detection_result {
 }
 
 message frame_from_camera {
-    det_yolov3.Image image = 1;
+    common.Image image = 1;
     float confidence_score = 2;
     camera_info camera = 3;
-    float timestamp = 4;
+    int32 timestamp = 4;
 }
 
 message camera_info {

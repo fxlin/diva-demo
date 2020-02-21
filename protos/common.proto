@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package common;
+
+message Image {
+    // bytes come from opencv .tobytes() function
+    bytes data = 1;
+    int32 height = 2;
+    int32 width = 3;
+    int32 channel = 4;
+}
