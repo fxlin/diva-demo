@@ -167,11 +167,20 @@
         <span class="caret"></span>
       </button>
 
-        <ul class="dropdown-menu" style="background: white">
-        <li id="bike" style="color: black"><a>motorbike</a></li>
-          <li id="people" style="color: black"><a>people</a></li>
-          <li id="dog" style="color: black"><a>dog</a></li>
-      </ul>
+        <ul class="dropdown-menu" style="background: white; overflow: auto; height: 110px">
+            <li id="bike" style="color: black"><a>motorbike</a></li>
+            <li id="people" style="color: black"><a>people</a></li>
+            <li id="dog" style="color: black"><a>dog</a></li>
+            <li id="bicycle" style="color: black"><a>bicycle</a></li>
+            <li id="car" style="color: black"><a>car</a></li>
+            <li id="aeroplane" style="color: black"><a>aeroplane</a></li>
+            <li id="bus" style="color: black"><a>bus</a></li>
+            <li id="train" style="color: black"><a>train</a></li>
+            <li id="truck" style="color: black"><a>truck</a></li>
+            <li id="boat" style="color: black"><a>boat</a></li>
+            <li id="traffic light" style="color: black"><a>traffic light</a></li>
+            <li id="chair" style="color: black"><a>chair</a></li>
+        </ul>
 
     </div>
   </div>
@@ -216,10 +225,10 @@
         <video id="videodisplay" style="align-items: center; width: auto;height: auto" controls>
             <source  src="/static/video/sonic.mp4" type="video/mp4">
         </video>
-<!--        <canvas id=c></canvas>-->
+        <canvas id='c' style="display: none"></canvas>
     </div>
 
-    <script type="text/javascript" src="/static/js/canvas.js?v=5"></script>
+<!--    <script type="text/javascript" src="/static/js/canvas.js?v=5"></script>-->
 
 
 <section id="workimage" class="content-section text-center" style="display:none;">
@@ -228,7 +237,29 @@
     </div>
 </section>
 
+<div class="progress">
+        <div id="myBar" class="progress-bar progress-bar-success progress-bar-striped active" role="progressbar"
+             aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width:0%">
+            0%
+        </div>
+</div>
+
+
 <section id="work" class="work" style="display:none;">
+    <div class="col-md-12 school-options-dropdown text-center" >
+        <div class="dropdown btn-group" >
+
+          <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown" id="dropdown">
+            Select Sort<span class="caret"> </span>
+          </button>
+
+            <ul class="dropdown-menu" style="background: white; overflow: auto; height: 60px">
+                <li id="sort_time" style="color: black"><a>Time</a></li>
+                <li id="sort_confidence" style="color: black"><a>Confidence Score</a></li>
+            </ul>
+
+        </div>
+    </div>
 
     <div class="row" id="workheading" style="text-align: center">
         <i id="results"></i>
@@ -241,6 +272,7 @@
 </script>
  <script type="text/javascript" src="/static/js/video.js?11"></script>
  <script type="text/javascript" src="/static/js/query.js?15"></script>
+ <script type="text/javascript" src="/static/js/query_progress.js?16"></script>
 <!-- Footer begins -->
 
 <footer>

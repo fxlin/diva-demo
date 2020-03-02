@@ -56,12 +56,19 @@ def retrieve_frames():
     return jsonify(file=name, t=time, status=True)
 
 
+@app.route('/ret_num', methods=['GET', 'POST'])
+def ret_num():
+    time = list()
+    video_name = request.json['video'].split('/')[-1]
+    num_processed, total = query.num_frames(video_name)
+    return jsonify(processed=num_processed, total=total)
+
+
 @app.route('/coordinates', methods=['GET', 'POST'])
 def retrieve_coordinates():
-    frame_id = request.json['frame']
-    time = request.json['time']
-    coordinates = query.request_coordinates(frame_id, time)
-    return jsonify(coordinates=coordinates)
+    video = request.json['video'].split('/')[-1]
+    coordinates = query.request_coordinates(video)
+    return jsonify(coordinates)
 
 
 if __name__ == '__main__':

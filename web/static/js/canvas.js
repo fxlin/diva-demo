@@ -2,9 +2,7 @@
 //         need to use these coordinates to draw bounding boxes against object
 //         need to scale these coordinates based on the image size that is projected on the web page since its auto fitted
 
-let bounding_box = {1.1:[100,200,30,40],2.2:[100,200,30,40], 5.5:[100,200,30,40], 10.6:[100,200,30,40],
-    14.7:[100,200,30,40], 16.8:[100,200,30,40], 17.9:[100,200,30,40]
-};
+let bounding_box = {};
 document.addEventListener('DOMContentLoaded', function(){
     var v = document.getElementById('videodisplay');
     var canvas = document.getElementById('c');
@@ -23,6 +21,19 @@ document.addEventListener('DOMContentLoaded', function(){
     },false);
 
 },false);
+
+function extract_bounding_box(){
+    let computeReturn = $.ajax({
+            method: "POST",
+            contentType: 'application/json',
+            dataType: "json",
+            data: JSON.stringify({'video': vid}),
+            url: "/retrieve",
+        }).done(function (computeReturn) {
+        bounding_box = computeReturn;
+        document.getElementById("c").disabled = false;
+    });
+}
 
 function draw(v,c,bc,w,h) {
 
@@ -46,6 +57,9 @@ function draw(v,c,bc,w,h) {
         c.lineWidth = 4;
         c.strokeStyle = 'red';
         c.stroke();
+    }
+    else{
+        c.putImageData(idata,0,0);
     }
     // Start over immediately since timeout is set to 0
     setTimeout(function(){ draw(v,c,bc,w,h); }, 0);
