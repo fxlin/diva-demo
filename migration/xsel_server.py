@@ -27,7 +27,8 @@ logging.info("Begin to initialize DB, wait 5 seconds")
 def add_fixtures(db_session, video_list: 'List[Tuple[str, str]]'):
     try:
         for p in video_list:
-            v = Video(p[0], p[1])
+            # FIXME Video take more arguments
+            # v = Video(p[0], p[1])
             db_session.add(v)
         db_session.commit()
 
@@ -45,5 +46,5 @@ def add_fixtures(db_session, video_list: 'List[Tuple[str, str]]'):
 
 if __name__ == "__main__":
     init_db()
-    add_fixtures(db_session, fixture_list)
+    # add_fixtures(db_session, fixture_list)
     logging.info("Bootstrap DB")

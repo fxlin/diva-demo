@@ -46,25 +46,25 @@ run-cloud:
 	docker run --network=${NETWORK_NAME} -it -d -p ${CLOUD_SERVICE_PORT}:${CLOUD_SERVICE_PORT} --name cloud -v ${VIDEO_DATA_PATH}:${VIDEO_DATA_PATH_IN_CONTAINER}:ro -v ${PERSISTENT_VOLUME}:${CONTROLLER_SERVER_IMAGE_VOLUME} ${DOCKER_USERNAME}/diva-cloud:latest
 
 run-cloud-without-disk:
-	docker run --network=${NETWORK_NAME} -it -d -p ${CLOUD_SERVICE_PORT}:${CLOUD_SERVICE_PORT} --name cloud ${DOCKER_USERNAME}/diva-cloud:latest
+	docker run --network=${NETWORK_NAME} -d -p ${CLOUD_SERVICE_PORT}:${CLOUD_SERVICE_PORT} --name cloud ${DOCKER_USERNAME}/diva-cloud:latest
 
 run-camera:
-	docker run --network=${NETWORK_NAME} -it -d --gpus all --name camera -v ${CAMERA_RESULT_PATH}:${CAMERA_RESULT_PATH_IN_CONTAINER} ${DOCKER_USERNAME}/diva-camera:latest
+	docker run --network=${NETWORK_NAME} -d --name camera -v ${CAMERA_RESULT_PATH}:${CAMERA_RESULT_PATH_IN_CONTAINER} ${DOCKER_USERNAME}/diva-camera:latest
 
 run-camera-pi:
 	docker run --network=${NETWORK_NAME} --device=/dev/vcsm --device=/dev/vchiq -d --gpus all --name camera -v ${CAMERA_RESULT_PATH}:${CAMERA_RESULT_PATH_IN_CONTAINER} ${DOCKER_USERNAME}/diva-camera:latest
 
 run-yolo:
-	docker run --network=${NETWORK_NAME} -it  -d --gpus all --name=yolo ${DOCKER_USERNAME}/diva-yolo:latest
+	docker run --network=${NETWORK_NAME} -d --gpus all --name=yolo ${DOCKER_USERNAME}/diva-yolo:latest
 
 run-yolo-with-port:
-	docker run --network=${NETWORK_NAME} -it  -d --gpus all --name=yolo -p ${YOLO_SERVICE_PORT}:${YOLO_SERVICE_PORT} ${DOCKER_USERNAME}/diva-yolo:latest
+	docker run --network=${NETWORK_NAME} -d --gpus all --name=yolo -p ${YOLO_SERVICE_PORT}:${YOLO_SERVICE_PORT} ${DOCKER_USERNAME}/diva-yolo:latest
 
 run-webserver:
 	docker run --network=${NETWORK_NAME} -it -p ${WEB_SERVER_PORT}:${WEB_SERVER_PORT} -v ${PERSISTENT_VOLUME}:${WEB_SERVER_IMAGE_VOLUME} -d --name=webserver ${DOCKER_USERNAME}/diva-webserver:latest
 
 run-postgres:
-	docker run --network=${NETWORK_NAME} -it --name ${DEFAULT_POSTGRES_HOST} -p ${DEFAULT_POSTGRES_PORT}:${DEFAULT_POSTGRES_PORT} \
+	docker run --network=${NETWORK_NAME} --name ${DEFAULT_POSTGRES_HOST} -p ${DEFAULT_POSTGRES_PORT}:${DEFAULT_POSTGRES_PORT} \
 		-e POSTGRES_PASSWORD=${DEFAULT_POSTGRES_PASSWORD} \
 		-e POSTGRES_DB=${DEFAULT_POSTGRES_DB} -d postgres:latest
 
