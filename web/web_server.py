@@ -43,9 +43,22 @@ def retrieve_frames():
     time = list()
     video_name = request.json['video'].split('/')[-1]
     print(video_name)
+<<<<<<< Updated upstream
     name, status = query.request_frames(video_name)
     for i in name:
         time.append(str(int(i) // 10))
+=======
+    name = query.request_frames(video_name)
+
+    if not name:
+        print('not finished')
+        return jsonify(file=name)
+
+    print('finished')
+    for i in name:
+        #  time.append(str(int(i) // 10))
+        time.append(str(int(i.split('.')[0]) // 10))
+>>>>>>> Stashed changes
     name = ','.join(name)
     time = ','.join(time)
     print(time)

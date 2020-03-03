@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function(){
         }, false);
 
     document.getElementById("query").addEventListener("click", function() {
-            test_duplicates();
+            call_diva();
         }, false);
 
     function array(num){
@@ -101,7 +101,6 @@ document.addEventListener('DOMContentLoaded', function(){
                 img.setAttribute("confidence", temp_array[i][2]);
                 document.getElementById('results').appendChild(img);
         }
-
          console.log(temp_array);
     }
 
@@ -233,8 +232,10 @@ document.addEventListener('DOMContentLoaded', function(){
         elem.style.width =  "0%";
         elem.setAttribute("aria-valuenow", 0);
     }
+
+
     function update_progress_bar() {
-        reset();
+        reset_progress_bar();
         let elem = document.getElementById("myBar");
         let width = 0;
         let id = setInterval(frame, 1000);

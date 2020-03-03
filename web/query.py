@@ -18,8 +18,11 @@ def request_frames(video_name):
     all_frames = db_session.query(Frame.name).join(Video).filter(Video.name == video_name).all()
     db_session.close()
     print('# processed:', len(processed_frames), '# failed', len(failed_frames), '# total:', len(all_frames))
-    return [val for (val,) in processed_frames], True if len(processed_frames + failed_frames) == len(all_frames) \
-        else [val for (val,) in processed_frames], False
+    #  This line is [val for (val,) in processed_frames] extracts only the name of the image
+    #  len(processed_frames + failed_frames) == len(all_frames) checks if it is done processing frames
+    val = [val for (val,) in processed_frames]
+    return val, len(processed_frames + failed_frames) == len(all_frames)
+
 
 
 def request_coordinates(video_name):
