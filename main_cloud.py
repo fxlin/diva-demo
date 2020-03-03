@@ -115,6 +115,52 @@ class ImageDoesNotExistException(Exception):
     pass
 
 
+# FIXME change interface to take arugment ...
+def download_video():
+    db_session()
+
+    wait_list = db_session.query(Video).filter(
+        Video.status == VideoStatus.WILL_REQUEST).all()
+
+    for v in wait_list:
+        try:
+            video_name = v.name_on_camera
+            _camera_ip, _camera_port = v.camera.ip, v.camera.port
+
+            _, start, end = video_name.split('_')
+            start, end = float(start), float(end)
+
+            payload = cam_cloud_pb2.VideoRequest(timestamp=start,
+                                                 offset=(end - start),
+                                                 video_name=video_name)
+
+            camera_channel = grpc.insecure_channel(
+                f'{_camera_ip}:{_camera_port}')
+            camera_stub = cam_cloud_pb2_grpc.DivaCameraStub(camera_channel)
+            resp = camera_stub.DownloadVideo(payload)
+            if resp.status_code == grpc.StatusCode.OK:
+                with open(v.path, 'w') as fptr:
+                    fptr.write(resp.video.data.decode())
+                v.status = VideoStatus.INITIALIZED
+                logger.info(f'Successfully download video {video_name} from \
+                        camera {_camera_ip}')
+            else:
+                logger.warning(f'Failed to download video {video_name} from \
+                        camera {_camera_ip}')
+                v.status = VideoStatus.UNKOWN
+
+            db_session.commit()
+
+        except Exception as err:
+            logger.warning(err)
+            db_session.rollback()
+
+        finally:
+            camera_channel.close()
+
+    db_session.remove()
+
+
 class FrameProcessor(threading.Thread):
     def run(self):
         while not SHUTDOWN_SIGNAL.is_set():
@@ -286,6 +332,9 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
     """
     Implement server_divaServicer of gRPC
     """
+    def request_video(self, request, context):
+        pass
+
     def register_camera(self, request, context):
         """
         Add camera info into DB
@@ -321,6 +370,7 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
         """
         # FIXME threshold should not be a constant
         threshold = YOLO_SCORE_THRE
+        camera_video_name = request.video_name
         image_struct = request.image
         targets = request.targets
         # score = request.confidence_score
@@ -353,10 +403,18 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
                 Camera.name == _camera.name).filter(
                     Camera.ip == _camera.camera_ip).one()
 
+            # FIXME Prevent requesting / creating duplicated video clip
             video_name = f'{_camera.name}_{timestamp}_{timestamp+5}.jpg'
+            v = db_session.query(Video).filter(
+                Video.name == video_name).one_or_none()
+            if v:
+                raise Exception(
+                    f'found video {video_name} suppose not to exist')
+
             video_path = os.path.join(CONTROLLER_VIDEO_DIRECTORY, video_name)
             _video = Video(video_name, video_path, camera_record.id,
-                           camera_record, VideoStatus.REQUESTING)
+                           camera_record, camera_video_name,
+                           VideoStatus.WILL_REQUEST)
             db_session.add(_video)
 
         except Exception as err:
