@@ -22,7 +22,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='server_diva',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x11server_diva.proto\x12\x0bserver_diva\x1a\x1bgoogle/protobuf/empty.proto\x1a\x0c\x63ommon.proto\"X\n\x10\x64\x65tection_result\x12(\n\x06retval\x18\x01 \x01(\x0b\x32\x16.google.protobuf.EmptyH\x00\x12\x0f\n\x05\x65rror\x18\x02 \x01(\tH\x00\x42\t\n\x07payload\"\x88\x01\n\x11\x66rame_from_camera\x12\x1c\n\x05image\x18\x01 \x01(\x0b\x32\r.common.Image\x12\x18\n\x10\x63onfidence_score\x18\x02 \x01(\x02\x12(\n\x06\x63\x61mera\x18\x03 \x01(\x0b\x32\x18.server_diva.camera_info\x12\x11\n\ttimestamp\x18\x04 \x01(\x05\".\n\x0b\x63\x61mera_info\x12\x11\n\tcamera_ip\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\"0\n\x08response\x12\x13\n\x0bstatus_code\x18\x01 \x01(\x05\x12\x0f\n\x07message\x18\x02 \x01(\t\"<\n\x11object_video_pair\x12\x13\n\x0bobject_name\x18\x03 \x01(\t\x12\x12\n\nvideo_name\x18\x04 \x01(\t2\x81\x02\n\x0bserver_diva\x12Y\n\x16\x64\x65tect_object_in_video\x12\x1e.server_diva.object_video_pair\x1a\x1d.server_diva.detection_result\"\x00\x12\x44\n\x0fregister_camera\x12\x18.server_diva.camera_info\x1a\x15.server_diva.response\"\x00\x12Q\n\x16\x64\x65tect_object_in_frame\x12\x1e.server_diva.frame_from_camera\x1a\x15.server_diva.response\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\x11server_diva.proto\x12\x0bserver_diva\x1a\x1bgoogle/protobuf/empty.proto\x1a\x0c\x63ommon.proto\"X\n\x10\x64\x65tection_result\x12(\n\x06retval\x18\x01 \x01(\x0b\x32\x16.google.protobuf.EmptyH\x00\x12\x0f\n\x05\x65rror\x18\x02 \x01(\tH\x00\x42\t\n\x07payload\"\xac\x01\n\x11\x66rame_from_camera\x12\x1c\n\x05image\x18\x01 \x01(\x0b\x32\r.common.Image\x12\x18\n\x10\x63onfidence_score\x18\x02 \x01(\x02\x12(\n\x06\x63\x61mera\x18\x03 \x01(\x0b\x32\x18.server_diva.camera_info\x12\x11\n\ttimestamp\x18\x04 \x01(\x05\x12\x12\n\nvideo_name\x18\x05 \x01(\t\x12\x0e\n\x06offset\x18\x06 \x01(\x05\"C\n\x0b\x63\x61mera_info\x12\x11\n\tcamera_ip\x18\x01 \x01(\t\x12\x13\n\x0b\x63\x61mera_port\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\"0\n\x08response\x12\x13\n\x0bstatus_code\x18\x01 \x01(\x05\x12\x0f\n\x07message\x18\x02 \x01(\t\"<\n\x11object_video_pair\x12\x13\n\x0bobject_name\x18\x03 \x01(\t\x12\x12\n\nvideo_name\x18\x04 \x01(\t2\xc1\x02\n\x0bserver_diva\x12Y\n\x16\x64\x65tect_object_in_video\x12\x1e.server_diva.object_video_pair\x1a\x1d.server_diva.detection_result\"\x00\x12\x44\n\x0fregister_camera\x12\x18.server_diva.camera_info\x1a\x15.server_diva.response\"\x00\x12Q\n\x16\x64\x65tect_object_in_frame\x12\x1e.server_diva.frame_from_camera\x1a\x15.server_diva.response\"\x00\x12>\n\rrequest_video\x12\x14.common.VideoRequest\x1a\x15.server_diva.response\"\x00\x62\x06proto3')
   ,
   dependencies=[google_dot_protobuf_dot_empty__pb2.DESCRIPTOR,common__pb2.DESCRIPTOR,])
 
@@ -105,6 +105,20 @@ _FRAME_FROM_CAMERA = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='video_name', full_name='server_diva.frame_from_camera.video_name', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='offset', full_name='server_diva.frame_from_camera.offset', index=5,
+      number=6, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -118,7 +132,7 @@ _FRAME_FROM_CAMERA = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=168,
-  serialized_end=304,
+  serialized_end=340,
 )
 
 
@@ -137,8 +151,15 @@ _CAMERA_INFO = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='name', full_name='server_diva.camera_info.name', index=1,
+      name='camera_port', full_name='server_diva.camera_info.camera_port', index=1,
       number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='name', full_name='server_diva.camera_info.name', index=2,
+      number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -155,8 +176,8 @@ _CAMERA_INFO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=306,
-  serialized_end=352,
+  serialized_start=342,
+  serialized_end=409,
 )
 
 
@@ -193,8 +214,8 @@ _RESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=354,
-  serialized_end=402,
+  serialized_start=411,
+  serialized_end=459,
 )
 
 
@@ -231,8 +252,8 @@ _OBJECT_VIDEO_PAIR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=404,
-  serialized_end=464,
+  serialized_start=461,
+  serialized_end=521,
 )
 
 _DETECTION_RESULT.fields_by_name['retval'].message_type = google_dot_protobuf_dot_empty__pb2._EMPTY
@@ -294,8 +315,8 @@ _SERVER_DIVA = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=467,
-  serialized_end=724,
+  serialized_start=524,
+  serialized_end=845,
   methods=[
   _descriptor.MethodDescriptor(
     name='detect_object_in_video',
@@ -321,6 +342,15 @@ _SERVER_DIVA = _descriptor.ServiceDescriptor(
     index=2,
     containing_service=None,
     input_type=_FRAME_FROM_CAMERA,
+    output_type=_RESPONSE,
+    serialized_options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='request_video',
+    full_name='server_diva.server_diva.request_video',
+    index=3,
+    containing_service=None,
+    input_type=common__pb2._VIDEOREQUEST,
     output_type=_RESPONSE,
     serialized_options=None,
   ),

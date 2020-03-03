@@ -34,6 +34,11 @@ class DivaCameraStub(object):
         request_serializer=cam__cloud__pb2.DeployOpRequest.SerializeToString,
         response_deserializer=cam__cloud__pb2.StrMsg.FromString,
         )
+    self.DownloadVideo = channel.unary_unary(
+        '/camera.DivaCamera/DownloadVideo',
+        request_serializer=cam__cloud__pb2.DeployOpRequest.SerializeToString,
+        response_deserializer=cam__cloud__pb2.VideoResponse.FromString,
+        )
 
 
 class DivaCameraServicer(object):
@@ -68,6 +73,13 @@ class DivaCameraServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def DownloadVideo(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_DivaCameraServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -90,6 +102,11 @@ def add_DivaCameraServicer_to_server(servicer, server):
           servicer.DeployOpNotify,
           request_deserializer=cam__cloud__pb2.DeployOpRequest.FromString,
           response_serializer=cam__cloud__pb2.StrMsg.SerializeToString,
+      ),
+      'DownloadVideo': grpc.unary_unary_rpc_method_handler(
+          servicer.DownloadVideo,
+          request_deserializer=cam__cloud__pb2.DeployOpRequest.FromString,
+          response_serializer=cam__cloud__pb2.VideoResponse.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

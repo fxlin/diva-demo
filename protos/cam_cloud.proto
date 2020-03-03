@@ -1,12 +1,26 @@
 syntax = "proto3";
 
 package camera;
+import "common.proto";
 
 service DivaCamera {
     rpc InitDiva (InitDivaRequest) returns (StrMsg) {}
     rpc GetFrame (GetFrameRequest) returns (Frame) {}
     rpc DeployOp (Chunk) returns (StrMsg) {}
     rpc DeployOpNotify (DeployOpRequest) returns (StrMsg) {}
+    rpc DownloadVideo (DeployOpRequest) returns (VideoResponse) {}
+}
+
+message VideoRequest {
+    int32 timestamp = 1;
+    int32 offset = 2;
+    string video_name = 3;
+}
+
+message VideoResponse {
+    string msg = 1;
+    int32 status_code = 2;
+    common.File video = 3;
 }
 
 message DeployOpRequest {

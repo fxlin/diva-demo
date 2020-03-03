@@ -13,6 +13,7 @@ from google.protobuf import symbol_database as _symbol_database
 _sym_db = _symbol_database.Default()
 
 
+import common_pb2 as common__pb2
 
 
 DESCRIPTOR = _descriptor.FileDescriptor(
@@ -20,10 +21,101 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='camera',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x0f\x63\x61m_cloud.proto\x12\x06\x63\x61mera\"-\n\x0f\x44\x65ployOpRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x63rop\x18\x02 \x01(\t\"#\n\x0fInitDivaRequest\x12\x10\n\x08img_path\x18\x01 \x01(\t\"\x1f\n\x0fGetFrameRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\"#\n\x05\x46rame\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"\x15\n\x06StrMsg\x12\x0b\n\x03msg\x18\x01 \x01(\t\"\x15\n\x05\x43hunk\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x32\xe3\x01\n\nDivaCamera\x12\x35\n\x08InitDiva\x12\x17.camera.InitDivaRequest\x1a\x0e.camera.StrMsg\"\x00\x12\x34\n\x08GetFrame\x12\x17.camera.GetFrameRequest\x1a\r.camera.Frame\"\x00\x12+\n\x08\x44\x65ployOp\x12\r.camera.Chunk\x1a\x0e.camera.StrMsg\"\x00\x12;\n\x0e\x44\x65ployOpNotify\x12\x17.camera.DeployOpRequest\x1a\x0e.camera.StrMsg\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\x0f\x63\x61m_cloud.proto\x12\x06\x63\x61mera\x1a\x0c\x63ommon.proto\"E\n\x0cVideoRequest\x12\x11\n\ttimestamp\x18\x01 \x01(\x05\x12\x0e\n\x06offset\x18\x02 \x01(\x05\x12\x12\n\nvideo_name\x18\x03 \x01(\t\"N\n\rVideoResponse\x12\x0b\n\x03msg\x18\x01 \x01(\t\x12\x13\n\x0bstatus_code\x18\x02 \x01(\x05\x12\x1b\n\x05video\x18\x03 \x01(\x0b\x32\x0c.common.File\"-\n\x0f\x44\x65ployOpRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x63rop\x18\x02 \x01(\t\"#\n\x0fInitDivaRequest\x12\x10\n\x08img_path\x18\x01 \x01(\t\"\x1f\n\x0fGetFrameRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\"#\n\x05\x46rame\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"\x15\n\x06StrMsg\x12\x0b\n\x03msg\x18\x01 \x01(\t\"\x15\n\x05\x43hunk\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x32\xa6\x02\n\nDivaCamera\x12\x35\n\x08InitDiva\x12\x17.camera.InitDivaRequest\x1a\x0e.camera.StrMsg\"\x00\x12\x34\n\x08GetFrame\x12\x17.camera.GetFrameRequest\x1a\r.camera.Frame\"\x00\x12+\n\x08\x44\x65ployOp\x12\r.camera.Chunk\x1a\x0e.camera.StrMsg\"\x00\x12;\n\x0e\x44\x65ployOpNotify\x12\x17.camera.DeployOpRequest\x1a\x0e.camera.StrMsg\"\x00\x12\x41\n\rDownloadVideo\x12\x17.camera.DeployOpRequest\x1a\x15.camera.VideoResponse\"\x00\x62\x06proto3')
+  ,
+  dependencies=[common__pb2.DESCRIPTOR,])
+
+
+
+
+_VIDEOREQUEST = _descriptor.Descriptor(
+  name='VideoRequest',
+  full_name='camera.VideoRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='timestamp', full_name='camera.VideoRequest.timestamp', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='offset', full_name='camera.VideoRequest.offset', index=1,
+      number=2, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='video_name', full_name='camera.VideoRequest.video_name', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=41,
+  serialized_end=110,
 )
 
 
+_VIDEORESPONSE = _descriptor.Descriptor(
+  name='VideoResponse',
+  full_name='camera.VideoResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='msg', full_name='camera.VideoResponse.msg', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='status_code', full_name='camera.VideoResponse.status_code', index=1,
+      number=2, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='video', full_name='camera.VideoResponse.video', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=112,
+  serialized_end=190,
+)
 
 
 _DEPLOYOPREQUEST = _descriptor.Descriptor(
@@ -59,8 +151,8 @@ _DEPLOYOPREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=27,
-  serialized_end=72,
+  serialized_start=192,
+  serialized_end=237,
 )
 
 
@@ -90,8 +182,8 @@ _INITDIVAREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=74,
-  serialized_end=109,
+  serialized_start=239,
+  serialized_end=274,
 )
 
 
@@ -121,8 +213,8 @@ _GETFRAMEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=111,
-  serialized_end=142,
+  serialized_start=276,
+  serialized_end=307,
 )
 
 
@@ -159,8 +251,8 @@ _FRAME = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=144,
-  serialized_end=179,
+  serialized_start=309,
+  serialized_end=344,
 )
 
 
@@ -190,8 +282,8 @@ _STRMSG = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=181,
-  serialized_end=202,
+  serialized_start=346,
+  serialized_end=367,
 )
 
 
@@ -221,10 +313,13 @@ _CHUNK = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=204,
-  serialized_end=225,
+  serialized_start=369,
+  serialized_end=390,
 )
 
+_VIDEORESPONSE.fields_by_name['video'].message_type = common__pb2._FILE
+DESCRIPTOR.message_types_by_name['VideoRequest'] = _VIDEOREQUEST
+DESCRIPTOR.message_types_by_name['VideoResponse'] = _VIDEORESPONSE
 DESCRIPTOR.message_types_by_name['DeployOpRequest'] = _DEPLOYOPREQUEST
 DESCRIPTOR.message_types_by_name['InitDivaRequest'] = _INITDIVAREQUEST
 DESCRIPTOR.message_types_by_name['GetFrameRequest'] = _GETFRAMEREQUEST
@@ -232,6 +327,20 @@ DESCRIPTOR.message_types_by_name['Frame'] = _FRAME
 DESCRIPTOR.message_types_by_name['StrMsg'] = _STRMSG
 DESCRIPTOR.message_types_by_name['Chunk'] = _CHUNK
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
+
+VideoRequest = _reflection.GeneratedProtocolMessageType('VideoRequest', (_message.Message,), {
+  'DESCRIPTOR' : _VIDEOREQUEST,
+  '__module__' : 'cam_cloud_pb2'
+  # @@protoc_insertion_point(class_scope:camera.VideoRequest)
+  })
+_sym_db.RegisterMessage(VideoRequest)
+
+VideoResponse = _reflection.GeneratedProtocolMessageType('VideoResponse', (_message.Message,), {
+  'DESCRIPTOR' : _VIDEORESPONSE,
+  '__module__' : 'cam_cloud_pb2'
+  # @@protoc_insertion_point(class_scope:camera.VideoResponse)
+  })
+_sym_db.RegisterMessage(VideoResponse)
 
 DeployOpRequest = _reflection.GeneratedProtocolMessageType('DeployOpRequest', (_message.Message,), {
   'DESCRIPTOR' : _DEPLOYOPREQUEST,
@@ -283,8 +392,8 @@ _DIVACAMERA = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=228,
-  serialized_end=455,
+  serialized_start=393,
+  serialized_end=687,
   methods=[
   _descriptor.MethodDescriptor(
     name='InitDiva',
@@ -320,6 +429,15 @@ _DIVACAMERA = _descriptor.ServiceDescriptor(
     containing_service=None,
     input_type=_DEPLOYOPREQUEST,
     output_type=_STRMSG,
+    serialized_options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='DownloadVideo',
+    full_name='camera.DivaCamera.DownloadVideo',
+    index=4,
+    containing_service=None,
+    input_type=_DEPLOYOPREQUEST,
+    output_type=_VIDEORESPONSE,
     serialized_options=None,
   ),
 ])

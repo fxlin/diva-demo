@@ -8,6 +8,8 @@ service server_diva {
     rpc detect_object_in_video(object_video_pair) returns (detection_result) {};
     rpc register_camera(camera_info) returns (response) {};
     rpc detect_object_in_frame(frame_from_camera) returns (response) {};
+    // FIXME find the video associated with the given image (camera, )
+    rpc request_video(common.VideoRequest) returns (response) {};
 }
 
 message detection_result {
@@ -22,11 +24,14 @@ message frame_from_camera {
     float confidence_score = 2;
     camera_info camera = 3;
     int32 timestamp = 4;
+    string video_name = 5;
+    int32 offset = 6;
 }
 
 message camera_info {
     string camera_ip = 1;
-    string name = 2;
+    string camera_port = 2;
+    string name = 3;
 }
 
 message response {
