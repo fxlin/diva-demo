@@ -15,6 +15,7 @@ class VideoStatus(IntEnum):
     COMPLETED = 3
     UNKOWN = 4
     REQUESTING = 5
+    WILL_REQUEST = 6
 
 
 class Video(Base):
@@ -32,6 +33,8 @@ class Video(Base):
                           backref=backref('videos',
                                           uselist=True,
                                           cascade="all,delete-orphan,delete"))
+    name_on_camera = Column(String)
+    offset = Column(Integer)
 
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime,
@@ -43,13 +46,16 @@ class Video(Base):
                  path: str,
                  camera_id: int,
                  camera,
+                 name_on_camera: str,
+                 offset: int,
                  status=VideoStatus.UNKOWN):
         self.name = name
         self.path = path
         self.status = status
-        if camera:
-            self.camera_id = camera_id
-            self.camera = camera
+        self.camera_id = camera_id
+        self.camera = camera
+        self.name_on_camera = name_on_camera
+        self.offset = offset
 
     def add_frames(self, frames):
         if frames and not (self.frames is None):
