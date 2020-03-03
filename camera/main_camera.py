@@ -30,8 +30,9 @@ from constants.camera import VIDEO_CLIP_LENGTH
 CHUNK_SIZE = 1024 * 100
 OP_BATCH_SZ = 16
 
+# FIXME change serverity level
 FORMAT = '%(asctime)-15s %(levelname)8s %(thread)d %(threadName)s %(message)s'
-logging.basicConfig(stream=sys.stdout, level=logging.INFO, format=FORMAT)
+logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
 logger = logging.getLogger(__name__)
 
 # FIXME 1. register camera
@@ -236,6 +237,8 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         video_output_p = os.path.join(VIDEO_FOLDER, f'{timestamp}.mp4')
         video_data = None
 
+        logger.info(f'{video_name} offset {offset} timestamp {timestamp}')
+
         if not os.path.exists(video_source_p):
             _file = common_pb2.File(data=bytearray(0))
             return cam_cloud_pb2.VideoResponse(
@@ -254,6 +257,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                 video_data = fptr.read().encode()
         except Exception as err:
             _file = common_pb2.File(data=bytearray(0))
+            logger.warning(f'Error happened when transmiting video {err}')
             return cam_cloud_pb2.VideoResponse(
                 msg=f"{err}",
                 status_code=grpc.StatusCode.FAILED_PRECONDITION,
@@ -263,6 +267,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                 logger.debug(f'remove video {video_output_p}')
                 os.remove(video_output_p)
 
+        logger.info(f'Reponsing the request')
         _file = common_pb2.File(data=video_data)
         return cam_cloud_pb2.VideoResponse(msg="OK",
                                            status_code=grpc.StatusCode.OK,
@@ -305,6 +310,7 @@ class CameraController(Thread):
 
 
 def serve():
+    logger.info('Init camera service')
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     diva_cam_servicer = DivaCameraServicer()
     cam_cloud_pb2_grpc.add_DivaCameraServicer_to_server(
@@ -315,7 +321,7 @@ def serve():
         while True:
             time.sleep(60 * 60 * 24)
     except KeyboardInterrupt:
-        print('DivaCloud stop!!!')
+        logger.warning('DivaCloud stop!!!')
         diva_cam_servicer.KillOp()
         server.stop(0)
 
