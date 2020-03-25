@@ -15,6 +15,8 @@ from variables import YOLO_CHANNEL_ADDRESS
 
 VIDEO_SOURCE = '/var/yolov3/web/static/video/example.mp4'
 
+target_class = 'motorbike'
+
 
 def trim_video(source_path: str, output_path: str, start_second: int,
                end_second: int):
@@ -74,14 +76,14 @@ while source.isOpened():
             req = det_yolov3_pb2.DetectionRequest(image=_img,
                                                   name=f'{counter}.jpg',
                                                   threshold=0.3,
-                                                  targets=['motorbike'])
+                                                  targets=[target_class])
             resp = stub.Detect(req)
 
             exist_target = False
 
             # draw bbox on the image
             for ele in resp.elements:
-                if ele.class_name != 'motorbike':
+                if ele.class_name != target_class:
                     continue
                 exist_target = True
                 x1, y1, x2, y2 = ele.x1, ele.y1, ele.x2, ele.y2
@@ -92,11 +94,12 @@ while source.isOpened():
                 new_img = cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0),
                                         3)
 
-                cv2.imwrite(f'tests/img/{counter}.jpg', new_img)
+                cv2.imwrite(f'tests/img/{target_class}/{counter}.jpg', new_img)
 
             if exist_target:
                 # trim the video
-                trim_video(VIDEO_SOURCE, f'tests/video/{counter}.mp4',
+                trim_video(VIDEO_SOURCE,
+                           f'tests/video/{target_class}/{counter}.mp4',
                            counter // 30, (counter // 30) + 5)
     counter += 1
 
@@ -107,7 +110,7 @@ for i, v in zip(new_list, fake_score):
     name = f'{i[0]}.jpg'
     score = v
     name_score_mapping[name] = score
-with open('people_score.txt', 'w') as txt_fptr:
+with open(f'{target_class}_score.txt', 'w') as txt_fptr:
     json.dump(name_score_mapping, txt_fptr)
 
 source.release()
