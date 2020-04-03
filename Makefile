@@ -106,3 +106,7 @@ test-yolo:
 
 test-integration:
 	docker run --network=${NETWORK_NAME} -it --rm --name test_integration ${DOCKER_USERNAME}/diva-cloud:latest python -m tests.test_integration
+
+test-fake:
+	docker run --network=${NETWORK_NAME} -it --rm --name test_fake -v /tmp/test/video:/var/yolov3/tests/video -v /tmp/test/img:/var/yolov3/tests/img ${DOCKER_USERNAME}/diva-cloud:latest python -m tests.fake
+
