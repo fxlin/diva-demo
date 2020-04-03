@@ -4,13 +4,15 @@ import os
 import sys
 import heapq
 import cv2
-from threading import Thread, Event
+from threading import Thread, Event, Lock
 from concurrent import futures
 import logging
+from queue import Queue
+from typing import List, Tuple
 
 import grpc
 import numpy as np
-import keras
+# import keras
 import keras.backend as K
 import tensorflow as tf
 
@@ -34,6 +36,8 @@ OP_BATCH_SZ = 16
 FORMAT = '%(asctime)-15s %(levelname)8s %(thread)d %(threadName)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
 logger = logging.getLogger(__name__)
+
+QuerryQueue = Queue()
 
 # FIXME 1. register camera
 # FIXME 2. argument parser -> parse CLI arguments
@@ -105,48 +109,115 @@ class OP_WORKER(Thread):
         self.op_fname = op_fname
         for img in img_names:
             self.run_imgs.append(os.path.join(img_dir, img))
-        self.buf = buf
+        self.buffer = buf
         self.op_fname = op_fname
         self.op_updated = True
         self.is_run = True
         self.crop = [int(x) for x in crop.split(',')]
 
+    def reset(self, buffer, op_fname, crop):
+        self.op_fname = op_fname
+        self.buffer = buffer
+        self.op_updated = True
+        self.is_run = True
+        self.crop = [int(x) for x in crop.split(',')]
+
+        # self.run_imgs = []
+        # for img in img_names:
+        #     self.run_imgs.append(os.path.join(img_dir, img))
+
     def isRunning(self):
         return self.is_run
 
     def kill(self):
-        K.clear_session()
         self.kill = True
 
     def stop(self):
         self.is_run = False
 
+    def preprocess(self, task: 'Tuple') -> :
+        """
+        task = (start_timestamp (int), end_timestamp (int), object)
+        """
+        start_timestamp, end_timestamp, _ = task
+        video_list = os.listdir(VIDEO_FOLDER)
+        temp_1 = map(lambda x: int(x.replace('.mp4', '')), video_list)
+        temp_2 = filter(lambda y: y >= start_timestamp, temp_1)
+        temp_3 = filter(lambda z: z, z < end_timestamp, temp_2)
+
+        return list(
+            map(lambda w: os.path.join(VIDEO_FOLDER, f'{w}.mp4'), temp_3))
+
+    def process_video(self, video_path: str, start_second: int,
+                      end_second: int) -> 'List[int]':
+        source = cv2.VideoCapture(video_path)
+        fps = source.get(cv2.CAP_PROP_FPS)
+        # FIXME set specific time
+
+        while source.isOpened():
+            ret, frame = source.read()
+            if not ret:
+                break
+
+            # FIXME should pre-process the frame? reduce size?
+            result = self.op.predict(frame)
+
+        source.release()
+
+    @staticmethod
+    def get_video_list(start: int, end: int) -> 'List[str]':
+        pass
+
+    @staticmethod
+    def notify_controller():
+        """
+        Telling controller that task xxx is done.
+        """
+        pass
+
     def run(self):
-        # clog = ClockLog(5)
         while True:
             if self.kill:
                 break
             if not self.is_run:
                 time.sleep(1)
                 continue
+
             if self.op_updated:
-                config = tf.ConfigProto()
-                config.gpu_options.per_process_gpu_memory_fraction = 0.3
-                keras.backend.set_session(tf.Session(config=config))
-                self.op = keras.models.load_model(self.op_fname)
+                # ==========================old============================
+                # FIXME check whether or not the migration is successfully
+                # config = tf.ConfigProto()
+                # config.gpu_options.per_process_gpu_memory_fraction = 0.3
+                # keras.backend.set_session(tf.Session(config=config))
+                # self.op = keras.models.load_model(self.op_fname)
+                # ==========================old============================
+
+                self.op = tf.keras.load_model(self.op_fname)
                 in_h, in_w = self.op.layers[0].input_shape[1:3]
                 self.op_updated = False
-            imgs = random.sample(self.run_imgs, OP_BATCH_SZ)
-            frames = self.read_images(imgs, in_h, in_w, crop=self.crop)
+
+            # ==========================old============================
+            # imgs = random.sample(self.run_imgs, OP_BATCH_SZ)
+            # frames = self.read_images(imgs, in_h, in_w, crop=self.crop)
             # TODO: IO shall be seperated thread
-            scores = self.op.predict(frames)
-            # print ('Predict scores: ', scores)
-            for i in range(OP_BATCH_SZ):
-                heapq.heappush(self.buf,
-                               (-scores[i, 1], imgs[i].split('/')[-1]))
-            # print ('Buf size: ', len(self.buf))
-            # clog.log('Buf size: %d, total num: %d' %
-            #          (len(self.buf), len(self.run_imgs)))
+            # scores = self.op.predict(frames)
+            # for i in range(OP_BATCH_SZ):
+            #     heapq.heappush(self.buffer,
+            #                    (-scores[i, 1], imgs[i].split('/')[-1]))
+            # ==========================old============================
+
+            # TODO.1 process videos
+            # TODO.2 rank result
+            # TODO.3 send image to server
+            querry = QuerryQueue.get(block=True)
+            temp_data = self.preprocess(querry)
+            self.process_video(*temp_data)
+
+            logger.debug('Buf size: ', len(self.buffer))
+            logger.debug('Buf size: %d, total num: %d' %
+                         (len(self.buffer), len(self.run_imgs)))
+
+            self.notify_controller()
 
 
 def trim_video(source_path: str, output_path: str, start_second: int,
@@ -169,7 +240,9 @@ def trim_video(source_path: str, output_path: str, start_second: int,
 
     logging.info(f'time {time.time()}')
     while counter >= 0:
-        frame = source_video.read()
+        ret, frame = source_video.read()
+        if not ret:
+            break
         output_video.write(frame)
         counter -= 1
     logging.info(f'time {time.time()} file {output_path} exists? \
@@ -182,12 +255,19 @@ def trim_video(source_path: str, output_path: str, start_second: int,
 class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
     img_dir = None
     cur_op_data = bytearray(b'')
-    cur_op_name = None
+    cur_op_name = ''
     send_buf = []
+    is_queerying = False
+    locker = Lock()
+
+    def cleaup(self):
+        self.cur_op_data = bytearray(b'')
+        self.cur_op_name = ""
 
     def __init__(self):
         cam_cloud_pb2_grpc.DivaCameraServicer.__init__(self)
         self.op_worker = OP_WORKER()
+        self.op_worker.setDaemon(True)
         self.op_worker.start()
 
     def KillOp(self):
@@ -195,33 +275,48 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
 
     def GetFrame(self, request, context):
         if len(self.send_buf) == 0:
-            print('Empty queue, nothing to send')
+            logger.debug('Empty queue, nothing to send')
             return cam_cloud_pb2.Frame(name='', data=b'')
+        data = None
         send_img = heapq.heappop(self.send_buf)[1]
         with open(os.path.join(self.img_dir, send_img), 'rb') as f:
-            return cam_cloud_pb2.Frame(name=send_img.split('/')[-1],
-                                       data=f.read())
+            data = f.read()
+
+        return cam_cloud_pb2.Frame(name=send_img.split('/')[-1], data=data)
 
     def InitDiva(self, request, context):
         self.img_dir = request.img_path
         self.send_buf = []
         return cam_cloud_pb2.StrMsg(msg=INIT_DIVA_SUCCESS)
 
-    def DeployOpNotify(self, request, context):
-        self.cur_op_name = request.name
-        op_fname = os.path.join(OP_DIR, self.cur_op_name)
-        with open(op_fname, 'wb') as f:
-            f.write(self.cur_op_data)
-        self.cur_op_data = bytearray(b'')
+    def initiate_querry(self):
+        self.locker.acquire()
+        if self.is_queerying:
+            return cam_cloud_pb2.StrMsg(msg='NO')
+
         # start op processing
         if self.op_worker.isRunning():
             self.op_worker.stop()
-        all_imgs = os.listdir(self.img_dir)
-        selected_imgs = [img for img in all_imgs
-                         if int(img[:-4]) % 10 == 0]  # 1 FPS
-        self.op_worker.prepare(self.img_dir, selected_imgs, self.send_buf,
-                               op_fname, request.crop)
-        return cam_cloud_pb2.StrMsg(msg='OK')
+
+        self.cleaup()
+        self.is_queerying = True
+        self.locker.release()
+
+    def DeployOpNotify(self, request, context):
+        self.cur_op_name = request.name
+        op_fname = os.path.join(OP_DIR, self.cur_op_name)
+
+        with open(op_fname, 'wb') as f:
+            f.write(self.cur_op_data)
+        self.cur_op_data = bytearray(b'')
+
+        # all_imgs = os.listdir(self.img_dir)
+        # selected_imgs = [img for img in all_imgs
+        #                  if int(img[:-4]) % 10 == 0]  # 1 FPS
+        # self.op_worker.prepare(self.img_dir, selected_imgs, self.send_buf,
+        #                        op_fname, request.crop)
+
+        return cam_cloud_pb2.StrMsg(msg=INIT_DIVA_SUCCESS)
 
     def DeployOp(self, request, context):
         self.cur_op_data += request.data
