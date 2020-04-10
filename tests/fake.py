@@ -114,19 +114,16 @@ with grpc.insecure_channel(YOLO_CHANNEL_ADDRESS) as channel:
 
             t_end = time.time()
 
-            print(f'temp_score: {temp_score}')
-            temp_list = [[t_start, t_end, t_start - t_end, c, target_class]
-                         for c in temp_score]
-            print(f'temp_list {temp_list}')
-
-            temp_df = pd.DataFrame(
-                temp_list,
-                columns=['start_time', 'end_time', 'diff', 'score', 'class'])
-
-            print(f'temp_df')
-            print(temp_df)
-
-            metric_df.append(temp_df, ignore_index=True)
+            for sc in temp_score:
+                metric_df = metric_df.append(
+                    {
+                        'start_time': t_start,
+                        'end_time': t_end,
+                        'diff': t_start - t_end,
+                        'score': sc,
+                        'class': target_class
+                    },
+                    ignore_index=True)
 
         counter += 1
 
