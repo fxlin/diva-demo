@@ -108,12 +108,12 @@ with grpc.insecure_channel(YOLO_CHANNEL_ADDRESS) as channel:
 
                 temp_score.append(ele.confidence)
 
-                cv2.imwrite(f'tests/operator/img/{target_class}/{counter}.jpg', new_img)
+                cv2.imwrite(f'tests/img/{target_class}/{counter}.jpg', new_img)
 
             if exist_target:
                 # trim the video
                 trim_video(VIDEO_SOURCE,
-                           f'tests/operator/video/{target_class}/{counter}.mp4',
+                           f'tests/video/{target_class}/{counter}.mp4',
                            counter // 30, (counter // 30) + 5)
 
             t_end = time.time()
@@ -131,7 +131,7 @@ with grpc.insecure_channel(YOLO_CHANNEL_ADDRESS) as channel:
 
         counter += 1
 
-metric_df.to_csv(f'tests/operator/img/{target_class}_score.csv')
+metric_df.to_csv(f'tests/img/{target_class}_score.csv')
 print(metric_df)
 
 source.release()
