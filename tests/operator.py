@@ -114,41 +114,22 @@ with grpc.insecure_channel(YOLO_CHANNEL_ADDRESS) as channel:
 
             t_end = time.time()
 
-            print(f'temp_score: {temp_score}')
             temp_list = [[t_start, t_end, t_start - t_end, c, target_class]
                          for c in temp_score]
-            print(f'temp_list {temp_list}')
-
             temp_df = pd.DataFrame(
                 temp_list,
                 columns=['start_time', 'end_time', 'diff', 'score', 'class'])
 
-            print(f'temp_df')
-            print(temp_df)
-
-            metric_df.append(temp_df, ignore_index=True)
+            metric_df.append(temp_df)
 
         counter += 1
 
 metric_df.to_csv(f'tests/img/{target_class}_score.csv')
-print(f'metric_df')
 print(metric_df)
-
-# new_list = sorted(list(bbox_size_map.items()), key=lambda x: x[1])
-# fake_score = np.linspace(start=0.3, stop=1.0, num=len(new_list))
-# name_score_mapping = {}
-# for i, v in zip(new_list, fake_score):
-#     name = f'{i[0]}.jpg'
-#     score = v
-#     name_score_mapping[name] = score
-# with open(f'{target_class}_score.txt', 'w') as txt_fptr:
-#     json.dump(name_score_mapping, txt_fptr)
 
 source.release()
 
-print("Done")
-
-exit(0)
+print('done')
 
 # message Image {
 #     // bytes come from opencv .tobytes() function
