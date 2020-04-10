@@ -3,7 +3,9 @@ import numpy as np
 import tensorflow.compat.v1 as tf
 import cv2
 #  FIXME:  need to figure out the optimal way of choosing a neural network. For now this will be harcoded.
-OP_FNAME_PATH = '/data/YOLO-RES-720P/exp/chaweng/models/chaweng-a3d16c61813043a2711ed3f5a646e4eb.hdf5'
+# OP_FNAME_PATH = '/data/YOLO-RES-720P/exp/chaweng/models/chaweng-a3d16c61813043a2711ed3f5a646e4eb.hdf5'
+OP_FNAME_PATH = '/data/exp/chaweng/models/chaweng-a3d16c61813043a2711ed3f5a646e4eb.hdf5'
+
 
 #  FIXME: directory for images that are currently used for testing the neural network
 # IMAGE_DIR = '/config/Testing_Images'

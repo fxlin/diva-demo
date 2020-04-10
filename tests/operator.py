@@ -10,7 +10,7 @@ import common_pb2
 import det_yolov3_pb2
 import det_yolov3_pb2_grpc
 
-from ml_util import Operator, OP_FNAME_PATH
+from tests.ml_util import Operator, OP_FNAME_PATH
 
 from variables import YOLO_CHANNEL_ADDRESS
 
