@@ -120,7 +120,7 @@ with grpc.insecure_channel(YOLO_CHANNEL_ADDRESS) as channel:
 
         counter += 1
 
-metric_df.to_csv(f'{target_class}_score.csv')
+metric_df.to_csv(f'tests/img/{target_class}_score.csv')
 
 # new_list = sorted(list(bbox_size_map.items()), key=lambda x: x[1])
 # fake_score = np.linspace(start=0.3, stop=1.0, num=len(new_list))
