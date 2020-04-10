@@ -1,8 +1,7 @@
 import os
 import logging
 import time
-import numpy as np
-import json
+import pandas as pd
 import cv2
 
 import grpc
@@ -56,16 +55,20 @@ counter = 0
 
 bbox_size_map = {}
 
-while source.isOpened():
-    ret, frame = source.read()
-    if not ret:
-        break
+metric_df = pd.DataFrame(columns=['start_time', 'end_time', 'diff', 'score'])
 
-    if (counter % 30) == 0:
-        # send image to process
+with grpc.insecure_channel(YOLO_CHANNEL_ADDRESS) as channel:
+    stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(channel)
 
-        with grpc.insecure_channel(YOLO_CHANNEL_ADDRESS) as channel:
-            stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(channel)
+    while source.isOpened():
+        ret, frame = source.read()
+        if not ret:
+            break
+
+        if (counter % 30) == 0:
+            # send image to process
+
+            t_start = time.time()
 
             _height, _width, _chan = frame.shape
             _img = common_pb2.Image(data=frame.tobytes(),
@@ -81,6 +84,8 @@ while source.isOpened():
 
             exist_target = False
 
+            temp_score = []
+
             # draw bbox on the image
             for ele in resp.elements:
                 if ele.class_name != target_class:
@@ -94,6 +99,8 @@ while source.isOpened():
                 new_img = cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0),
                                         3)
 
+                temp_score.append(ele.confidence)
+
                 cv2.imwrite(f'tests/img/{target_class}/{counter}.jpg', new_img)
 
             if exist_target:
@@ -101,17 +108,29 @@ while source.isOpened():
                 trim_video(VIDEO_SOURCE,
                            f'tests/video/{target_class}/{counter}.mp4',
                            counter // 30, (counter // 30) + 5)
-    counter += 1
 
-new_list = sorted(list(bbox_size_map.items()), key=lambda x: x[1])
-fake_score = np.linspace(start=0.3, stop=1.0, num=len(new_list))
-name_score_mapping = {}
-for i, v in zip(new_list, fake_score):
-    name = f'{i[0]}.jpg'
-    score = v
-    name_score_mapping[name] = score
-with open(f'{target_class}_score.txt', 'w') as txt_fptr:
-    json.dump(name_score_mapping, txt_fptr)
+            t_end = time.time()
+
+            temp_list = [[t_start, t_end, t_start - t_end, c]
+                         for c in temp_score]
+            temp_df = pd.DataFrame(
+                temp_list, columns=['start_time', 'end_time', 'diff', 'score'])
+
+            metric_df.append(temp_df)
+
+        counter += 1
+
+metric_df.to_csv(f'{target_class}_score.csv')
+
+# new_list = sorted(list(bbox_size_map.items()), key=lambda x: x[1])
+# fake_score = np.linspace(start=0.3, stop=1.0, num=len(new_list))
+# name_score_mapping = {}
+# for i, v in zip(new_list, fake_score):
+#     name = f'{i[0]}.jpg'
+#     score = v
+#     name_score_mapping[name] = score
+# with open(f'{target_class}_score.txt', 'w') as txt_fptr:
+#     json.dump(name_score_mapping, txt_fptr)
 
 source.release()
 
