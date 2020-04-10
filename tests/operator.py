@@ -10,6 +10,8 @@ import common_pb2
 import det_yolov3_pb2
 import det_yolov3_pb2_grpc
 
+from ml_util import Operator, OP_FNAME_PATH
+
 from variables import YOLO_CHANNEL_ADDRESS
 
 VIDEO_SOURCE = '/var/yolov3/web/static/video/example.mp4'
@@ -60,6 +62,8 @@ bbox_size_map = {}
 metric_df = pd.DataFrame(
     columns=['start_time', 'end_time', 'diff', 'score', 'class'])
 
+op = Operator(OP_FNAME_PATH)
+
 with grpc.insecure_channel(YOLO_CHANNEL_ADDRESS) as channel:
     stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(channel)
 
@@ -68,7 +72,7 @@ with grpc.insecure_channel(YOLO_CHANNEL_ADDRESS) as channel:
         if not ret:
             break
 
-        if (counter % 30) == 0:
+        if (counter % 30) == 0 and (op.predict_image(frame) >= 0.3):
             # send image to process
 
             t_start = time.time()
@@ -133,6 +137,7 @@ print(metric_df)
 source.release()
 
 print('done')
+exit(0)
 
 # message Image {
 #     // bytes come from opencv .tobytes() function
