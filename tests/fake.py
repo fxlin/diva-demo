@@ -16,6 +16,8 @@ VIDEO_SOURCE = '/var/yolov3/web/static/video/example.mp4'
 
 target_class = 'motorbike'
 
+print('start')
+
 
 def trim_video(source_path: str, output_path: str, start_second: int,
                end_second: int):
@@ -133,6 +135,10 @@ metric_df.to_csv(f'tests/img/{target_class}_score.csv')
 #     json.dump(name_score_mapping, txt_fptr)
 
 source.release()
+
+print("Done")
+
+exit(0)
 
 # message Image {
 #     // bytes come from opencv .tobytes() function
