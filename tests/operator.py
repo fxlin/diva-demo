@@ -72,10 +72,14 @@ with grpc.insecure_channel(YOLO_CHANNEL_ADDRESS) as channel:
         if not ret:
             break
 
-        if (counter % 30) == 0 and (op.predict_image(frame, '350,0,720,400') >= 0.3):
+        if (counter % 30) == 0:
             # send image to process
 
             t_start = time.time()
+
+            if (op.predict_image(frame, '350,0,720,400') <= 0.3):
+                counter += 1
+                continue
 
             _height, _width, _chan = frame.shape
             _img = common_pb2.Image(data=frame.tobytes(),
