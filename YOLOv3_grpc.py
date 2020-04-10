@@ -3,7 +3,9 @@
 
 import time
 from concurrent import futures
+import threading
 from typing import List
+import gc
 import logging
 import grpc
 import sys
@@ -152,6 +154,16 @@ def _detect(image_data: np.ndarray, score_threshold) -> 'List[List[float]]':
     return bboxes
 
 
+GC_TIMER = time.time()
+
+
+def gc_execution():
+    global GC_TIMER
+    if (time.time() - GC_TIMER) >= 60.0 * 5:
+        gc.collect()
+        GC_TIMER = time.time()
+
+
 class DetYOLOv3Servicer(det_yolov3_pb2_grpc.DetYOLOv3Servicer):
     def DetFrame(self, request, context):
         """
@@ -206,7 +218,7 @@ class DetYOLOv3Servicer(det_yolov3_pb2_grpc.DetYOLOv3Servicer):
 
 
 def serve():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=5))
     det_yolov3_pb2_grpc.add_DetYOLOv3Servicer_to_server(
         DetYOLOv3Servicer(), server)
     server.add_insecure_port(f'[::]:{YOLO_CHANNEL_PORT}')
@@ -216,7 +228,6 @@ def serve():
             time.sleep(60 * 60 * 24)
     except KeyboardInterrupt:
         logger.warn('YOLOv3-det receiver stops!!!')
-        server.stop(0)
 
 
 if __name__ == '__main__':
