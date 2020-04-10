@@ -72,7 +72,7 @@ with grpc.insecure_channel(YOLO_CHANNEL_ADDRESS) as channel:
         if not ret:
             break
 
-        if (counter % 30) == 0 and (op.predict_image(frame) >= 0.3):
+        if (counter % 30) == 0 and (op.predict_image(frame, '350,0,720,400') >= 0.3):
             # send image to process
 
             t_start = time.time()
