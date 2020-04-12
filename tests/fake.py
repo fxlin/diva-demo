@@ -13,7 +13,7 @@ import det_yolov3_pb2_grpc
 from variables import YOLO_CHANNEL_ADDRESS
 
 # VIDEO_SOURCE = '/var/yolov3/web/static/video/example.mp4'
-VIDEO_SOURCE = '/var/yolov3/tests/video/alberta-2.mp4'
+VIDEO_SOURCE = '/var/yolov3/tests/source/alberta-2.mp4'
 
 target_class = 'person'
 
