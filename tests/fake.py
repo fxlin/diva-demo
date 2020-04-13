@@ -17,8 +17,6 @@ VIDEO_SOURCE = '/var/yolov3/tests/source/alberta-2.mp4'
 
 target_class = 'person'
 
-print('start')
-
 
 def trim_video(source_path: str, output_path: str, start_second: int,
                end_second: int):
@@ -120,7 +118,7 @@ with grpc.insecure_channel(YOLO_CHANNEL_ADDRESS) as channel:
                     {
                         'start_time': t_start,
                         'end_time': t_end,
-                        'diff': t_start - t_end,
+                        'diff': t_end - t_start,
                         'score': sc,
                         'class': target_class
                     },

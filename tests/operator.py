@@ -127,7 +127,7 @@ with grpc.insecure_channel(YOLO_CHANNEL_ADDRESS) as channel:
                     {
                         'start_time': t_start,
                         'end_time': t_end,
-                        'diff': t_start - t_end,
+                        'diff': t_end - t_start,
                         'score': sc,
                         'class': target_class
                     },
