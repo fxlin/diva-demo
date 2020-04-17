@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='common',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x0c\x63ommon.proto\x12\x06\x63ommon\"E\n\x05Image\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0e\n\x06height\x18\x02 \x01(\x05\x12\r\n\x05width\x18\x03 \x01(\x05\x12\x0f\n\x07\x63hannel\x18\x04 \x01(\x05\"\x14\n\x04\x46ile\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"E\n\x0cVideoRequest\x12\x11\n\ttimestamp\x18\x01 \x01(\x05\x12\x0e\n\x06offset\x18\x02 \x01(\x05\x12\x12\n\nvideo_name\x18\x03 \x01(\tb\x06proto3')
+  serialized_pb=_b('\n\x0c\x63ommon.proto\x12\x06\x63ommon\"E\n\x05Image\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0e\n\x06height\x18\x02 \x01(\x05\x12\r\n\x05width\x18\x03 \x01(\x05\x12\x0f\n\x07\x63hannel\x18\x04 \x01(\x05\"\x14\n\x04\x46ile\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"z\n\x0cVideoRequest\x12\x11\n\ttimestamp\x18\x01 \x01(\x05\x12\x0e\n\x06offset\x18\x02 \x01(\x05\x12\x12\n\nvideo_name\x18\x03 \x01(\t\x12\x13\n\x0bobject_name\x18\x04 \x01(\t\x12\x1e\n\x06\x63\x61mera\x18\x05 \x01(\x0b\x32\x0e.common.Camera\"\'\n\x06\x43\x61mera\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\t\"9\n\x0fget_videos_resp\x12&\n\x06videos\x18\x01 \x03(\x0b\x32\x16.common.video_metadata\"\x8d\x01\n\x0evideo_metadata\x12\x0e\n\x06\x66rames\x18\x01 \x01(\x05\x12\x16\n\x0escore_file_url\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x1e\n\x06\x63\x61mera\x18\x04 \x01(\x0b\x32\x0e.common.Camera\x12\x11\n\tvideo_url\x18\x05 \x01(\t\x12\x12\n\nimages_url\x18\x06 \x01(\tb\x06proto3')
 )
 
 
@@ -137,6 +137,20 @@ _VIDEOREQUEST = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='object_name', full_name='common.VideoRequest.object_name', index=3,
+      number=4, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='camera', full_name='common.VideoRequest.camera', index=4,
+      number=5, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -150,12 +164,153 @@ _VIDEOREQUEST = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=117,
-  serialized_end=186,
+  serialized_end=239,
 )
 
+
+_CAMERA = _descriptor.Descriptor(
+  name='Camera',
+  full_name='common.Camera',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='name', full_name='common.Camera.name', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='address', full_name='common.Camera.address', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=241,
+  serialized_end=280,
+)
+
+
+_GET_VIDEOS_RESP = _descriptor.Descriptor(
+  name='get_videos_resp',
+  full_name='common.get_videos_resp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='videos', full_name='common.get_videos_resp.videos', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=282,
+  serialized_end=339,
+)
+
+
+_VIDEO_METADATA = _descriptor.Descriptor(
+  name='video_metadata',
+  full_name='common.video_metadata',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='frames', full_name='common.video_metadata.frames', index=0,
+      number=1, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='score_file_url', full_name='common.video_metadata.score_file_url', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='name', full_name='common.video_metadata.name', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='camera', full_name='common.video_metadata.camera', index=3,
+      number=4, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='video_url', full_name='common.video_metadata.video_url', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='images_url', full_name='common.video_metadata.images_url', index=5,
+      number=6, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=342,
+  serialized_end=483,
+)
+
+_VIDEOREQUEST.fields_by_name['camera'].message_type = _CAMERA
+_GET_VIDEOS_RESP.fields_by_name['videos'].message_type = _VIDEO_METADATA
+_VIDEO_METADATA.fields_by_name['camera'].message_type = _CAMERA
 DESCRIPTOR.message_types_by_name['Image'] = _IMAGE
 DESCRIPTOR.message_types_by_name['File'] = _FILE
 DESCRIPTOR.message_types_by_name['VideoRequest'] = _VIDEOREQUEST
+DESCRIPTOR.message_types_by_name['Camera'] = _CAMERA
+DESCRIPTOR.message_types_by_name['get_videos_resp'] = _GET_VIDEOS_RESP
+DESCRIPTOR.message_types_by_name['video_metadata'] = _VIDEO_METADATA
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 Image = _reflection.GeneratedProtocolMessageType('Image', (_message.Message,), {
@@ -178,6 +333,27 @@ VideoRequest = _reflection.GeneratedProtocolMessageType('VideoRequest', (_messag
   # @@protoc_insertion_point(class_scope:common.VideoRequest)
   })
 _sym_db.RegisterMessage(VideoRequest)
+
+Camera = _reflection.GeneratedProtocolMessageType('Camera', (_message.Message,), {
+  'DESCRIPTOR' : _CAMERA,
+  '__module__' : 'common_pb2'
+  # @@protoc_insertion_point(class_scope:common.Camera)
+  })
+_sym_db.RegisterMessage(Camera)
+
+get_videos_resp = _reflection.GeneratedProtocolMessageType('get_videos_resp', (_message.Message,), {
+  'DESCRIPTOR' : _GET_VIDEOS_RESP,
+  '__module__' : 'common_pb2'
+  # @@protoc_insertion_point(class_scope:common.get_videos_resp)
+  })
+_sym_db.RegisterMessage(get_videos_resp)
+
+video_metadata = _reflection.GeneratedProtocolMessageType('video_metadata', (_message.Message,), {
+  'DESCRIPTOR' : _VIDEO_METADATA,
+  '__module__' : 'common_pb2'
+  # @@protoc_insertion_point(class_scope:common.video_metadata)
+  })
+_sym_db.RegisterMessage(video_metadata)
 
 
 # @@protoc_insertion_point(module_scope)

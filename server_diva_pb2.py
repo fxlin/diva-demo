@@ -22,7 +22,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='server_diva',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=_b('\n\x11server_diva.proto\x12\x0bserver_diva\x1a\x1bgoogle/protobuf/empty.proto\x1a\x0c\x63ommon.proto\"X\n\x10\x64\x65tection_result\x12(\n\x06retval\x18\x01 \x01(\x0b\x32\x16.google.protobuf.EmptyH\x00\x12\x0f\n\x05\x65rror\x18\x02 \x01(\tH\x00\x42\t\n\x07payload\"\xac\x01\n\x11\x66rame_from_camera\x12\x1c\n\x05image\x18\x01 \x01(\x0b\x32\r.common.Image\x12\x18\n\x10\x63onfidence_score\x18\x02 \x01(\x02\x12(\n\x06\x63\x61mera\x18\x03 \x01(\x0b\x32\x18.server_diva.camera_info\x12\x11\n\ttimestamp\x18\x04 \x01(\x05\x12\x12\n\nvideo_name\x18\x05 \x01(\t\x12\x0e\n\x06offset\x18\x06 \x01(\x05\"C\n\x0b\x63\x61mera_info\x12\x11\n\tcamera_ip\x18\x01 \x01(\t\x12\x13\n\x0b\x63\x61mera_port\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\"0\n\x08response\x12\x13\n\x0bstatus_code\x18\x01 \x01(\x05\x12\x0f\n\x07message\x18\x02 \x01(\t\"<\n\x11object_video_pair\x12\x13\n\x0bobject_name\x18\x03 \x01(\t\x12\x12\n\nvideo_name\x18\x04 \x01(\t2\xc1\x02\n\x0bserver_diva\x12Y\n\x16\x64\x65tect_object_in_video\x12\x1e.server_diva.object_video_pair\x1a\x1d.server_diva.detection_result\"\x00\x12\x44\n\x0fregister_camera\x12\x18.server_diva.camera_info\x1a\x15.server_diva.response\"\x00\x12Q\n\x16\x64\x65tect_object_in_frame\x12\x1e.server_diva.frame_from_camera\x1a\x15.server_diva.response\"\x00\x12>\n\rrequest_video\x12\x14.common.VideoRequest\x1a\x15.server_diva.response\"\x00\x62\x06proto3')
+  serialized_pb=_b('\n\x11server_diva.proto\x12\x0bserver_diva\x1a\x1bgoogle/protobuf/empty.proto\x1a\x0c\x63ommon.proto\"X\n\x10\x64\x65tection_result\x12(\n\x06retval\x18\x01 \x01(\x0b\x32\x16.google.protobuf.EmptyH\x00\x12\x0f\n\x05\x65rror\x18\x02 \x01(\tH\x00\x42\t\n\x07payload\"\xac\x01\n\x11\x66rame_from_camera\x12\x1c\n\x05image\x18\x01 \x01(\x0b\x32\r.common.Image\x12\x18\n\x10\x63onfidence_score\x18\x02 \x01(\x02\x12(\n\x06\x63\x61mera\x18\x03 \x01(\x0b\x32\x18.server_diva.camera_info\x12\x11\n\ttimestamp\x18\x04 \x01(\x05\x12\x12\n\nvideo_name\x18\x05 \x01(\t\x12\x0e\n\x06offset\x18\x06 \x01(\x05\"C\n\x0b\x63\x61mera_info\x12\x11\n\tcamera_ip\x18\x01 \x01(\t\x12\x13\n\x0b\x63\x61mera_port\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\"0\n\x08response\x12\x13\n\x0bstatus_code\x18\x01 \x01(\x05\x12\x0f\n\x07message\x18\x02 \x01(\t\"<\n\x11object_video_pair\x12\x13\n\x0bobject_name\x18\x03 \x01(\t\x12\x12\n\nvideo_name\x18\x04 \x01(\t2\x82\x03\n\x0bserver_diva\x12Y\n\x16\x64\x65tect_object_in_video\x12\x1e.server_diva.object_video_pair\x1a\x1d.server_diva.detection_result\"\x00\x12\x44\n\x0fregister_camera\x12\x18.server_diva.camera_info\x1a\x15.server_diva.response\"\x00\x12Q\n\x16\x64\x65tect_object_in_frame\x12\x1e.server_diva.frame_from_camera\x1a\x15.server_diva.response\"\x00\x12>\n\rprocess_video\x12\x14.common.VideoRequest\x1a\x15.server_diva.response\"\x00\x12?\n\nget_videos\x12\x16.google.protobuf.Empty\x1a\x17.common.get_videos_resp\"\x00\x62\x06proto3')
   ,
   dependencies=[google_dot_protobuf_dot_empty__pb2.DESCRIPTOR,common__pb2.DESCRIPTOR,])
 
@@ -316,7 +316,7 @@ _SERVER_DIVA = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   serialized_start=524,
-  serialized_end=845,
+  serialized_end=910,
   methods=[
   _descriptor.MethodDescriptor(
     name='detect_object_in_video',
@@ -346,12 +346,21 @@ _SERVER_DIVA = _descriptor.ServiceDescriptor(
     serialized_options=None,
   ),
   _descriptor.MethodDescriptor(
-    name='request_video',
-    full_name='server_diva.server_diva.request_video',
+    name='process_video',
+    full_name='server_diva.server_diva.process_video',
     index=3,
     containing_service=None,
     input_type=common__pb2._VIDEOREQUEST,
     output_type=_RESPONSE,
+    serialized_options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='get_videos',
+    full_name='server_diva.server_diva.get_videos',
+    index=4,
+    containing_service=None,
+    input_type=google_dot_protobuf_dot_empty__pb2._EMPTY,
+    output_type=common__pb2._GET_VIDEOS_RESP,
     serialized_options=None,
   ),
 ])

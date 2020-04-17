@@ -5,11 +5,13 @@ import "google/protobuf/empty.proto";
 import "common.proto";
 
 service server_diva {
+    // deprecated
     rpc detect_object_in_video(object_video_pair) returns (detection_result) {};
     rpc register_camera(camera_info) returns (response) {};
     rpc detect_object_in_frame(frame_from_camera) returns (response) {};
-    // FIXME find the video associated with the given image (camera, )
-    rpc request_video(common.VideoRequest) returns (response) {};
+    // maintaining
+    rpc process_video(common.VideoRequest) returns (response) {};
+    rpc get_videos(google.protobuf.Empty) returns (common.get_videos_resp) {}
 }
 
 message detection_result {

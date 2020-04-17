@@ -2,6 +2,7 @@
 import grpc
 
 import common_pb2 as common__pb2
+from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 import server_diva_pb2 as server__diva__pb2
 
 
@@ -30,10 +31,15 @@ class server_divaStub(object):
         request_serializer=server__diva__pb2.frame_from_camera.SerializeToString,
         response_deserializer=server__diva__pb2.response.FromString,
         )
-    self.request_video = channel.unary_unary(
-        '/server_diva.server_diva/request_video',
+    self.process_video = channel.unary_unary(
+        '/server_diva.server_diva/process_video',
         request_serializer=common__pb2.VideoRequest.SerializeToString,
         response_deserializer=server__diva__pb2.response.FromString,
+        )
+    self.get_videos = channel.unary_unary(
+        '/server_diva.server_diva/get_videos',
+        request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
+        response_deserializer=common__pb2.get_videos_resp.FromString,
         )
 
 
@@ -42,8 +48,8 @@ class server_divaServicer(object):
   pass
 
   def detect_object_in_video(self, request, context):
-    # missing associated documentation comment in .proto file
-    pass
+    """deprecated
+    """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
@@ -62,9 +68,16 @@ class server_divaServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def request_video(self, request, context):
-    """FIXME find the video associated with the given image (camera, )
+  def process_video(self, request, context):
+    """maintaining
     """
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def get_videos(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
@@ -87,10 +100,15 @@ def add_server_divaServicer_to_server(servicer, server):
           request_deserializer=server__diva__pb2.frame_from_camera.FromString,
           response_serializer=server__diva__pb2.response.SerializeToString,
       ),
-      'request_video': grpc.unary_unary_rpc_method_handler(
-          servicer.request_video,
+      'process_video': grpc.unary_unary_rpc_method_handler(
+          servicer.process_video,
           request_deserializer=common__pb2.VideoRequest.FromString,
           response_serializer=server__diva__pb2.response.SerializeToString,
+      ),
+      'get_videos': grpc.unary_unary_rpc_method_handler(
+          servicer.get_videos,
+          request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
+          response_serializer=common__pb2.get_videos_resp.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

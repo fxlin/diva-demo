@@ -18,4 +18,24 @@ message VideoRequest {
     int32 timestamp = 1;
     int32 offset = 2;
     string video_name = 3;
+    string object_name =4;
+    Camera camera = 5;
+}
+
+message Camera {
+    string name = 1;
+    string address = 2;
+}
+
+message get_videos_resp {
+    repeated video_metadata videos = 1;
+}
+
+message video_metadata {
+    int32 frames = 1;
+    string score_file_url = 2;
+    string name = 3;
+    Camera camera = 4;
+    string video_url = 5;
+    string images_url = 6;
 }
