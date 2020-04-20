@@ -272,10 +272,17 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
     # rpc process_video(common.VideoRequest) returns (google.protobuf.Empty) {};
     def process_video(self, request, context):
         video_path = os.path.join(VIDEO_FOLDER, request.video_name)
+        temp_name = request.name
+        v_name = temp_name.split('/')[-1]
+        video_folder_name = '.'.join(v_name.split('.')[:-1])
+
         target_class = request.object_name
 
         source = cv2.VideoCapture(video_path)
-        counter = 0
+        counter = (request.offset // 30) * 30
+
+        source.set(cv2.CV_CAP_PROP_POS_FRAMES, request.offset)
+        # capture.set(CV_CAP_PROP_POS_FRAMES, noFrame);
 
         score_obj = {}
         # |counter |index | score: float
@@ -328,8 +335,6 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                         # temp_score.append(ele.confidence)
                         exist_target = True
 
-                    video_folder_name = '.'.join(
-                        request.video_name.split('.')[:-1])
                     if exist_target:
                         # FIXME does not handel spcieal cases!!!!
 
@@ -382,21 +387,24 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                     video_url=f'{WEB_APP_DNS}/{video_folder_name}/{f}',
                     images_url='',
                     score_file_url='',
-                    frames=_video.get(cv2.CAP_PROP_FRAME_COUNT)))
+                    frames=int(_video.get(cv2.CAP_PROP_FRAME_COUNT)) ))
 
             _video.release()
 
         return common_pb2.get_videos_resp(videos=video_list)
 
     def get_video(self, request, context):
-        video_folder_name = '.'.join(request.name.split('.')[:-1])
+        temp_name = request.name
+        v_name = temp_name.split('/')[-1]
+        video_folder_name = '.'.join(v_name.split('.')[:-1])
+
         object_name = request.object_name
         images_url = f'{WEB_APP_DNS}/{video_folder_name}/{object_name}/images/'
 
         score_file_url = f'{WEB_APP_DNS}/{video_folder_name}/scores.json'
 
         _video = cv2.VideoCapture(os.path.join(VIDEO_FOLDER, request.name))
-        frames = _video.get(cv2.CAP_PROP_FRAME_COUNT)
+        frames = int(_video.get(cv2.CAP_PROP_FRAME_COUNT)) 
         _video.release()
         return common_pb2.video_metadata(name=request.name,
                                          frames=frames,
