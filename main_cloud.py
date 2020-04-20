@@ -347,6 +347,26 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
 
         return common_pb2.get_videos_resp(videos=resp)
 
+    def get_video(self, request, context):
+
+        if request.camera and request.camera.name in _CAMERA_STORAGE:
+            val = _CAMERA_STORAGE[request.camera.name]
+            camera_channel = grpc.insecure_channel(f"{val['host']}")
+            camera_stub = cam_cloud_pb2_grpc.DivaCameraStub(camera_channel)
+            # message VideoRequest {
+            #     int32 timestamp = 1;
+            #     int32 offset = 2;
+            #     string video_name = 3;
+            #     string object_name =4;
+            #     Camera camera = 5;
+            # }
+            req = camera_stub.get_video(common_pb2.VideoRequest(**request))
+            camera_channel.close()
+        else:
+            raise Exception("Error....")
+
+        return common_pb2.video_metadata(**req)
+
     def process_video(self, request, context):
         # FIXME remove this when it's done
         # message VideoRequest {
