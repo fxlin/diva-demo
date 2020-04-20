@@ -400,7 +400,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
     def get_video(self, request, context):
         #FIXME
         print(f'get_video {request}')
-        temp_name = request.name
+        temp_name = request.video_name
         v_name = temp_name.split('/')[-1]
         video_folder_name = '.'.join(v_name.split('.')[:-1])
 
@@ -409,10 +409,10 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
 
         score_file_url = f'{WEB_APP_DNS}/{video_folder_name}/{object_name}/scores.json'
 
-        _video = cv2.VideoCapture(os.path.join(VIDEO_FOLDER, request.name))
+        _video = cv2.VideoCapture(os.path.join(VIDEO_FOLDER, request.video_name))
         frames = int(_video.get(cv2.CAP_PROP_FRAME_COUNT))
         _video.release()
-        return common_pb2.video_metadata(name=request.name,
+        return common_pb2.video_metadata(name=request.video_name,
                                          frames=frames,
                                          video_url=request.video_url,
                                          score_file_url=score_file_url,
