@@ -26,10 +26,10 @@ from google.protobuf import empty_pb2
 from variables import CAMERA_CHANNEL_PORT
 from variables import DIVA_CHANNEL_ADDRESS
 
-from camera_constants import VIDEO_FOLDER, _HOST, _PORT, STATIC_FOLDER, WEB_APP_DNS
-from camera_constants import _NAME, _ADDRESS, YOLO_CHANNEL_ADDRESS
+from camera.camera_constants import VIDEO_FOLDER, _HOST, _PORT, STATIC_FOLDER, WEB_APP_DNS
+from camera.camera_constants import _NAME, _ADDRESS, YOLO_CHANNEL_ADDRESS
 
-from ml import Operator
+# from camera.ml import Operator
 
 # from util import *
 

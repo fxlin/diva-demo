@@ -6,7 +6,7 @@ import os
 from flask import Flask, abort, render_template
 from flask import send_from_directory, make_response
 from flask.logging import default_handler
-from .camera_constants import STATIC_FOLDER
+from camera.camera_constants import STATIC_FOLDER
 # from flask import Response
 
 BASE_DIR = STATIC_FOLDER
