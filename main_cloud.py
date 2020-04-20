@@ -326,7 +326,7 @@ class ImageDoesNotExistException(Exception):
 
 #         logger.debug(f'Take {time.time() - _start_time} m second to finish')
 
-_CAMERA_STORAGE = {'jetson': {'host': "0.tcp.ngrok.io", 'port': "17171"}}
+_CAMERA_STORAGE = {'jetson': {'host': CAMERA_CHANNEL_ADDRESS}}
 
 
 class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
@@ -337,8 +337,7 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
         resp = []
 
         for _, val in _CAMERA_STORAGE.items():
-            camera_channel = grpc.insecure_channel(
-                f"{val['host']}:{val['port']}")
+            camera_channel = grpc.insecure_channel(f"{val['host']}")
             camera_stub = cam_cloud_pb2_grpc.DivaCameraStub(camera_channel)
             req = camera_stub.get_videos(empty_pb2.Empty())
             for v in req.videos:
