@@ -414,7 +414,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         _video.release()
         return common_pb2.video_metadata(name=request.video_name,
                                          frames=frames,
-                                         video_url=request.video_url,
+                                         video_url="",
                                          score_file_url=score_file_url,
                                          images_url=images_url,
                                          camera=request.camera,
