@@ -579,7 +579,7 @@ def serve():
             time.sleep(60 * 60 * 24)
     except KeyboardInterrupt:
         logger.warning('DivaCloud stop!!!')
-        diva_cam_servicer.KillOp()
+        #diva_cam_servicer.KillOp()
         server.stop(0)
 
 
