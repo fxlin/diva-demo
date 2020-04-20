@@ -281,7 +281,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         source = cv2.VideoCapture(video_path)
         counter = (request.offset // 30) * 30
 
-        source.set(cv2.CV_CAP_PROP_POS_FRAMES, request.offset)
+        source.set(cv2.CAP_PROP_POS_FRAMES, request.offset)
 
         score_obj = {}
         # |counter |index | score: float
