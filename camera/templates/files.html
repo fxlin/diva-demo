@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>camera</title>
+    <meta name="description" content="The HTML5 Herald">
+    <meta name="author" content="Purdue">
+
+</head>
+
+<body>
+    <h1>Yo</h1>
+    <ul>
+        {% for file in files %}
+        <li><a href="{{ file }}">{{ file }}</a></li>
+        {% endfor %}
+    </ul>
+</body>
+
+</html>
