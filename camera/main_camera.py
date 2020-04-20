@@ -366,8 +366,6 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         return empty_pb2.Empty()
 
     def get_videos(self, request, context):
-        object_name = request.object_name
-
         _files = os.listdir(VIDEO_FOLDER)
         video_files = list(
             filter(lambda x: x.split('.')[-1] in ['mp4', 'mkv'], _files))
