@@ -272,7 +272,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
     # rpc process_video(common.VideoRequest) returns (google.protobuf.Empty) {};
     def process_video(self, request, context):
         video_path = os.path.join(VIDEO_FOLDER, request.video_name)
-        temp_name = request.name
+        temp_name = request.video_name
         v_name = temp_name.split('/')[-1]
         video_folder_name = '.'.join(v_name.split('.')[:-1])
 
@@ -282,7 +282,6 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         counter = (request.offset // 30) * 30
 
         source.set(cv2.CV_CAP_PROP_POS_FRAMES, request.offset)
-        # capture.set(CV_CAP_PROP_POS_FRAMES, noFrame);
 
         score_obj = {}
         # |counter |index | score: float
@@ -296,6 +295,8 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                     break
 
                 if (counter % 30) == 0:
+                    #FIXME
+                    print(f'counter: {counter}')
                     # send image to process
 
                     # t_start = time.time()
@@ -387,7 +388,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                     video_url=f'{WEB_APP_DNS}/{video_folder_name}/{f}',
                     images_url='',
                     score_file_url='',
-                    frames=int(_video.get(cv2.CAP_PROP_FRAME_COUNT)) ))
+                    frames=int(_video.get(cv2.CAP_PROP_FRAME_COUNT))))
 
             _video.release()
 
@@ -401,10 +402,10 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         object_name = request.object_name
         images_url = f'{WEB_APP_DNS}/{video_folder_name}/{object_name}/images/'
 
-        score_file_url = f'{WEB_APP_DNS}/{video_folder_name}/scores.json'
+        score_file_url = f'{WEB_APP_DNS}/{video_folder_name}/{object_name}/scores.json'
 
         _video = cv2.VideoCapture(os.path.join(VIDEO_FOLDER, request.name))
-        frames = int(_video.get(cv2.CAP_PROP_FRAME_COUNT)) 
+        frames = int(_video.get(cv2.CAP_PROP_FRAME_COUNT))
         _video.release()
         return common_pb2.video_metadata(name=request.name,
                                          frames=frames,
