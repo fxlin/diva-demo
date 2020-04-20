@@ -271,6 +271,8 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
     # rpc get_videos(google.protobuf.Empty) returns (common.get_videos_resp) {};
     # rpc process_video(common.VideoRequest) returns (google.protobuf.Empty) {};
     def process_video(self, request, context):
+        # FIXME
+        print(f"process_video: {request} ")
         video_path = os.path.join(VIDEO_FOLDER, request.video_name)
         temp_name = request.video_name
         v_name = temp_name.split('/')[-1]
@@ -295,8 +297,6 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                     break
 
                 if (counter % 30) == 0:
-                    #FIXME
-                    print(f'counter: {counter}')
                     # send image to process
 
                     # t_start = time.time()
@@ -368,6 +368,9 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                              *[video_folder_name, 'scores.json']),
                 'w') as fptr:
             fptr.write(json.dumps(score_obj))
+        
+        #FIXME
+        print("finish processing video")
 
         return empty_pb2.Empty()
 
@@ -395,6 +398,8 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         return common_pb2.get_videos_resp(videos=video_list)
 
     def get_video(self, request, context):
+        #FIXME
+        print(f'get_video {request}')
         temp_name = request.name
         v_name = temp_name.split('/')[-1]
         video_folder_name = '.'.join(v_name.split('.')[:-1])
