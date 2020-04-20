@@ -360,6 +360,16 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
             #     string object_name =4;
             #     Camera camera = 5;
             # }
+            # message video_metadata {
+            #     int32 frames = 1;
+            #     string score_file_url = 2;
+            #     string name = 3;
+            #     Camera camera = 4;
+            #     string video_url = 5;
+            #     string images_url = 6;
+            #     string object_name =7;
+            # }
+
             req = camera_stub.get_video(
                 common_pb2.VideoRequest(timestamp=request.timestamp,
                                         offset=request.offset,
@@ -370,7 +380,7 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
         else:
             raise Exception("Error....")
 
-        return common_pb2.video_metadata(**req)
+        return req
 
     def process_video(self, request, context):
         # FIXME remove this when it's done
