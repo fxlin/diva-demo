@@ -40,6 +40,11 @@ class server_divaStub(object):
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
                 response_deserializer=common__pb2.get_videos_resp.FromString,
                 )
+        self.get_video = channel.unary_unary(
+                '/server_diva.server_diva/get_video',
+                request_serializer=common__pb2.VideoRequest.SerializeToString,
+                response_deserializer=common__pb2.video_metadata.FromString,
+                )
 
 
 class server_divaServicer(object):
@@ -77,6 +82,12 @@ class server_divaServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def get_video(self, request, context):
+        """Missing associated documentation comment in .proto file"""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_server_divaServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -104,6 +115,11 @@ def add_server_divaServicer_to_server(servicer, server):
                     servicer.get_videos,
                     request_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
                     response_serializer=common__pb2.get_videos_resp.SerializeToString,
+            ),
+            'get_video': grpc.unary_unary_rpc_method_handler(
+                    servicer.get_video,
+                    request_deserializer=common__pb2.VideoRequest.FromString,
+                    response_serializer=common__pb2.video_metadata.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -192,5 +208,21 @@ class server_diva(object):
         return grpc.experimental.unary_unary(request, target, '/server_diva.server_diva/get_videos',
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             common__pb2.get_videos_resp.FromString,
+            options, channel_credentials,
+            call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def get_video(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/server_diva.server_diva/get_video',
+            common__pb2.VideoRequest.SerializeToString,
+            common__pb2.video_metadata.FromString,
             options, channel_credentials,
             call_credentials, compression, wait_for_ready, timeout, metadata)

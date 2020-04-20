@@ -12,6 +12,7 @@ service server_diva {
     // maintaining
     rpc process_video(common.VideoRequest) returns (google.protobuf.Empty) {};
     rpc get_videos(google.protobuf.Empty) returns (common.get_videos_resp) {};
+    rpc get_video(common.VideoRequest) returns (common.video_metadata) {};
     // yolo
     // rpc Detect (DetectionRequest) returns (DetectionOutput) {}
 }

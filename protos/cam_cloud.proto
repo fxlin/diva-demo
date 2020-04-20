@@ -12,6 +12,7 @@ service DivaCamera {
     rpc DownloadVideo (DeployOpRequest) returns (VideoResponse) {}
 
     rpc get_videos(google.protobuf.Empty) returns (common.get_videos_resp) {};
+    rpc get_video(common.VideoRequest) returns (common.video_metadata) {};
     rpc process_video(common.VideoRequest) returns (google.protobuf.Empty) {};
 }
 
