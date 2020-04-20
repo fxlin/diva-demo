@@ -38,4 +38,5 @@ message video_metadata {
     Camera camera = 4;
     string video_url = 5;
     string images_url = 6;
+    string object_name =7;
 }

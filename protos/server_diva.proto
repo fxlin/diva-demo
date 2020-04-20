@@ -10,8 +10,10 @@ service server_diva {
     rpc register_camera(camera_info) returns (response) {};
     rpc detect_object_in_frame(frame_from_camera) returns (response) {};
     // maintaining
-    rpc process_video(common.VideoRequest) returns (response) {};
-    rpc get_videos(google.protobuf.Empty) returns (common.get_videos_resp) {}
+    rpc process_video(common.VideoRequest) returns (google.protobuf.Empty) {};
+    rpc get_videos(google.protobuf.Empty) returns (common.get_videos_resp) {};
+    // yolo
+    // rpc Detect (DetectionRequest) returns (DetectionOutput) {}
 }
 
 message detection_result {

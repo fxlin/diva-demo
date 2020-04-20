@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 package camera;
+import "google/protobuf/empty.proto";
 import "common.proto";
 
 service DivaCamera {
@@ -9,6 +10,9 @@ service DivaCamera {
     rpc DeployOp (Chunk) returns (StrMsg) {}
     rpc DeployOpNotify (DeployOpRequest) returns (StrMsg) {}
     rpc DownloadVideo (DeployOpRequest) returns (VideoResponse) {}
+
+    rpc get_videos(google.protobuf.Empty) returns (common.get_videos_resp) {};
+    rpc process_video(common.VideoRequest) returns (google.protobuf.Empty) {};
 }
 
 message VideoRequest {
