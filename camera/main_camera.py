@@ -365,10 +365,10 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
 
         with open(
                 os.path.join(STATIC_FOLDER,
-                             *[video_folder_name, 'scores.json']),
-                'w') as fptr:
+                             *[video_folder_name, target_class,
+                               'scores.json']), 'w') as fptr:
             fptr.write(json.dumps(score_obj))
-        
+
         #FIXME
         print("finish processing video")
 
@@ -409,7 +409,8 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
 
         score_file_url = f'{WEB_APP_DNS}/{video_folder_name}/{object_name}/scores.json'
 
-        _video = cv2.VideoCapture(os.path.join(VIDEO_FOLDER, request.video_name))
+        _video = cv2.VideoCapture(
+            os.path.join(VIDEO_FOLDER, request.video_name))
         frames = int(_video.get(cv2.CAP_PROP_FRAME_COUNT))
         _video.release()
         return common_pb2.video_metadata(name=request.video_name,
