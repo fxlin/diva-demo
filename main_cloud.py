@@ -370,12 +370,15 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
             #     string object_name =7;
             # }
 
+            _camera = common_pb2.Camera(name=request.camera.name,
+                                        address=request.camera.address)
+
             req = camera_stub.get_video(
                 common_pb2.VideoRequest(timestamp=request.timestamp,
                                         offset=request.offset,
                                         video_name=request.video_name,
                                         object_name=request.object_name,
-                                        camera=request.camera))
+                                        camera=_camera))
             camera_channel.close()
         else:
             raise Exception("Error....")
