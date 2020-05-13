@@ -1,11 +1,5 @@
 document.addEventListener('DOMContentLoaded', function(){
 
-
-    document.getElementById("dog").addEventListener("click", function() {
-            dropdown_menu('dog');
-        }, false);
-
-
     document.getElementById("bike").addEventListener("click", function() {
             dropdown_menu('motorbike');
         }, false);
@@ -14,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById("people").addEventListener("click", function() {
             dropdown_menu('person');
             }, false);
+
 
 
     function dropdown_menu(a){
