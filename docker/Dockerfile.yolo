@@ -1,9 +1,13 @@
 FROM wen777/diva-base:latest
 
-COPY . /var/yolov3
+# COPY . /var/yolov3
+
+# xzl: to speed up, shared from local. deploy: use below
+# COPY yolov3.weights /var/diva/
 
 WORKDIR /var/yolov3
 
-RUN curl https://pjreddie.com/media/files/yolov3.weights -o yolov3.weights
+#RUN curl https://pjreddie.com/media/files/yolov3.weights -o yolov3.weights
+
 
 CMD ["python", "YOLOv3_grpc.py"]

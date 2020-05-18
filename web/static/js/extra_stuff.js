@@ -1,3 +1,5 @@
+// xzl: load/display videos, etc. 
+
 document.addEventListener('DOMContentLoaded', function(){
     let video_name;
     let duration;
@@ -146,7 +148,7 @@ document.addEventListener('DOMContentLoaded', function(){
          console.log(temp_array);
     }
 
-
+    // xzl: get metadata for all stored videos
     function request_videos(){
         let computeReturn = $.ajax({
                 method: "POST",
@@ -246,7 +248,7 @@ document.addEventListener('DOMContentLoaded', function(){
         elem = document.getElementById("myBar");
         let width = 0;
         let proc = 0;
-        id = setInterval(frame, 920);
+        id = setInterval(frame, 920); // xzl: call frame() periodically... bad
         let temp_index = 0;
         let temp = 0;
         function frame() {

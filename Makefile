@@ -1,5 +1,6 @@
 NETWORK_NAME=diva-network
 
+# xzl: for cloud ... not useful?
 VIDEO_DATA_PATH=/media/teddyxu/WD-4TB/hybridvs_data
 VIDEO_DATA_PATH_IN_CONTAINER=/media/
 
@@ -20,6 +21,9 @@ CLOUD_SERVICE_PORT=10090
 PERSISTENT_VOLUME='/tmp/diva_test'
 WEB_SERVER_IMAGE_VOLUME='/var/web/web/static/output'
 CONTROLLER_SERVER_IMAGE_VOLUME='/var/yolov3/web/static/output'
+
+#USE_GPU='--gpus all'
+USE_GPU=
 
 run-all:
 	@make run-cloud
@@ -52,13 +56,13 @@ run-camera:
 	docker run --network=${NETWORK_NAME} -d --name camera -v ${CAMERA_RESULT_PATH}:${CAMERA_RESULT_PATH_IN_CONTAINER} ${DOCKER_USERNAME}/diva-camera:latest
 
 run-camera-pi:
-	docker run --network=${NETWORK_NAME} --device=/dev/vcsm --device=/dev/vchiq -d --gpus all --name camera -v ${CAMERA_RESULT_PATH}:${CAMERA_RESULT_PATH_IN_CONTAINER} ${DOCKER_USERNAME}/diva-camera:latest
+	docker run --network=${NETWORK_NAME} --device=/dev/vcsm --device=/dev/vchiq -d ${USE_GPU} --name camera -v ${CAMERA_RESULT_PATH}:${CAMERA_RESULT_PATH_IN_CONTAINER} ${DOCKER_USERNAME}/diva-camera:latest
 
 run-yolo:
-	docker run --network=${NETWORK_NAME} -d --gpus all --name=yolo ${DOCKER_USERNAME}/diva-yolo:latest
+	docker run --network=${NETWORK_NAME} -d ${USE_GPU} --name=yolo ${DOCKER_USERNAME}/diva-yolo:latest
 
 run-yolo-with-port:
-	docker run --network=${NETWORK_NAME} -d --gpus all --name=yolo -p ${YOLO_SERVICE_PORT}:${YOLO_SERVICE_PORT} ${DOCKER_USERNAME}/diva-yolo:latest
+	docker run --network=${NETWORK_NAME} -d ${USE_GPU} --name=yolo -p ${YOLO_SERVICE_PORT}:${YOLO_SERVICE_PORT} ${DOCKER_USERNAME}/diva-yolo:latest
 
 run-webserver:
 	docker run --network=${NETWORK_NAME} -it -p ${WEB_SERVER_PORT}:${WEB_SERVER_PORT} -v ${PERSISTENT_VOLUME}:${WEB_SERVER_IMAGE_VOLUME} -d --name=webserver ${DOCKER_USERNAME}/diva-webserver:latest
@@ -102,7 +106,7 @@ test-cloud:
 	docker run --network=${NETWORK_NAME} -it --rm --name cloud  ${DOCKER_USERNAME}/diva-cloud:latest python -m tests.test_main_cloud
 
 test-yolo:
-	docker run --network=${NETWORK_NAME} -it --rm --gpus all --name=test_yolo ${DOCKER_USERNAME}/diva-yolo:latest python -m tests.test_yolo
+	docker run --network=${NETWORK_NAME} -it --rm ${USE_GPU} --name=test_yolo ${DOCKER_USERNAME}/diva-yolo:latest python -m tests.test_yolo
 
 test-integration:
 	docker run --network=${NETWORK_NAME} -it --rm --name test_integration ${DOCKER_USERNAME}/diva-cloud:latest python -m tests.test_integration

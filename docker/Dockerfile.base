@@ -1,4 +1,7 @@
-FROM tensorflow/tensorflow:latest-gpu-py3
+# xzl: switch between GPU/non-GPU
+# FROM tensorflow/tensorflow:latest-gpu-py3
+
+FROM tensorflow/tensorflow:latest
 
 COPY docker/install-opencv.sh /tmp
 

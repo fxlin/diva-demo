@@ -1,11 +1,18 @@
 #! /usr/bin/env python
 # coding=utf-8
 
+''' xzl: the main func of the yolov3 service 
+
+it appears VIP students rewrote the way keras/yolov3 are invoked, therefore
+some of Mengwei's code no longer works (e.g. scaling images, etc)
+'''
+
 import time
 from concurrent import futures
 import threading
 from typing import List
 import gc
+import cv2
 import logging
 import grpc
 import sys
@@ -46,6 +53,7 @@ for i, fm in enumerate(feature_maps):
 model = tf.keras.Model(input_layer, bbox_tensors)
 utils.load_weights(model, "./yolov3.weights")
 
+# xzl: the list of all class names
 CLASSES = utils.read_class_names(cfg.YOLO.CLASSES)
 
 
@@ -124,6 +132,7 @@ def bboxes_to_grpc_elements(bboxes: List[List[float]]):
     return ele_list
 
 
+# xzl: the core object detector. will return a list of bboxes
 def _detect(image_data: np.ndarray, score_threshold) -> 'List[List[float]]':
     """
     List all elements detected in the given images
@@ -156,7 +165,6 @@ def _detect(image_data: np.ndarray, score_threshold) -> 'List[List[float]]':
 
 GC_TIMER = time.time()
 
-
 def gc_execution():
     global GC_TIMER
     if (time.time() - GC_TIMER) >= 60.0 * 5:
@@ -165,6 +173,7 @@ def gc_execution():
 
 
 class DetYOLOv3Servicer(det_yolov3_pb2_grpc.DetYOLOv3Servicer):
+    # xzl: old one, return a score
     def DetFrame(self, request, context):
         """
         Search one specific object in the given image
@@ -187,10 +196,13 @@ class DetYOLOv3Servicer(det_yolov3_pb2_grpc.DetYOLOv3Servicer):
 
         return det_yolov3_pb2.Score(res=det_res)
 
-    def Detect(self, request, context):
+    # xzl: new interface done by vip project, return a list of bbs
+    # expect img_data to be raw pixel arrays
+    def DetectVIP(self, request, context):
         """
         Search all or certain objects in the given image.
-        If targets is empty, keep all elements. Otherwise, only keep
+        If targets is empty, keep all elements. Otherwise, only keep the target
+        class
         """
         img_data = request.image
         threshold = request.threshold
@@ -216,7 +228,68 @@ class DetYOLOv3Servicer(det_yolov3_pb2_grpc.DetYOLOv3Servicer):
 
         return det_yolov3_pb2.DetectionOutput(elements=element_list)
 
+    def Detect(self, request, context):
+        """
+        Search all or certain objects in the given image.
+        If targets is empty, keep all elements. Otherwise, only keep
+        """
+        img_data = request.image.data
+        # threshold = request.threshold # TODO
+        threshold = 0.3
+        name = request.name
+        targets = request.targets
 
+        msg = f'Processing {name}, expecting to have score above {threshold}'
+        logger.info(msg)
+
+        raw_img = cv2.imdecode(np.fromstring(img_data, dtype=np.uint8), -1)
+        
+        #raw_img = cv2.resize(raw_img, (IMAGE_H, IMAGE_W), interpolation=cv2.INTER_NEAREST)
+        #raw_img = raw_img / 255.0
+        # img = Image.frombytes('RGBA', (720, 1280),
+        # img_data, decoder_name='jpeg', 'jpg')
+        # TODO: resolution shall not be hard-coded
+
+        bboxes = _detect(raw_img, threshold)
+        
+        print("bboxes", bboxes)
+
+        # xzl: filter detection res with target class
+        if targets:
+            bboxes = filter_bbox(bboxes=bboxes, target_class=targets)
+
+        element_list = bboxes_to_grpc_elements(bboxes)
+
+        return det_yolov3_pb2.DetectionOutput(elements=element_list)
+    
+def test_draw_bb(raw_img, bboxes):
+    for bb in bboxes:
+        x1, y1, x2, y2 = int(bb[0]), int(bb[1]), int(bb[2]), int(bb[3])
+        confidence = bb[4]
+        classid = bb[5]
+        print(f"class {CLASSES[classid]}, confidence {confidence}")
+        # nb: only accept int coordinates
+        raw_img = cv2.rectangle(raw_img, (x1, y1), (x2, y2), (0, 255, 0), 3)
+    cv2.imwrite("/data/diva-fork/output.jpg", raw_img)
+        
+def test1_imread():
+    # f = open('/data/hybridvs-demo/tensorflow-yolov3/data/demo_data/dog.jpg', 'rb')
+    raw_img = cv2.imread('/data/hybridvs-demo/tensorflow-yolov3/data/demo_data/dog.jpg')
+    bboxes = _detect(raw_img, 0.3)
+    print("bboxes", bboxes)
+        
+def test2_imdecode():
+    f = open('/data/hybridvs-demo/tensorflow-yolov3/data/demo_data/dog.jpg', 'rb')
+    img_data = f.read()
+    raw_img = cv2.imdecode(np.fromstring(img_data, dtype=np.uint8), -1)
+    # can't do the following. otherwise won't work....
+    #raw_img = cv2.resize(raw_img, (IMAGE_H, IMAGE_W), interpolation=cv2.INTER_NEAREST)
+    #raw_img = raw_img / 255.0    
+    bboxes = _detect(raw_img, 0.3)
+    print("bboxes", bboxes)    
+    
+    test_draw_bb(raw_img, bboxes)
+    
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=5))
     det_yolov3_pb2_grpc.add_DetYOLOv3Servicer_to_server(
@@ -233,3 +306,5 @@ def serve():
 if __name__ == '__main__':
     logger.info('initializing yolo service')
     serve()
+    #test1_imread()
+    #test2_imdecode()

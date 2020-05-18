@@ -1,5 +1,7 @@
 """
 Ingest video frames and perform object detection on frames.
+
+xzl: the controller code (?)
 """
 
 import os
@@ -70,6 +72,7 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
     """
     Implement server_divaServicer of gRPC
     """
+    # xzl: proxy req ("get metadata of all stored videos") from client to cam
     def get_videos(self, request, context):
         resp = []
 
@@ -84,8 +87,8 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
 
         return common_pb2.get_videos_resp(videos=resp)
 
+    # xzl: proxy req ("get res of a previous query") from client to cam 
     def get_video(self, request, context):
-
         if request.camera and request.camera.name in _CAMERA_STORAGE:
             val = _CAMERA_STORAGE[request.camera.name]
             camera_channel = grpc.insecure_channel(f"{val['host']}")
@@ -106,7 +109,10 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
 
         return req
 
+    # xzl: proxy req ("process video footage") from client to cam
     def process_video(self, request, context):
+        logger.info("process_video")
+        
         req_camera = request.camera
         new_req_payload = common_pb2.VideoRequest(
             timestamp=request.timestamp,
@@ -137,7 +143,7 @@ def grpc_serve():
 
     return server
 
-
+# xzl: unused?
 def draw_box(img, x1, y1, x2, y2):
     rw = float(img.shape[1]) / DET_SIZE
     rh = float(img.shape[0]) / DET_SIZE
@@ -147,6 +153,7 @@ def draw_box(img, x1, y1, x2, y2):
     return img
 
 
+# xzl: unused?
 def deploy_operator_on_camera(operator_path: str,
                               camStub: cam_cloud_pb2_grpc.DivaCameraStub):
     f = open(operator_path, 'rb')
@@ -161,7 +168,7 @@ def deploy_operator_on_camera(operator_path: str,
     camStub.DeployOpNotify(
         cam_cloud_pb2.DeployOpRequest(name='random', crop=CROP_SPEC))
 
-
+# xzl: unused?
 def process_frame(img_name: str, img_data, det_res):
     """
     Take two arguments: one is the image frame data and the other is the
@@ -186,7 +193,7 @@ def process_frame(img_name: str, img_data, det_res):
     img_fname = os.path.join(RESULT_IMAGE_PATH, img_name)
     cv2.imwrite(img_fname, img)
 
-
+# xzl: unused?
 def runDiva():
     # Init the communication channels to camera and yolo
     camChannel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)

@@ -45,4 +45,4 @@ def dir_listing(req_path):
 
 
 if __name__ == '__main__':  # pragma: no cover
-    app.run(port=APP_PORT)
+    app.run(host='0.0.0.0', port=APP_PORT)  # xzl: expose the server to all

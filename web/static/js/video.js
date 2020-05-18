@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', function(){
             video('/static/video/example.mp4');
         }, false);
 
+	// xzl: what is this for?
     function video(a){
         vid = a;
         document.getElementById('vidtitle').style.display = "block";

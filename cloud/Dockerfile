@@ -1,0 +1,7 @@
+FROM wen777/diva-base:latest
+
+COPY . /var/yolov3
+
+WORKDIR /var/yolov3
+
+CMD ["python", "main_cloud.py"]

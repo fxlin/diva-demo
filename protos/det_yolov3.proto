@@ -5,15 +5,8 @@ import "common.proto";
 
 
 service DetYOLOv3 {
-    rpc DetFrame (DetFrameRequest) returns (Score) {}
+    rpc DetFrame (common.DetFrameRequest) returns (Score) {}
     rpc Detect (DetectionRequest) returns (DetectionOutput) {}
-}
-
-
-message DetFrameRequest {
-    common.Image image = 1;
-    string name = 2;
-    string cls = 3;
 }
 
 message Score {
@@ -22,7 +15,7 @@ message Score {
 
 message DetectionRequest {
     common.Image image = 1;
-    string name = 2;
+    string name = 2; // xzl: frame name, no longer useful
     float threshold = 3;
     repeated string targets = 4;
 }
@@ -36,6 +29,7 @@ message Element {
     int32 y2 = 6;
 }
 
+// this is sync resp so it does not have to specify frame id, etc.
 message DetectionOutput {
     repeated Element elements = 1;
 }

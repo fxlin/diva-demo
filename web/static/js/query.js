@@ -1,3 +1,5 @@
+// xzl: unused?
+
 document.addEventListener('DOMContentLoaded', function(){
 
     let pollingTime = null;
@@ -195,6 +197,7 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 
 
+	// xzl: to submit a query
     function call_diva() {
         vid_name = vid;
 

@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package camera;
 import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
 import "common.proto";
 
 service DivaCamera {
@@ -10,7 +12,15 @@ service DivaCamera {
     rpc DeployOp (Chunk) returns (StrMsg) {}
     rpc DeployOpNotify (DeployOpRequest) returns (StrMsg) {}
     rpc DownloadVideo (DeployOpRequest) returns (VideoResponse) {}
-
+    
+    rpc SubmitQuery (QueryRequest) returns (StrMsg) {}
+    rpc ControlQuery (ControlQueryRequest) returns (StrMsg) {}
+    
+    // xzl: only ControlQueryRequest.qid is used
+    rpc GetQueryProgress (ControlQueryRequest) returns (QueryProgress) {}
+    rpc ListVideos(google.protobuf.Empty) returns (VideoList) {};
+    // rpc ListQueries(google.protobuf.Empty) returns (QueryList) {};
+       
     rpc get_videos(google.protobuf.Empty) returns (common.get_videos_resp) {};
     rpc get_video(common.VideoRequest) returns (common.video_metadata) {};
     rpc process_video(common.VideoRequest) returns (google.protobuf.Empty) {};
@@ -33,6 +43,28 @@ message DeployOpRequest {
     string crop = 2;
 }
 
+// init a query
+message QueryRequest {
+    string video_name = 1;  // cam uses this to locate video subdir
+    string op_name = 2; // cam uses this to locate op path
+    string crop = 3;  // in the format of '-1, -1, -1, -1'. used by cam to pass in cv2.imread()
+    int32 qid = 4; // used by cam to track query task
+    string target_class = 5; 
+}
+
+message ControlQueryRequest {
+  int32 qid = 1; // query id
+  string command = 2; // 'PAUSE', 'ABORT'
+}
+
+message QueryProgress {
+  int32 qid = 1;
+  string video_name = 2; 
+  int64 n_frames_processed = 3;
+  int64 n_frames_total = 4;  
+  string status = 5; 
+}
+
 message InitDivaRequest {
     string img_path = 1;
 }
@@ -53,3 +85,27 @@ message StrMsg {
 message Chunk {
     bytes data = 1;
 }
+
+// based on get_videos_resp
+message VideoList {
+    repeated VideoMetadata videos = 1;
+}
+
+// message QueryList {
+//    repeated QueryProgress queries = 1;
+// }
+
+
+// based on video_metadata 
+// cf: https://github.com/protocolbuffers/protobuf/blob/master/src/google/protobuf/timestamp.proto
+
+message VideoMetadata {
+    string name = 1; // name of the video, must be unique
+    int64 n_frames = 2; // how many frames
+    int64 n_missing_frames = 3;
+    int32 fps = 4; 
+    google.protobuf.Timestamp start = 5; // optional
+    google.protobuf.Timestamp end = 6; // optional
+    google.protobuf.Duration duration = 7; // optional     
+}
+

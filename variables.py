@@ -1,14 +1,20 @@
 import os
 
-CAMERA_CHANNEL_ADDRESS = 'camera:10086'
+# xzl: fix this to be camera's valid IP addr??
+#CAMERA_CHANNEL_ADDRESS = 'camera:10086'
+CAMERA_CHANNEL_ADDRESS = '127.0.0.1:10086'
 CAMERA_CHANNEL_PORT = '10086'
 
-YOLO_CHANNEL_ADDRESS = 'yolo:10088'
+# xzl: the following addrs seem fine as they are containers on the same machine?
+#YOLO_CHANNEL_ADDRESS = 'yolo:10088'
+YOLO_CHANNEL_ADDRESS = '127.0.0.1:10088'
 YOLO_CHANNEL_PORT = "10088"
 
-DIVA_CHANNEL_ADDRESS = 'cloud:10090'
+#DIVA_CHANNEL_ADDRESS = 'cloud:10090'
+DIVA_CHANNEL_ADDRESS = '127.0.0.1:10090'
 DIVA_CHANNEL_PORT = '10090'
 
+# xzl: below unused? 
 IMAGE_PATH = '/media/YOLO-RES-720P/jpg/chaweng-1_10FPS/'
 CSV_PATH = '/media/YOLO-RES-720P/out/chaweng-1_10FPS.csv'
 OP_FNAME_PATH = '/media/YOLO-RES-720P/exp/chaweng/models/chaweng-a3d16c61813043a2711ed3f5a646e4eb.hdf5'
@@ -40,6 +46,9 @@ VIDEO_FOLDER='/data'
 # JPG_ROOT_PATH = '/host/4TB_hybridvs_data/YOLO-RES-720P/jpg'
 # CSV_ROOT_PATH = '/host/4TB_hybridvs_data/YOLO-RES-720P/out'
 # RES_ROOT_PATH = '/host/4TB_hybridvs_data/YOLO-RES-720P/exp'
+
+# xzl
+CFG_QUERY_CMDS = ["PAUSE", "ABORT", "RESUME", "RESET"]
 
 
 class NO_DESIRED_OBJECT(Exception):

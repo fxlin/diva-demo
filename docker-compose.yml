@@ -1,0 +1,67 @@
+version: "3.5"
+services:
+#    cloud:
+#        build: 
+#            context: ./docker
+#            dockerfile: Dockerfile.cloud
+#        image: wen777/diva-cloud:latest
+#        container_name: cloud
+#        networks:
+#            - diva-network
+#        command: python main_cloud.py
+#        volumes:
+#            - .:/var/diva
+#        working_dir: /var/diva
+
+    camera:
+        build: 
+            context: ./docker
+            dockerfile: Dockerfile.camera
+#        depends_on:
+#            - cloud
+        image: "wen777/diva-camera:latest"
+        container_name: camera
+        command: python -m camera.main_camera
+        networks:
+            - diva-network
+        volumes:
+            - .:/var/diva
+        working_dir: /var/diva            
+
+    webserver:
+        build: 
+            context: ./docker
+            dockerfile: Dockerfile.webserver
+        image: "wen777/diva-webserver:latest"
+#        depends_on:
+#            - cloud
+        ports:
+            - "10000:10000"
+        container_name: webserver
+        # command: python -m web.web_server
+        # command: python -m web.web_and_cloud
+        command: python -m web.cloud  # test controller only
+        depends_on:
+            - camera        
+        networks:
+            - diva-network
+        volumes:
+            - .:/var/diva
+        working_dir: /var/diva            
+    yolo:
+        build: 
+            context: ./docker
+            dockerfile: Dockerfile.yolo
+        image: "wen777/diva-yolo:latest"
+        container_name: yolo
+        command: python YOLOv3_grpc.py
+        networks:
+            - diva-network
+#        depends_on:
+#            - cloud
+        volumes:
+            - .:/var/diva
+        working_dir: /var/diva            
+            
+networks: 
+    diva-network:

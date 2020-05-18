@@ -1,0 +1,650 @@
+"""
+Ingest video frames and perform object detection on frames.
+
+xzl: the controller code (?)
+"""
+
+import os
+import sys
+import logging
+from concurrent import futures
+import time
+import threading
+from queue import Queue
+import cv2
+import copy
+import numpy as np
+
+import grpc
+import det_yolov3_pb2
+import det_yolov3_pb2_grpc
+import cam_cloud_pb2
+import cam_cloud_pb2_grpc
+import server_diva_pb2_grpc
+import common_pb2
+from google.protobuf import empty_pb2
+
+from util import ClockLog
+
+from variables import CAMERA_CHANNEL_ADDRESS, YOLO_CHANNEL_ADDRESS
+from variables import IMAGE_PATH, OP_FNAME_PATH
+from variables import DIVA_CHANNEL_PORT, CONTROLLER_VIDEO_DIRECTORY
+from variables import RESULT_IMAGE_PATH, CONTROLLER_PICTURE_DIRECTORY
+from variables import * #xzl
+
+from constants.grpc_constant import INIT_DIVA_SUCCESS
+
+# from sqlalchemy.orm.exc import MultipleResultsFound
+# from models.common import db_session, init_db
+# from models.camera import Camera
+# from models.video import Video, VideoStatus
+# from models.frame import Frame, Status
+# from models.element import Element
+
+CHUNK_SIZE = 1024 * 100
+OBJECT_OF_INTEREST = 'bicycle'
+CROP_SPEC = '350,0,720,400'
+YOLO_SCORE_THRE = 0.4
+DET_SIZE = 608
+IMAGE_PROCESSOR_WORKER_NUM = 1
+FRAME_PROCESSOR_WORKER_NUM = 1
+
+SHUTDOWN_SIGNAL = threading.Event()
+"""
+frame task: (video_name, video_path, frame_number, object_of_interest)
+image task: (image name, image data, bounding_boxes)
+"""
+TaskQueue = Queue(0)
+ImageQueue = Queue(10)
+
+#FORMAT = '%(asctime)-15s %(levelname)8s %(thread)d %(threadName)s %(message)s'
+FORMAT = '%(levelname)8s %(thread)d %(threadName)s %(message)s' # xzl: simpler
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, format=FORMAT)
+logger = logging.getLogger(__name__)
+ 
+
+class ImageDoesNotExistException(Exception):
+    """Image does not exist"""
+    pass
+
+
+_CAMERA_STORAGE = {'jetson': {'host': CAMERA_CHANNEL_ADDRESS}}
+
+# metadata of queries ever executed
+the_queries = {} # qid:query_metadata
+the_queries_lock = threading.Lock()
+
+# a query's results -- as a collection (simple) in the_queries[qid]? 
+# web thread can have its own way to org/present/render it
+ 
+#the_query_results = {} # qid: a priority queyue
+#$the_query_results_lock = threading.Lock()
+
+# given query id
+# return: query info, None if no query exists
+def query_status(qid):
+    if (qid >= len(the_queries)):
+        return None
+    return the_queries[qid]
+
+# forget query res in mem. to be invoked by web
+def query_cleanup(qid):
+    return
+
+def _query_control(qid, command):
+    if command not in CFG_QUERY_CMDS:
+        logger.error("unknown cmd %s" %command)
+        return "FAILED"
+        
+    try:
+        camera_channel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
+        camera_stub = cam_cloud_pb2_grpc.DivaCameraStub(camera_channel)
+        resp = camera_stub.ControlQuery(
+            cam_cloud_pb2.ControlQueryRequest(qid = qid, command = command)
+            )
+        camera_channel.close()
+        return resp.msg
+    
+    except Exception as err:
+        logger.warning(err)
+    
+def query_abort(qid):
+    msg = _query_control(qid, "ABORT")
+    return msg
+
+def query_resume(qid):
+    msg = _query_control(qid, "RESUME")
+    return msg 
+
+def query_pause(qid):
+    msg = _query_control(qid, "PAUSE")
+    return msg
+
+def query_reset():
+    msg = _query_control(-1, "RESET")
+    return msg
+
+def query_progress(qid):
+    try:
+        camera_channel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
+        camera_stub = cam_cloud_pb2_grpc.DivaCameraStub(camera_channel)
+        resp = camera_stub.GetQueryProgress(
+            cam_cloud_pb2.ControlQueryRequest(qid = qid) # overloaded
+        )
+        camera_channel.close()
+    except Exception as err:
+        logger.warning(err)
+        sys.exit(1)    
+
+    # also update cloud's query metadata    
+    with the_queries_lock:
+        the_queries[resp.qid]['n_frames_processed_cam'] = resp.n_frames_processed
+        the_queries[resp.qid]['n_frames_total_cam'] = resp.n_frames_total
+        the_queries[resp.qid]['status_cam'] = resp.status
+        
+    return {'qid' : resp.qid, 
+            'video_name' : resp.video_name, 
+            'n_frames_processed_cam' : resp.n_frames_processed,
+            'n_frames_total_cam' : resp.n_frames_total,
+            'status_cam' : resp.status}
+
+# return:
+# {name: XXX, n_bboxes: XXX, high_confidence: XXX, [elements...]}
+# see SubmitFrame()            
+def query_results(qid, to_sort = True):
+    res = []
+    with the_queries_lock:
+        if not qid in the_queries:
+            return None 
+        res = copy.deepcopy(the_queries[qid]['results'])
+        
+    res.sort(key=lambda s: -s['high_confidence'])  # descending order
+    return res 
+    
+# nonblocking. will auto fill request.qid. return: qid
+def query_submit(video_name, op_name, crop, target_class):
+    global the_queries
+
+    # auto assign qid
+    with the_queries_lock:
+        qid = len(the_queries)        
+    
+    request = cam_cloud_pb2.QueryRequest(video_name = video_name, 
+        op_name = op_name, crop = crop, target_class = target_class, qid = qid)
+    
+    try:
+        camera_channel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
+        camera_stub = cam_cloud_pb2_grpc.DivaCameraStub(camera_channel)
+        camera_stub.SubmitQuery(request)
+        camera_channel.close()
+    except Exception as err:
+        logger.warning(err)
+
+    with the_queries_lock:
+        the_queries[qid] = {
+           'qid' : len(the_queries), 
+           'status_cloud' : 'SUBMITTED', 
+           'status_cam' : 'UNKNOWN',
+           'n_frames_recv_cam' : 0, 
+           'n_frames_processed_cam' : 0,
+           'n_frames_recv_yolo': 0,
+           'n_frames_processed_yolo': 0,
+           'target_class': target_class,
+           'results' : [] # query results, a list of frames. see SubmitFrame() 
+        }
+    
+    logger.info("submitted a query = {request}, id %d" %(qid))    
+    return qid
+
+# will return a list of videos. to be called by web server
+def list_videos_cam():
+    camChannel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
+    camStub = cam_cloud_pb2_grpc.DivaCameraStub(camChannel)
+    resp = camStub.ListVideos(empty_pb2.Empty())
+         
+    # note: won't print out fields w value 0        
+    print("get video list from camera:", resp)
+    return resp.videos   
+
+
+# return a list of queries. to be called by web server
+def list_queries_cloud():
+    qid_list = []
+    with the_queries_lock:
+        for qid, _ in the_queries.items():
+            qid_list.append(qid)
+            
+    for qid in qid_list: 
+        query_progress(qid)
+                    
+    query_list = []
+    with the_queries_lock:
+        for id, q in the_queries.items():
+            query_list.append(copy.deepcopy(q))
+        return query_list
+        
+class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
+    """
+    Implement server_divaServicer of gRPC
+    """
+    def __init__(self):
+        server_diva_pb2_grpc.server_divaServicer.__init__(self)
+        self.clog = ClockLog(5)  # max every 5 sec 
+        
+    # xzl: proxy req ("get metadata of all stored videos") from client to cam
+    def get_videos(self, request, context):
+        resp = []
+
+        for _, val in _CAMERA_STORAGE.items():
+            camera_channel = grpc.insecure_channel(f"{val['host']}")
+            camera_stub = cam_cloud_pb2_grpc.DivaCameraStub(camera_channel)
+            req = camera_stub.get_videos(empty_pb2.Empty())
+            for v in req.videos:
+                resp.append(v)
+
+            camera_channel.close()
+
+        return common_pb2.get_videos_resp(videos=resp)
+
+    # xzl: proxy req ("get res of a previous query") from client to cam 
+    def get_video(self, request, context):
+        if request.camera and request.camera.name in _CAMERA_STORAGE:
+            val = _CAMERA_STORAGE[request.camera.name]
+            camera_channel = grpc.insecure_channel(f"{val['host']}")
+            camera_stub = cam_cloud_pb2_grpc.DivaCameraStub(camera_channel)
+
+            _camera = common_pb2.Camera(name=request.camera.name,
+                                        address=request.camera.address)
+
+            req = camera_stub.get_video(
+                common_pb2.VideoRequest(timestamp=request.timestamp,
+                                        offset=request.offset,
+                                        video_name=request.video_name,
+                                        object_name=request.object_name,
+                                        camera=_camera))
+            camera_channel.close()
+        else:
+            raise Exception("Error....")
+
+        return req
+
+    # invoke yolo over gRPC in a sync fashion
+    # return a list of textual bb results. 
+    # leaving rendering to web thread
+    def InvokeYolo(self, img_msg, target_class, threshold=0.3):
+        channel = grpc.insecure_channel(YOLO_CHANNEL_ADDRESS)
+        stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(channel)
+                            
+        req = det_yolov3_pb2.DetectionRequest(
+                            image=img_msg,
+                            name='',
+                            threshold=threshold,
+                            targets=[target_class])
+            
+        resp = stub.Detect(req)     
+        # print ('client received: ', resp)    
+        return resp.elements
+        
+    
+    # optionally, render bboxes
+    # 
+    # @img is the image.data loaded from jpg file and passed over grpc
+    def StoreResultFrame(self, request, elements):
+        qid = request.qid
+        frame_name = request.name
+        img_data = request.image.data
+        raw_img = cv2.imdecode(np.fromstring(img_data, dtype=np.uint8), -1)
+        
+        for idx, ele in enumerate(elements):    
+            x1, y1, x2, y2 = int(ele.x1), int(ele.y1), int(ele.x2), int(ele.y2)    
+            cv2.rectangle(raw_img, (x1, y1), (x2, y2),
+                                  (0, 255, 0), 3)        
+            # print("draw--->", x1, y1, x2, y2)
+        cv2.imwrite("/data/diva-fork/tmp/%s.jpg" %request.name, raw_img)
+                
+        
+    # recv a frame submitted from cam. parse it. 
+    def SubmitFrame(self, request, context):
+        #logger.info("got a frame. id %s frame %d bytes" 
+        #            %(request.name, len(request.image.data)))
+                
+        # XXX: hardcoded qid = 0 handle multi query case. incr the actual query
+        qid = request.qid
+        with the_queries_lock:
+            the_queries[qid]['n_frames_recv_cam'] += 1
+        
+        with the_queries_lock:
+            target_class = the_queries[qid]['target_class']
+                    
+        # invoke YOLOV3 ... sync    
+        elements = self.InvokeYolo(img_msg = request.image, target_class = target_class)
+        
+        if len(elements) > 0:
+            self.StoreResultFrame(request, elements)
+            
+            frame_res = {'name' : request.name, 
+                        'high_confidence' : -1,
+                         'n_bboxes' : len(elements),
+                         'elements' : elements
+                        }            
+            for idx, ele in enumerate(elements):
+                if ele.confidence > frame_res['high_confidence']:
+                    frame_res['high_confidence'] = ele.confidence
+                    
+            with the_queries_lock:
+                the_queries[qid]['results'].append(frame_res)
+                
+        # todo: add det res to a d/s shared w/ web thread, including frame name, etc.         
+        with the_queries_lock:
+            the_queries[qid]['n_frames_processed_yolo'] +=1 
+            if len(elements) > 0:
+                the_queries[qid]['n_frames_recv_yolo'] += 1
+                            
+        return cam_cloud_pb2.StrMsg(msg='OK')
+
+    # old
+    # xzl: proxy req ("process video footage") from client to cam. blocking until completion
+    def process_video(self, request, context):
+        logger.info("process_video")
+        
+        req_camera = request.camera
+        new_req_payload = common_pb2.VideoRequest(
+            timestamp=request.timestamp,
+            offset=request.offset,
+            video_name=request.video_name,
+            object_name=request.object_name,
+            camera=req_camera)
+
+        try:
+            camera_channel = grpc.insecure_channel(req_camera.address)
+            camera_stub = cam_cloud_pb2_grpc.DivaCameraStub(camera_channel)
+            camera_stub.process_video(new_req_payload)
+            camera_channel.close()
+        except Exception as err:
+            logger.warning(err)
+
+        return empty_pb2.Empty()
+        
+
+def grpc_serve():
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    diva_servicer = DivaGRPCServer()
+    server_diva_pb2_grpc.add_server_divaServicer_to_server(
+        diva_servicer, server)
+    server.add_insecure_port(f'[::]:{DIVA_CHANNEL_PORT}')
+    server.start()
+    logger.info("GRPC server is runing")
+
+    return server
+
+# xzl: unused?
+def draw_box(img, x1, y1, x2, y2):
+    rw = float(img.shape[1]) / DET_SIZE
+    rh = float(img.shape[0]) / DET_SIZE
+    x1, x2 = int(x1 * rw), int(x2 * rw)
+    y1, y2 = int(y1 * rh), int(y2 * rh)
+    cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 0), 2)
+    return img
+
+# xzl: unused?
+def deploy_operator_on_camera(operator_path: str,
+                              camStub: cam_cloud_pb2_grpc.DivaCameraStub):
+    f = open(operator_path, 'rb')
+    op_data = f.read(CHUNK_SIZE)
+    while op_data != b"":
+        response = camStub.DeployOp(cam_cloud_pb2.Chunk(data=op_data))
+        if response.msg != 'OK':
+            logger.warning('DIVA deploy op fails!!!')
+            return
+        op_data = f.read(CHUNK_SIZE)
+    f.close()
+    camStub.DeployOpNotify(
+        cam_cloud_pb2.DeployOpRequest(name='random', crop=CROP_SPEC))
+
+# xzl: unused?
+def process_frame(img_name: str, img_data, det_res):
+    """
+    Take two arguments: one is the image frame data and the other is the
+    response from YOLO agent. Draw boxes around the object of interest.
+    """
+    # print ('client received: ' + det_res)
+    if not det_res or len(det_res) == 0:
+        return
+
+    res_items = det_res.split('|')
+    res_items = [[float(y) for y in x.split(',')] for x in res_items]
+    res_items = list(filter(lambda z: z[0] > YOLO_SCORE_THRE, res_items))
+
+    if not res_items or len(res_items) <= 0:
+        return
+
+    img = cv2.imdecode(np.fromstring(img_data, dtype=np.uint8), -1)
+    for item in res_items:
+        x1, y1, x2, y2 = int(item[1]), int(item[2]), int(item[3]), int(item[4])
+        img = draw_box(img, x1, y1, x2, y2)
+
+    img_fname = os.path.join(RESULT_IMAGE_PATH, img_name)
+    cv2.imwrite(img_fname, img)
+
+# xzl: unused?
+def runDiva():
+    # Init the communication channels to camera and yolo
+    camChannel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
+    camStub = cam_cloud_pb2_grpc.DivaCameraStub(camChannel)
+    yoloChannel = grpc.insecure_channel(YOLO_CHANNEL_ADDRESS)
+    yoloStub = det_yolov3_pb2_grpc.DetYOLOv3Stub(yoloChannel)
+
+    response = camStub.InitDiva(
+        cam_cloud_pb2.InitDivaRequest(img_path=IMAGE_PATH))
+    if response.msg != INIT_DIVA_SUCCESS:
+        print('DIVA init fails!!!')
+        return
+
+    deploy_operator_on_camera(OP_FNAME_PATH, camStub)
+
+    time.sleep(5)
+    pos_num = 0
+    clog = ClockLog(5)
+
+    for _ in range(10000):
+        time.sleep(0.1)  # emulate network
+        clog.log('Retrieved pos num: %d' % (pos_num))
+
+        response = camStub.GetFrame(cam_cloud_pb2.GetFrameRequest(name='echo'))
+        if not response.name:
+            print('no frame returned...')
+            continue
+
+        img_name = response.name
+        img_data = response.data
+        detected_objects = yoloStub.DetFrame(
+            det_yolov3_pb2.DetFrameRequest(data=img_data,
+                                           name=str(img_name),
+                                           cls=OBJECT_OF_INTEREST))
+
+        det_res = detected_objects.res
+        process_frame(img_name, img_data, det_res)
+
+        pos_num += 1
+
+    camChannel.close()
+    yoloChannel.close()
+
+
+# test funcs with cam
+def test_cam():
+    req = cam_cloud_pb2.QueryRequest()
+    
+    qid = query_submit(video_name = 'chaweng-1_10FPS', 
+        op_name = 'random', crop = '-1,-1,-1,-1', target_class = 'motorbike')
+    
+    time.sleep(10)
+    
+    with the_queries_lock:
+        n_frames_recv_cam = the_queries[qid]['n_frames_recv_cam']        
+    logger.info("received %d frames from cam. now pause query." %n_frames_recv_cam)
+    
+    query_pause(qid)
+    time.sleep(10)
+    
+    print (query_progress(qid))
+    
+    query_resume(qid)
+    time.sleep(10)
+    
+    with the_queries_lock:
+        n_frames_recv_cam = the_queries[qid]['n_frames_recv_cam']        
+    logger.info("received %d frames from cam." %n_frames_recv_cam)
+
+    print(list_queries_cloud)
+  
+# invoke yolo over grpc 
+# cf: testYOLO() in mengwei's main_cloud.py
+def test_yolo():
+    channel = grpc.insecure_channel(YOLO_CHANNEL_ADDRESS)
+    stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(channel)
+    f = open('/data/hybridvs-demo/tensorflow-yolov3/data/demo_data/dog.jpg', 'rb')
+    
+    _img = common_pb2.Image(data=f.read(),
+                            height=0,
+                            width=0,
+                            channel=0)        
+    req = det_yolov3_pb2.DetectionRequest(
+                        image=_img,
+                        name='dog.jpg',
+                        threshold=0.3,
+                        targets=['dog'])    
+    resp = stub.Detect(req) 
+    
+    print ('client received: ', resp)
+
+    '''
+    exist_target = False
+
+    temp_score_map = {}
+
+    # xzl: a resp from server: a list of BBs
+    # draw bbox on the image    
+    frame = cv2.imread(img)
+     
+    # there may be multiple objs
+    for idx, ele in enumerate(resp.elements):
+        if ele.class_name != target_class:
+            continue
+
+        x1, y1, x2, y2 = ele.x1, ele.y1, ele.x2, ele.y2
+
+        frame = cv2.rectangle(frame, (x1, y1), (x2, y2),
+                              (0, 255, 0), 3)
+        temp_score_map[str(idx)] = ele.confidence
+        exist_target = True
+
+    # xzl: save the (annotated image) on local disk .. for web serving later
+    if exist_target:
+        img_path = os.path.join(
+            STATIC_FOLDER, *[
+                video_folder_name, target_class, 'images',
+                f'{counter}.jpg'
+            ])
+        cv2.imwrite(img_path, frame)
+        score_obj[str(counter)] = temp_score_map
+    '''
+         
+def test_list_videos():
+
+    camChannel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
+    camStub = cam_cloud_pb2_grpc.DivaCameraStub(camChannel)
+    resp = camStub.ListVideos(empty_pb2.Empty())
+         
+    # note: won't print out fields w value 0        
+    print("get video list from camera:", resp)
+    for r in resp.videos:
+        print(r.n_missing_frames)
+
+
+def console():
+    while True:
+        msg = f'''
+        l:list_videos_cam L:list_queries_cloud q:send a sample query
+        R: reset
+        pX - query_progress for qid X
+        aX - pause query qid X
+        rX - resume query qid X
+        '''
+        ss = input(msg)
+        s = ss.split()
+        
+        if len(s) < 1: 
+            continue
+        if s[0] =='lv':
+            resp = list_videos_cam()
+            print(resp)
+        elif s[0] == 'lq':
+            resp = list_queries_cloud()
+            print(resp)
+        elif s[0] == 'progress':
+            if len(s) < 2:
+                print("need qid") 
+                continue            
+            resp = query_progress(int(s[1]))
+            print(resp)
+        elif s[0] == 'pause':
+            if len(s) < 2:
+                print("need qid") 
+                continue
+            resp = query_pause(int(s[1]))
+            print(resp)
+        elif s[0] == 'results':
+            if len(s) < 2:
+                print("need qid") 
+                continue
+            resp = query_results(int(s[1]))
+            if not resp: 
+                print("no results. bad qid?")
+            else: 
+                print("query results:")
+                for r in resp:
+                    print(f"{r['name']} {r['n_bboxes']} {r['high_confidence']}")
+        elif s[0] == 'resume':
+            if len(s) < 2:
+                print("need qid") 
+                continue            
+            resp = query_resume(int(s[1]))
+            print(resp)            
+        elif s[0] == 'query':
+            resp = query_submit(video_name = 'chaweng-1_10FPS', 
+                op_name = 'random', crop = '-1,-1,-1,-1', target_class = 'motorbike')
+            print('qid:', resp)
+        elif s[0] == 'reset':
+            resp = query_reset()
+            print(resp)
+        else:
+             print("unknown cmd")    
+                                        
+if __name__ == '__main__':
+
+    logger.info("test cloud controller")
+
+    _server = grpc_serve()
+    # _server.wait_for_termination() # xzl: won't return. dont need. 
+
+    #test_cam()
+    #test_yolo()
+    #test_list_videos()
+    
+    console()
+    
+    try:
+        while True:
+            time.sleep(60 * 60 * 24)
+
+    except KeyboardInterrupt:
+        logger.info('cloud receiver stops!!!')
+        SHUTDOWN_SIGNAL.set()
+        _server.stop(0)
+    except Exception as err:
+        logger.warning(err)
+        SHUTDOWN_SIGNAL.set()
+        _server.stop(1)
+
+    # runDiva()

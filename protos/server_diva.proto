@@ -15,6 +15,11 @@ service server_diva {
     rpc get_video(common.VideoRequest) returns (common.video_metadata) {};
     // yolo
     // rpc Detect (DetectionRequest) returns (DetectionOutput) {}
+    
+    // xzl
+    rpc SubmitFrame(common.DetFrameRequest) returns (StrMsg) {};
+    
+    // rpc ReportQueryProgress(QueryProgress) returns (StrMsg) {};
 }
 
 message detection_result {
@@ -47,4 +52,9 @@ message response {
 message object_video_pair {
     string object_name = 3;
     string video_name = 4;
+}
+
+
+message StrMsg {
+    string msg = 1;
 }

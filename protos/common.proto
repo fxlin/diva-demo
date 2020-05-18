@@ -2,12 +2,25 @@ syntax = "proto3";
 
 package common;
 
+// xzl: contains actual data. good. 
 message Image {
     // bytes come from opencv .tobytes() function
     bytes data = 1;
     int32 height = 2;
     int32 width = 3;
     int32 channel = 4;
+}
+
+// xzl: cam->server (submit a frame)
+// server->yolo (forward for obj detect)
+// based on Mengwei's DetFrameRequest which inlines frame data
+message DetFrameRequest {
+    common.Image image = 1;
+    string name = 2; // shall be unique globally
+    string cls = 3; // class, e.g. 'bike'
+    float cam_score = 4; 
+    float nn_score = 5; 
+    int32 qid = 6; // used to track queries
 }
 
 message File {
@@ -39,4 +52,12 @@ message video_metadata {
     string video_url = 5;
     string images_url = 6;
     string object_name =7;
+}
+
+
+message DetFrameRequestv2 {
+    bytes data = 1;
+    string name = 2;
+    string cls = 3;
+    int32 score = 4;
 }

@@ -1,7 +1,7 @@
 FROM wen777/diva-base:latest
 
-COPY . /var/web
-
+# xzl: for devl, not copy but share. see docker-compose.yml
+#COPY . /var/web
 WORKDIR /var/web
 
 CMD ["python", "-m", "web.web_server"]

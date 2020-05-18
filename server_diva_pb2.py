@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='server_diva',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=b'\n\x11server_diva.proto\x12\x0bserver_diva\x1a\x1bgoogle/protobuf/empty.proto\x1a\x0c\x63ommon.proto\"X\n\x10\x64\x65tection_result\x12(\n\x06retval\x18\x01 \x01(\x0b\x32\x16.google.protobuf.EmptyH\x00\x12\x0f\n\x05\x65rror\x18\x02 \x01(\tH\x00\x42\t\n\x07payload\"\xac\x01\n\x11\x66rame_from_camera\x12\x1c\n\x05image\x18\x01 \x01(\x0b\x32\r.common.Image\x12\x18\n\x10\x63onfidence_score\x18\x02 \x01(\x02\x12(\n\x06\x63\x61mera\x18\x03 \x01(\x0b\x32\x18.server_diva.camera_info\x12\x11\n\ttimestamp\x18\x04 \x01(\x05\x12\x12\n\nvideo_name\x18\x05 \x01(\t\x12\x0e\n\x06offset\x18\x06 \x01(\x05\"C\n\x0b\x63\x61mera_info\x12\x11\n\tcamera_ip\x18\x01 \x01(\t\x12\x13\n\x0b\x63\x61mera_port\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\"0\n\x08response\x12\x13\n\x0bstatus_code\x18\x01 \x01(\x05\x12\x0f\n\x07message\x18\x02 \x01(\t\"<\n\x11object_video_pair\x12\x13\n\x0bobject_name\x18\x03 \x01(\t\x12\x12\n\nvideo_name\x18\x04 \x01(\t2\xc0\x03\n\x0bserver_diva\x12Y\n\x16\x64\x65tect_object_in_video\x12\x1e.server_diva.object_video_pair\x1a\x1d.server_diva.detection_result\"\x00\x12\x44\n\x0fregister_camera\x12\x18.server_diva.camera_info\x1a\x15.server_diva.response\"\x00\x12Q\n\x16\x64\x65tect_object_in_frame\x12\x1e.server_diva.frame_from_camera\x1a\x15.server_diva.response\"\x00\x12?\n\rprocess_video\x12\x14.common.VideoRequest\x1a\x16.google.protobuf.Empty\"\x00\x12?\n\nget_videos\x12\x16.google.protobuf.Empty\x1a\x17.common.get_videos_resp\"\x00\x12;\n\tget_video\x12\x14.common.VideoRequest\x1a\x16.common.video_metadata\"\x00\x62\x06proto3'
+  serialized_pb=b'\n\x11server_diva.proto\x12\x0bserver_diva\x1a\x1bgoogle/protobuf/empty.proto\x1a\x0c\x63ommon.proto\"X\n\x10\x64\x65tection_result\x12(\n\x06retval\x18\x01 \x01(\x0b\x32\x16.google.protobuf.EmptyH\x00\x12\x0f\n\x05\x65rror\x18\x02 \x01(\tH\x00\x42\t\n\x07payload\"\xac\x01\n\x11\x66rame_from_camera\x12\x1c\n\x05image\x18\x01 \x01(\x0b\x32\r.common.Image\x12\x18\n\x10\x63onfidence_score\x18\x02 \x01(\x02\x12(\n\x06\x63\x61mera\x18\x03 \x01(\x0b\x32\x18.server_diva.camera_info\x12\x11\n\ttimestamp\x18\x04 \x01(\x05\x12\x12\n\nvideo_name\x18\x05 \x01(\t\x12\x0e\n\x06offset\x18\x06 \x01(\x05\"C\n\x0b\x63\x61mera_info\x12\x11\n\tcamera_ip\x18\x01 \x01(\t\x12\x13\n\x0b\x63\x61mera_port\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\"0\n\x08response\x12\x13\n\x0bstatus_code\x18\x01 \x01(\x05\x12\x0f\n\x07message\x18\x02 \x01(\t\"<\n\x11object_video_pair\x12\x13\n\x0bobject_name\x18\x03 \x01(\t\x12\x12\n\nvideo_name\x18\x04 \x01(\t\"\x15\n\x06StrMsg\x12\x0b\n\x03msg\x18\x01 \x01(\t2\xff\x03\n\x0bserver_diva\x12Y\n\x16\x64\x65tect_object_in_video\x12\x1e.server_diva.object_video_pair\x1a\x1d.server_diva.detection_result\"\x00\x12\x44\n\x0fregister_camera\x12\x18.server_diva.camera_info\x1a\x15.server_diva.response\"\x00\x12Q\n\x16\x64\x65tect_object_in_frame\x12\x1e.server_diva.frame_from_camera\x1a\x15.server_diva.response\"\x00\x12?\n\rprocess_video\x12\x14.common.VideoRequest\x1a\x16.google.protobuf.Empty\"\x00\x12?\n\nget_videos\x12\x16.google.protobuf.Empty\x1a\x17.common.get_videos_resp\"\x00\x12;\n\tget_video\x12\x14.common.VideoRequest\x1a\x16.common.video_metadata\"\x00\x12=\n\x0bSubmitFrame\x12\x17.common.DetFrameRequest\x1a\x13.server_diva.StrMsg\"\x00\x62\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_empty__pb2.DESCRIPTOR,common__pb2.DESCRIPTOR,])
 
@@ -254,6 +254,37 @@ _OBJECT_VIDEO_PAIR = _descriptor.Descriptor(
   serialized_end=521,
 )
 
+
+_STRMSG = _descriptor.Descriptor(
+  name='StrMsg',
+  full_name='server_diva.StrMsg',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='msg', full_name='server_diva.StrMsg.msg', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=523,
+  serialized_end=544,
+)
+
 _DETECTION_RESULT.fields_by_name['retval'].message_type = google_dot_protobuf_dot_empty__pb2._EMPTY
 _DETECTION_RESULT.oneofs_by_name['payload'].fields.append(
   _DETECTION_RESULT.fields_by_name['retval'])
@@ -268,6 +299,7 @@ DESCRIPTOR.message_types_by_name['frame_from_camera'] = _FRAME_FROM_CAMERA
 DESCRIPTOR.message_types_by_name['camera_info'] = _CAMERA_INFO
 DESCRIPTOR.message_types_by_name['response'] = _RESPONSE
 DESCRIPTOR.message_types_by_name['object_video_pair'] = _OBJECT_VIDEO_PAIR
+DESCRIPTOR.message_types_by_name['StrMsg'] = _STRMSG
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 detection_result = _reflection.GeneratedProtocolMessageType('detection_result', (_message.Message,), {
@@ -305,6 +337,13 @@ object_video_pair = _reflection.GeneratedProtocolMessageType('object_video_pair'
   })
 _sym_db.RegisterMessage(object_video_pair)
 
+StrMsg = _reflection.GeneratedProtocolMessageType('StrMsg', (_message.Message,), {
+  'DESCRIPTOR' : _STRMSG,
+  '__module__' : 'server_diva_pb2'
+  # @@protoc_insertion_point(class_scope:server_diva.StrMsg)
+  })
+_sym_db.RegisterMessage(StrMsg)
+
 
 
 _SERVER_DIVA = _descriptor.ServiceDescriptor(
@@ -313,8 +352,8 @@ _SERVER_DIVA = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=524,
-  serialized_end=972,
+  serialized_start=547,
+  serialized_end=1058,
   methods=[
   _descriptor.MethodDescriptor(
     name='detect_object_in_video',
@@ -368,6 +407,15 @@ _SERVER_DIVA = _descriptor.ServiceDescriptor(
     containing_service=None,
     input_type=common__pb2._VIDEOREQUEST,
     output_type=common__pb2._VIDEO_METADATA,
+    serialized_options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='SubmitFrame',
+    full_name='server_diva.server_diva.SubmitFrame',
+    index=6,
+    containing_service=None,
+    input_type=common__pb2._DETFRAMEREQUEST,
+    output_type=_STRMSG,
     serialized_options=None,
   ),
 ])
