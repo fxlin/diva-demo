@@ -175,7 +175,7 @@ def query_submit(video_name, op_name, crop, target_class):
     try:
         camera_channel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
         camera_stub = cam_cloud_pb2_grpc.DivaCameraStub(camera_channel)
-        camera_stub.SubmitQuery(request)
+        resp = camera_stub.SubmitQuery(request)
         camera_channel.close()
     except Exception as err:
         logger.warning(err)
@@ -193,7 +193,7 @@ def query_submit(video_name, op_name, crop, target_class):
            'results' : [] # query results, a list of frames. see SubmitFrame() 
         }
     
-    logger.info("submitted a query = {request}, id %d" %(qid))    
+    logger.info("submitted a query = {request}, id %d. camera says %s" %(qid, resp.msg))    
     return qid
 
 # will return a list of videos. to be called by web server

@@ -14,7 +14,7 @@ from google.protobuf.duration_pb2 import *
 
 # from threading import Thread, Event, Lock
 from concurrent import futures
-import logging
+import logging, coloredlogs
 from queue import PriorityQueue
 
 import grpc
@@ -60,6 +60,9 @@ FORMAT = '%(asctime)-15s %(levelname)8s %(thread)d %(threadName)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
 logger = logging.getLogger(__name__)
 
+# coloredlogs.install(level='DEBUG')
+coloredlogs.install(level='DEBUG', logger=logger)
+
 # FIXME (xzl: unused?)
 # OP_FNAME_PATH = '/home/bryanjw01/workspace/test_data/source/chaweng-a3d16c61813043a2711ed3f5a646e4eb.hdf5'
 
@@ -70,9 +73,24 @@ the_send_buf = []
 the_buf_lock = threading.Lock()
 the_cv = threading.Condition(the_buf_lock)
 
+
+class QueryInfo():
+    qid = -1    # current qid
+    crop = [-1,-1,-1,-1]
+    op_name = ""
+    op_fname = ""
+    img_dir = ""
+    video_name = ""
+    run_imgs = []  # maybe put a separate lock over this
+    
+# for the current query: all frames (metadata such as fullpaths etc) to be processed. 
+# workers will pull from here
+the_query_lock = threading.Lock()
+the_query = QueryInfo() 
+
 # queries ever executed
-the_queries = {}
-the_queries_lock = threading.Lock()
+the_stats = {}
+the_stats_lock = threading.Lock()
 
 
 the_uploader_stop_req = 0
@@ -91,6 +109,9 @@ ev_worker_stop_done = threading.Event()
 
 PQueue = PriorityQueue()
 
+
+# will terminate after finishing up the current query 
+
 class OP_WORKER(threading.Thread):
     # xzl: read from disk a batch of images. 
     # @imgs: a list of img filenames
@@ -106,103 +127,110 @@ class OP_WORKER(threading.Thread):
         frames /= 255.0
         return frames
 
-    def reset(self):
-        self.is_run = False
-        self.batch_size = 16
-        
-        self.qid = -1
-        self.run_imgs = []  # all frames for this worker
-        
-        self.kill = False
-        self.op = None
-        self.crop = None
-        self.op_updated = True
-                
     def __init__(self):
         threading.Thread.__init__(self)
-        self.reset()
-
-    # xzl: load the list of frames, op, crop factor to the worker to exec 
-    # invoked by the mainthread on init, and whenenver op is updated
-    def load(self, img_dir, img_names, op_fname, crop, qid):
-        logger.info("load...")
-        self.run_imgs = [] # full paths of frames to process
-        self.op_fname = op_fname
-        self.qid = qid
-        for img in img_names:
-            self.run_imgs.append(os.path.join(img_dir, img))
+        self.batch_size = 16
+        self.kill = False   # notify the worker thread to terminate. not to be set externally. call stop() instead
+        self.op = None # the actual op
         
-        with the_queries_lock:
-            the_queries[self.qid]['n_frames_total'] = len(self.run_imgs)
-            
-        self.op_fname = op_fname 
-        self.op_updated = True # xzl: tell the worker thread a new op is there        
-        self.crop = [int(x) for x in crop.split(',')] #xzl: just convert to int array?        
+        '''
+        self.crop = None
+        self.op_updated = True
+        '''
 
+    '''
     def isRunning(self):
         return self.is_run
-
-    def kill(self):
-        K.clear_session()
-        self.kill = True
-
-    def pause(self):
-        self.is_run = False # xzl: change to cond var?
-
-    def resume(self):
-        self.is_run = True # xzl: will wake up the worker thread
+    '''
         
+    def stop(self):
+        K.clear_session() # xzl: will there be race condition?
+        self.kill = True
+        
+    def loadOp(self):
+        with the_query_lock:
+            op_fname = the_query.op_fname
+            assert(op_fname != "")
+            
+        logger.info("op worker: loading op: %s" %op_fname)
+        
+        # xzl: tf1 only
+        config = tf.ConfigProto() 
+        config.gpu_options.per_process_gpu_memory_fraction = 0.3
+        keras.backend.set_session(tf.Session(config=config))  # global tf session XXX TODO: only once
+        
+        # xzl: workaround in tf2. however, Keras=2.2.4 + TF 2
+        # will cause the following issue. 
+        # https://github.com/keras-team/keras/issues/13336
+        # workaround: using tf1 as of now... 
+        '''
+        config = tf.compat.v1.ConfigProto() 
+        tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
+        '''
+        
+        self.op = keras.models.load_model(op_fname)
+        in_h, in_w = self.op.layers[0].input_shape[1:3]
+        logger.info("op worker: loading op done.")      
+        
+        return in_h, in_w
+    
     def run(self):        
         logger.info("op worker start running")
         clog = ClockLog(5)  # xzl: in Mengwei's util
         
+        with the_query_lock:
+            qid = the_query.qid
+            print (f'{the_query.qid}  {the_query.op_name}')
+            assert(qid >= 0)
+            
+        in_h, in_w = self.loadOp()
+        
         while True:
             if self.kill:
-                break
+                logger.info("worker: got a stop notice. bye!")
+                return 
+            '''
             if not self.is_run:
                 #logger.info("op worker: !is_run. sleep 1 sec...")
                 clog.print("op worker: !is_run. sleep...")
                 time.sleep(1)
                 continue
-            if self.op_updated:  # xzl: reload op 
-                logger.info("op worker: loading op: %s" %self.op_fname)
-                
-                # xzl: tf1 only
-                config = tf.ConfigProto() 
-                config.gpu_options.per_process_gpu_memory_fraction = 0.3
-                keras.backend.set_session(tf.Session(config=config))
-                
-                # xzl: workaround in tf2. however, Keras=2.2.4 + TF 2
-                # will cause the following issue. 
-                # https://github.com/keras-team/keras/issues/13336
-                # workaround: using tf1 as of now... 
-                '''
-                config = tf.compat.v1.ConfigProto() 
-                tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
-                '''
-                
-                self.op = keras.models.load_model(self.op_fname)
-                in_h, in_w = self.op.layers[0].input_shape[1:3]
-                self.op_updated = False
-                logger.info("op worker: loading op done.")       
-                     
+            '''
+            
+            # pull work from global buf 
+            
+            # the worker won't lost a batch of images, as it won't termiante here            
             # imgs = random.sample(self.run_imgs, OP_BATCH_SZ)
             # sample & remove, w/o changing the order of run_imgs
             # https://stackoverflow.com/questions/16477158/random-sample-with-remove-from-list
-            batch = OP_BATCH_SZ 
-            if len(self.run_imgs) < OP_BATCH_SZ:
-                batch = len(self.run_imgs)                
-            imgs = [self.run_imgs.pop(random.randrange(len(self.run_imgs))) for _ in range(batch)]
-
+            batch = OP_BATCH_SZ
+            
+            with the_query_lock: 
+                if len(the_query.run_imgs) < OP_BATCH_SZ:
+                    batch = len(the_query.run_imgs)                
+                imgs = [the_query.run_imgs.pop(random.randrange(len(the_query.run_imgs))) for _ in range(batch)]
+                crop = the_query.crop
+                sz_run_imgs = len(the_query.run_imgs)
+                
+            if batch == 0: # we got nothing, clean up...
+                with the_query_lock:
+                    the_query.qid = -1
+                with the_stats_lock:
+                    if the_stats[qid]['status'] != 'COMPLETED': # there may be other op workers            
+                        the_stats[qid]['status'] = 'COMPLETED'       
+                        # seconds since epoch. protobuf's timestamp types seem too complicated...             
+                        the_stats[qid]['ts_comp'] = time.time() # float                                                                                                                       
+                logger.info("opworker: nothing in run_imgs. bye!")
+                return 
+                        
             #TODO: IO shall be seperated thread
             # xzl: fixing this by having multiple op workers
-            frames = self.read_images(imgs, in_h, in_w, crop=self.crop) 
+            frames = self.read_images(imgs, in_h, in_w, crop) 
             scores = self.op.predict(frames)
             # print ('Predict scores: ', scores)
             
-            # push a scored frame (metadata) to send buf
-            
-            with the_cv: # auto grab lock
+            # push a scored frame (metadata) to send buf            
+            with the_cv: # auto grab send buf lock
                 for i in range(batch):
                     heapq.heappush(the_send_buf, 
                         (-scores[i, 1] + random.uniform(0.00001, 0.00002), 
@@ -211,40 +239,33 @@ class OP_WORKER(threading.Thread):
                                 'name': imgs[i].split('/')[-1],
                                 'cam_score': -scores[i, 1],
                                 'local_path': imgs[i],
-                                'qid': self.qid, 
+                                'qid': qid, 
                             }
                         )
                     )
+                    sz_send_buf = len(the_send_buf)
                 the_cv.notify()
                 
             # self.n_frames_processed += OP_BATCH_SZ
-            with the_queries_lock:
-                the_queries[self.qid]['n_frames_processed'] += batch
-                if len(self.run_imgs) == 0:
-                    the_queries[self.qid]['status'] = 'COMPLETED'
-            
-            # print ('Buf size: ', len(the_send_buf))
-            with the_buf_lock:
-                sz = len(the_send_buf)
-                total = len(self.run_imgs)
-                
-            clog.print('Op worker: Buf size: %d frames (nb: OP_BATCH_SZ=%d), remaining : %d' 
-                       %(sz, OP_BATCH_SZ, total))
+            with the_stats_lock:
+                the_stats[qid]['n_frames_processed'] += batch                
+                            
+            clog.print('Op worker: send_buf size: %d frames (nb: OP_BATCH_SZ=%d), remaining : %d' 
+                       %(sz_send_buf, OP_BATCH_SZ, sz_run_imgs))
             #logger.info('Buf size: %d, total num: %d' %(sz,total))
 
 # a thread keep uploading images from the_send_buf to the server
 def thread_uploader():
-    logger.info('uploader started')
+    logger.warn('uploader started')
     
     total_frames = 0
-    last_frames = 0
     
     #while True:
     try: 
         server_channel = grpc.insecure_channel(DIVA_CHANNEL_ADDRESS)
         server_stub = server_diva_pb2_grpc.server_divaStub(server_channel)    
         
-        logger.info('uploader: channel connected')
+        logger.warn('uploader: channel connected')
         clog = ClockLog(5)  # xzl: in Mengwei's util
         
         while True: 
@@ -270,11 +291,11 @@ def thread_uploader():
                     the_cv.wait()
                 if (the_uploader_stop_req):
                     server_channel.close()
+                    logger.warn('uploader: got a stop req. bye!')
                     return 
                 
                 send_frame = heapq.heappop(the_send_buf)[1]
                 # print ('uploader: Buf size: ', len(the_send_buf))
-    
             #f = open(os.path.join(the_img_dirprefix, send_frame['name']), 'rb')
             f = open(send_frame['local_path'], 'rb')
             
@@ -290,24 +311,89 @@ def thread_uploader():
                 image=_img,
                 name=send_frame['name'],
                 cam_score=send_frame['cam_score'],
-                cls = 'bike', # TODO
+                cls = 'XXX', # TODO
                 qid = send_frame['qid']
             )
             
-            resp = server_stub.SubmitFrame(req)
-            #logger.info("uploader:submitted one frame. server says " + resp.msg)
+            # logger.warn("uploader:about to submit one frame")
             
-            total_frames += 1            
+            # https://stackoverflow.com/a/7663441
+            for _ in range (5): 
+                try: 
+                    resp = server_stub.SubmitFrame(req)
+                    #total_frames += 1                          
+                except Exception as e:
+                    logger.error(e)
+                    # reconnect 
+                    server_channel.close()
+                    time.sleep(1)
+                    server_channel = grpc.insecure_channel(DIVA_CHANNEL_ADDRESS)
+                    server_stub = server_diva_pb2_grpc.server_divaStub(server_channel)
+                else:
+                    total_frames += 1 
+                    break
+            else: 
+                logger.warn("we failed all attempts") 
+            # logger.warn("uploader:submitted one frame. server says " + resp.msg)
+                                  
             clog.print("uploader: sent %d frames since born" %(total_frames))
     except Exception as err:
         logger.error(err)
-        print("uploader: channel seems broken. bye!")
+        logger.error("uploader: channel seems broken. bye!")
         return
-                    
+
+the_uploader = None # threading.Thread(target=thread_uploader)
+the_op_worker = None # XXX can be multiple workers
+ 
+def _GraceKillOpWorkers():
+    global the_op_worker
+    
+    if not the_op_worker:
+        return 
+    
+    if (not the_op_worker.is_alive()):
+        the_op_worker = None
+        return 
+    
+    logger.info("_GraceKillOpWorkers: request op worker to stop...")
+    
+    the_op_worker.stop()
+    # XXX signal cv? 
+    the_op_worker.join(3)
+    assert(not the_op_worker.is_alive())
+     
+    the_op_worker = None
+    
+    logger.info("_GraceKillOpWorkers: op worker stopped")
+     
+def _StartOpWorkerIfDead():
+    global the_op_worker
+
+    logger.info("_StartOpWorkerIfDead: request op worker start...")
+    
+    '''
+    if (the_op_worker.is_alive()):
+        logger.info("_StartOpWorkerIfDead: already started??")
+        return 
+    '''    
+    the_op_worker = OP_WORKER()
+    the_op_worker.start()
+    assert(the_op_worker.is_alive())
+    
+    logger.info("_StartOpWorkerIfDead: started")
+        
+                        
 def _GraceKillUploader():
     global the_uploader
     global the_uploader_stop_req
             
+    if not the_uploader:
+        return 
+    
+    if not the_uploader.is_alive():
+        the_uploader = None
+        return
+        
     assert(the_uploader_stop_req == 0)
     the_uploader_stop_req = 1
     with the_cv:
@@ -318,19 +404,37 @@ def _GraceKillUploader():
     assert(not the_uploader.is_alive())
     the_uploader_stop_req = 0
     logger.info("_GraceKillUploader: uploader stopped...")
+    
+    the_uploader = None
 
 def _StartUploaderIfDead():
     global the_uploader
+    
+    logger.info("_StartUploaderIfDead")
+    
+    the_uploader = threading.Thread(target=thread_uploader)
+    the_uploader.start()
+    assert(the_uploader.is_alive())
+    
+    logger.info("_StartUploaderIfDead: started")
+    
+    '''
+    if not the_uploader:
+        the_uploader = threading.Thread(target=thread_uploader)
+        
     if not the_uploader.is_alive():
         the_uploader = threading.Thread(target=thread_uploader)     
         the_uploader.start()
         logger.info("_StartUploaderIfDead")
+    '''
 
-the_uploader = threading.Thread(target=thread_uploader)
                             
 class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
-    img_dir = ''  # the queried video, a subdir under @the_img_dirprefix
+    
     cur_op_data = bytearray(b'') # xzl: the buffer for receiving op
+    
+    '''
+    img_dir = ''  # the queried video, a subdir under @the_img_dirprefix
     cur_op_name = '' # used to saved a received op
     op_fname = '' # full path of the current op
     video_name = '' 
@@ -338,27 +442,20 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
     crop = ''
     operator_ = None
     qid = -1  # current query we are running
-
-    def cleaup(self):
-        self.cur_op_data = bytearray(b'')
-        self.cur_op_name = ""
-
+    '''
+    
     def __init__(self):
         cam_cloud_pb2_grpc.DivaCameraServicer.__init__(self)
         
-        logger.info("create op worker")
-        
-        self.op_worker = OP_WORKER()  # xzl: only one worker??
-        self.op_worker.start()  # xzl: they will sleep 
+        #self.op_worker = OP_WORKER()  # xzl: only one worker??
+        #self.op_worker.start()  # xzl: they will sleep 
 
         # self.op_worker = OP_WORKER()
         # self.op_worker.setDaemon(True)
         # self.op_worker.start()
         pass
 
-    def KillOp(self):
-        self.op_worker.kill()
-
+    '''
     # cloud is requesting one "top" frame from send_buf
     # deprecated
     def GetFrame(self, request, context):
@@ -381,11 +478,13 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         with the_buf_lock:
             the_send_buf = []
         return cam_cloud_pb2.StrMsg(msg='OK')
-
+    '''
+    
     # propagate the self's query info to the op worker
     # (re-)gen the frame list for op worker. update the worker's working list, 
     # op, crop, etc.
     # NOT resuming the worker 
+    '''
     def LoadQuery(self):
         if self.op_worker.isRunning():
             logger.error("bug: must stop worker first")
@@ -394,28 +493,32 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         # xzl: sample down to 1FPS. listdir can be very slow
         all_imgs = os.listdir(self.img_dir)
         selected_imgs = [img for img in all_imgs if int(img[:-4]) % 10 == 0] # 1 FPS
+        
+        with the_work_lock:
+            the_work_buf.clear() 
+            for img in selected_imgs:
+                the_work_buf.append(os.path.join(self.img_dir, img))
+        
         self.op_worker.load(
                 self.img_dir, selected_imgs, self.op_fname, self.crop, self.qid) 
-                
+        pass     
+    '''
 
     # xzl: cloud told us - all data chunks of an op has been sent. 
     def DeployOpNotify(self, request, context):
-        # now save the op to disk
-        self.cur_op_name = request.name
-        self.op_fname = os.path.join(the_op_dir, self.cur_op_name)
-        self.crop = request.crop
+        _GraceKillOpWorkers()
         
-        with open(self.op_fname, 'wb') as f:
+        with the_query_lock:
+            the_query.op_name = request.name
+            the_query.op_fname = os.path.join(the_op_dir, the_query.op_name)
+            the_query.crop = request.crop
+            of = the_query.op_fname
+        
+        with open(of, 'wb') as f:
             f.write(self.cur_op_data)
         self.cur_op_data = bytearray(b'')
 
-        # stop op processing 
-        if self.op_worker.isRunning():
-            self.op_worker.pause()
-        
-        self.LoadQuery()  # really needed here?         
-        self.op_worker.resume() # wake up workers
-        
+        _StartOpWorkerIfDead()  # will reload ops, etc.        
         return cam_cloud_pb2.StrMsg(msg='OK')
 
     # xzl: keep receiving op (a chunk of data) from cloud. 
@@ -427,106 +530,98 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
     # got a query from the cloud. run it
     def SubmitQuery(self, request, context):
         global the_uploader 
+        global the_query
         
-        logger.info("got a query op %s video %s" %(request.op_name, request.video_name))
+        logger.info("got a query op %s video %s qid %d" %(request.op_name, request.video_name, request.qid))
         
-        # op must exists on local disk
-        self.cur_op_name = request.op_name
-        self.op_fname = os.path.join(the_op_dir, self.cur_op_name)
-        self.video_name = request.video_name
-        self.img_dir = os.path.join(the_img_dirprefix, request.video_name) 
-        self.crop = request.crop
-        self.qid = request.qid
-
-        if self.op_worker.isRunning():
-            self.op_worker.pause()
+        with the_stats_lock:
+            if request.qid in the_stats:
+                logger.warn("qid exists")    
+                return cam_cloud_pb2.StrMsg(msg='FAIL: qid exists')
+    
+        logger.info("stop op workers..")
+        print("stop op workers")
+        # stop op workers
+        _GraceKillOpWorkers()
+        logger.info("op workers stopped")
+       
+        _GraceKillUploader()
+       
+        with the_query_lock:            
+            the_query = QueryInfo() # wipe clean all old query info
+            the_query.qid = request.qid
+            the_query.crop = [int(x) for x in request.crop.split(',')]
+            the_query.op_name = request.op_name
+            the_query.op_fname = os.path.join(the_op_dir, the_query.op_name)
+            the_query.video_name = request.video_name
+            the_query.img_dir = os.path.join(the_img_dirprefix, the_query.video_name) 
+               
+        # xzl: sample down to 1FPS. listdir can be very slow
+        all_imgs = os.listdir(the_query.img_dir)
+        selected_imgs = [img for img in all_imgs if int(img[:-4]) % 10 == 0] # 1 FPS
+        
+        with the_query_lock:
+            the_query.run_imgs.clear() 
+            for img in selected_imgs:
+                the_query.run_imgs.append(os.path.join(the_query.img_dir, img))
+                ll = len(the_query.run_imgs) 
             
-        with the_buf_lock:
-            the_send_buf = []
-        
-        with the_queries_lock:
-#            if request.qid >= len(the_queries):
-#                the_queries.extend([None] * (request.qid + 1 - len(the_queries)))
-            the_queries[request.qid] = {
+        # init stats 
+        with the_stats_lock:
+            the_stats[request.qid] = {
                     'qid' : request.qid,
                     'video_name' : request.video_name,
                     'op_name' : request.op_name,
                     'crop' : request.crop,
                     'status' : 'STARTED', 
                     'n_frames_processed' : 0,
-                    'n_frames_total' : -1
+                    'n_frames_total' : ll
             }
-            
-        self.LoadQuery()
-        self.op_worker.resume() # wake up workers
-        
+
+        _StartOpWorkerIfDead()                            
         _StartUploaderIfDead()
             
-        return cam_cloud_pb2.StrMsg(msg='OK')
+        return cam_cloud_pb2.StrMsg(msg='OK: recvd query')
                                     
     # got a cmd for controlling an ongoing query. exec it
     def ControlQuery(self, request, context):
-        
+        global the_query
         
         logger.info("got a query cmd qid %d cmd %s" 
                     %(request.qid, request.command))
         
-        if request.command == "RESET":
-            self.op_worker.pause()
-            time.sleep(1)
-            self.op_worker.reset()
-            
-            '''
-            assert(not ev_uploader_stop_done.is_set())
-            assert(not ev_uploader_stop_req.is_set())
-            
-            ev_uploader_stop_req.set()
-            print("ControlQuery: request uplaoder to stop...")
-            
-            if (not ev_uploader_stop_done.wait(3)):
-                print('tried to stop uploader thread. never heard back. why?')
-                sys.exit(1)
-            
-            ev_uploader_stop_done.clear()
-            '''
+        # commands w/o qid 
+        if request.command == "RESET": # meaning clean up all query stats, etc.
             _GraceKillUploader()
+            _GraceKillOpWorkers()
             
-            with the_buf_lock:
-                the_send_buf.clear()
-            with the_queries_lock:
-                the_queries.clear()
-            
-            '''
-            assert(not ev_uploader_resume_req.is_set())
-            ev_uploader_resume_req.set() # let the uploader go
-            '''            
-            the_uploader = threading.Thread(target=thread_uploader)
-            the_uploader.start()
-            
-            time.sleep(1)
+            with the_query_lock:
+                the_query = QueryInfo()
+                
+            with the_stats_lock:
+                the_stats.clear()
+                             
+            # do not resume uploader/opworkers
             return cam_cloud_pb2.StrMsg(msg='OK')  
                 
-        # only can control the current query 
-        if (request.qid != self.qid):
-            return cam_cloud_pb2.StrMsg(msg='FAIL')
+        # commands w/ qid. only can control the current query
+        with the_query_lock: 
+            if (request.qid != the_query.qid):
+                return cam_cloud_pb2.StrMsg(msg=f'FAIL req qid {request.qid} != query qid {the_query.qid}')
                 
         if request.command == "PAUSE":
-            _GraceKillUploader() # otherwise yolo will keep running
-            
-            if not self.op_worker.isRunning():
-                logger.warn("bug? worker not running")
-                return cam_cloud_pb2.StrMsg(msg='FAIL')
-            else:
-                self.op_worker.pause()
-                return cam_cloud_pb2.StrMsg(msg='OK')
+            # kill uploader/opworkers but retain query state & states
+            _GraceKillUploader() 
+            _GraceKillOpWorkers()        
+            return cam_cloud_pb2.StrMsg(msg='OK')
         elif request.command == "RESUME":
-            if self.op_worker.isRunning():
-                logger.warn("bug? worker alredy running")
-                return cam_cloud_pb2.StrMsg(msg='FAIL')
-            else:
-                self.op_worker.resume()
-                _StartUploaderIfDead()
-                return cam_cloud_pb2.StrMsg(msg='OK') 
+            with the_query_lock:
+                if the_query.qid < 0:                 
+                    return cam_cloud_pb2.StrMsg(msg='FAIL: no active query')
+            
+            _StartUploaderIfDead()
+            _StartOpWorkerIfDead()
+            return cam_cloud_pb2.StrMsg(msg='OK') 
         elif request.command == "STOP":
             # TODO: implement
             return cam_cloud_pb2.StrMsg(msg='FAIL')
@@ -541,18 +636,19 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         n_frames_total = 0
         status = "UNKNOWN"
                                 
-        with the_queries_lock:
-            if request.qid in the_queries:            
-                n_frames_processed = the_queries[request.qid]['n_frames_processed']
-                n_frames_total = the_queries[request.qid]['n_frames_total']
-                status = the_queries[request.qid]['status']
+        with the_stats_lock:
+            if request.qid in the_stats:            
+                n_frames_processed = the_stats[request.qid]['n_frames_processed']
+                n_frames_total = the_stats[request.qid]['n_frames_total']
+                status = the_stats[request.qid]['status']
                                         
         return cam_cloud_pb2.QueryProgress(qid = request.qid, 
-                    video_name = self.video_name,
+                    video_name = the_query.video_name, # XXX lock
                     n_frames_processed = n_frames_processed,
                     n_frames_total = n_frames_total,
                     status = status)
-        
+
+    '''        
     # OLD 
     # xzl: on receiving a req (webframework -> controller ->), asking for processing footage
     # yolov3 is invoked over gRPC in async way
@@ -585,7 +681,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                     break
 
                 if (counter % 30) == 0:
-                    '''
+                    
                     op_score = self.op.predict_image(frame, '350,0,720,400')
                     if (op_score <= 0.3):
                         counter += 1
@@ -594,7 +690,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                         # FIXME move the following computation to
                         # another thread
                         PQueue.put((op_score, frame))
-                    '''
+                    
                     logger.warning("xzl: bypass on-cam op... as of now")
                     _height, _width, _chan = frame.shape
                     _img = common_pb2.Image(data=frame.tobytes(),
@@ -677,14 +773,16 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
             _video.release()
 
         return common_pb2.get_videos_resp(videos=video_list)
-
+    '''
+                        
     # assumption: videos are stored as images in subdir, i.e. 
     # ${the_img_dirprefix}/${video_name}/{images}
     # $video_name may contain fps info, e.g. XX-10FPS_XXX
     # individual image files are numbered, number is img_fname[:-4]  
     
     # cf: 
-    # https://developers.google.com/protocol-buffers/docs/reference/csharp/class/google/protobuf/well-known-types/duration
+    # https://developers.google.com/protocol-buffers/docs/reference/python-generated#wkt
+    # https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.util.time_util
     
     def ListVideos(selfelf, request, context):
         video_name_list = [o for o in os.listdir(the_img_dirprefix) 
@@ -725,6 +823,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                 ))
         return cam_cloud_pb2.VideoList(videos = video_list)
                              
+    '''
     # xzl: return res of a completed query. with images/score urls. w/o video url
     # for the client to display query results
     def get_video(self, request, context):
@@ -750,7 +849,8 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                                          images_url=images_url,
                                          camera=request.camera,
                                          object_name=object_name)
-
+    '''
+    
 def serve():    
     
     logger.info('Init camera service')
@@ -761,7 +861,7 @@ def serve():
     server.add_insecure_port(f'[::]:{CAMERA_CHANNEL_PORT}')
     server.start()
      
-    _StartUploaderIfDead()
+    # _StartUploaderIfDead()
     
     try:
         while True:
