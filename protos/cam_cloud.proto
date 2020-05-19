@@ -63,6 +63,8 @@ message QueryProgress {
   int64 n_frames_processed = 3;
   int64 n_frames_total = 4;  
   string status = 5; 
+  float ts_comp = 6; 
+  int64 n_frames_sent = 7;
 }
 
 message InitDivaRequest {

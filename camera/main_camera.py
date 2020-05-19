@@ -1,3 +1,5 @@
+#!/usr/bin/env python3.7
+
 import time
 import os
 import sys
@@ -31,6 +33,11 @@ import server_diva_pb2_grpc # for submitting frames
 
 from google.protobuf import empty_pb2
 
+# since 3.7
+# cf https://realpython.com/python-data-classes/#basic-data-classes
+from dataclasses import dataclass, field
+import typing 
+
 from variables import CAMERA_CHANNEL_PORT
 from variables import DIVA_CHANNEL_ADDRESS # for submitting frames
 from variables import  * # xzl
@@ -56,9 +63,11 @@ OP_BATCH_SZ = 16
 # the_op_dir = './result/ops'
 the_op_dir = './ops'
 
-FORMAT = '%(asctime)-15s %(levelname)8s %(thread)d %(threadName)s %(message)s'
+#FORMAT = '%(asctime)-15s %(levelname)8s %(thread)d %(threadName)s %(message)s'
+FORMAT = '%(levelname)8s %(thread)d %(threadName)s %(lineno)d %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
 logger = logging.getLogger(__name__)
+#logger = logging.getLogger()
 
 # coloredlogs.install(level='DEBUG')
 coloredlogs.install(level='DEBUG', logger=logger)
@@ -73,16 +82,28 @@ the_send_buf = []
 the_buf_lock = threading.Lock()
 the_cv = threading.Condition(the_buf_lock)
 
-
+# for tracking the current query 
+@dataclass
 class QueryInfo():
-    qid = -1    # current qid
-    crop = [-1,-1,-1,-1]
-    op_name = ""
-    op_fname = ""
-    img_dir = ""
-    video_name = ""
-    run_imgs = []  # maybe put a separate lock over this
-    
+    qid : int = -1    # current qid
+    crop : typing.List[int] = field(default_factory = lambda: [-1,-1,-1,-1])
+    op_name : str = ""
+    op_fname : str = ""
+    img_dir : str = ""
+    video_name : str = ""
+    run_imgs : typing.List[str] = field(default_factory = lambda: []) # maybe put a separate lock over this
+
+@dataclass 
+class QueryStat():
+    qid : int = -1    # current qid
+    video_name : str = ""
+    op_name : str = ""
+    crop : typing.List[int] = field(default_factory = lambda: [-1,-1,-1,-1])
+    status : str = "UNKNOWN"
+    n_frames_processed : int = 0
+    n_frames_sent : int = 0
+    n_frames_total : int = 0
+        
 # for the current query: all frames (metadata such as fullpaths etc) to be processed. 
 # workers will pull from here
 the_query_lock = threading.Lock()
@@ -175,7 +196,7 @@ class OP_WORKER(threading.Thread):
         return in_h, in_w
     
     def run(self):        
-        logger.info("op worker start running")
+        logger.warn(f"op worker start running id = {threading.get_ident()}")
         clog = ClockLog(5)  # xzl: in Mengwei's util
         
         with the_query_lock:
@@ -213,8 +234,8 @@ class OP_WORKER(threading.Thread):
                 sz_run_imgs = len(the_query.run_imgs)
                 
             if batch == 0: # we got nothing, clean up...
-                with the_query_lock:
-                    the_query.qid = -1
+                #with the_query_lock: # can't do this, as uploading may be ongoing
+                #    the_query.qid = -1
                 with the_stats_lock:
                     if the_stats[qid]['status'] != 'COMPLETED': # there may be other op workers            
                         the_stats[qid]['status'] = 'COMPLETED'       
@@ -255,96 +276,90 @@ class OP_WORKER(threading.Thread):
             #logger.info('Buf size: %d, total num: %d' %(sz,total))
 
 # a thread keep uploading images from the_send_buf to the server
-def thread_uploader():
-    logger.warn('uploader started')
-    
+def thread_uploader():    
+    logger.warn(f"------------ uploader start running id = {threading.get_ident()}")
+
     total_frames = 0
     
-    #while True:
-    try: 
-        server_channel = grpc.insecure_channel(DIVA_CHANNEL_ADDRESS)
-        server_stub = server_diva_pb2_grpc.server_divaStub(server_channel)    
-        
-        logger.warn('uploader: channel connected')
-        clog = ClockLog(5)  # xzl: in Mengwei's util
-        
-        while True: 
-            # logger.info("uploader: wait for op workers to produce a frame...")
-            '''
-            if ev_uploader_stop_req.is_set():
-                print("uploader: pausing. close channel..")
+    #try: 
+    
+    server_channel = grpc.insecure_channel(DIVA_CHANNEL_ADDRESS)
+    server_stub = server_diva_pb2_grpc.server_divaStub(server_channel)    
+    
+    logger.warn('uploader: channel connected')
+    clog = ClockLog(5)  # xzl: in Mengwei's util
+    
+    while True: 
+        # logger.info("uploader: wait for op workers to produce a frame...")
+                    
+        with the_cv: # auto grab lock
+            while (len(the_send_buf) == 0 and not the_uploader_stop_req):
+                the_cv.wait()
+            if (the_uploader_stop_req):
                 server_channel.close()
-                ev_uploader_stop_req.clear()
-                ev_uploader_resume_req.clear()            
-                ev_uploader_stop_done.set() # signal the main thread
-                print("uploader: paused. wait to resume...")
-                ev_uploader_resume_req.wait()
-                ev_uploader_resume_req.clear()
-                print("uploader: resume.")            
+                logger.warn('uploader: got a stop req. bye!')
+                return 
+            
+            send_frame = heapq.heappop(the_send_buf)[1]
+            # print ('uploader: Buf size: ', len(the_send_buf))
+        #f = open(os.path.join(the_img_dirprefix, send_frame['name']), 'rb')
+        f = open(send_frame['local_path'], 'rb')
+        
+        # assemble the request ...
+        # _height, _width, _chan = frame.shape # TODO: fill in with opencv2
+        _height, _width, _chan = 0, 0, 0
+        _img = common_pb2.Image(data=f.read(),
+                                height=_height,
+                                width=_width,
+                                channel=_chan)
+
+        req = common_pb2.DetFrameRequest(
+            image=_img,
+            name=send_frame['name'],
+            cam_score=send_frame['cam_score'],
+            cls = 'XXX', # TODO
+            qid = send_frame['qid']
+        )
+        
+        # logger.warn("uploader:about to submit one frame")
+        
+        # https://stackoverflow.com/a/7663441
+        for attempt in range (5): 
+            try: 
+                resp = server_stub.SubmitFrame(req)
+                #total_frames += 1                          
+            except Exception as e:
+                logger.error(e)
+                # reconnect 
+                server_channel.close()
+                time.sleep(1)
                 server_channel = grpc.insecure_channel(DIVA_CHANNEL_ADDRESS)
                 server_stub = server_diva_pb2_grpc.server_divaStub(server_channel)
-                print("uploader: channel up.")
-            '''
-                        
-            with the_cv: # auto grab lock
-                while (len(the_send_buf) == 0 and not the_uploader_stop_req):
-                    the_cv.wait()
-                if (the_uploader_stop_req):
-                    server_channel.close()
-                    logger.warn('uploader: got a stop req. bye!')
-                    return 
-                
-                send_frame = heapq.heappop(the_send_buf)[1]
-                # print ('uploader: Buf size: ', len(the_send_buf))
-            #f = open(os.path.join(the_img_dirprefix, send_frame['name']), 'rb')
-            f = open(send_frame['local_path'], 'rb')
-            
-            # assemble the request ...
-            # _height, _width, _chan = frame.shape # TODO: fill in with opencv2
-            _height, _width, _chan = 0, 0, 0
-            _img = common_pb2.Image(data=f.read(),
-                                    height=_height,
-                                    width=_width,
-                                    channel=_chan)
+            else:
+                total_frames += 1
+                with the_query_lock:
+                    qid = the_query.qid
+                    assert (qid >= 0)
+                with the_stats_lock:
+                    the_stats[qid]['n_frames_sent'] += 1 
+                if attempt > 0:
+                    logger.warn("------------- we've reconnected!--------")
+                break
+        else: 
+            logger.warn("we failed all attempts") 
+        # logger.warn("uploader:submitted one frame. server says " + resp.msg)
+                              
+        clog.print("uploader: sent %d frames since born" %(total_frames))
     
-            req = common_pb2.DetFrameRequest(
-                image=_img,
-                name=send_frame['name'],
-                cam_score=send_frame['cam_score'],
-                cls = 'XXX', # TODO
-                qid = send_frame['qid']
-            )
-            
-            # logger.warn("uploader:about to submit one frame")
-            
-            # https://stackoverflow.com/a/7663441
-            for _ in range (5): 
-                try: 
-                    resp = server_stub.SubmitFrame(req)
-                    #total_frames += 1                          
-                except Exception as e:
-                    logger.error(e)
-                    # reconnect 
-                    server_channel.close()
-                    time.sleep(1)
-                    server_channel = grpc.insecure_channel(DIVA_CHANNEL_ADDRESS)
-                    server_stub = server_diva_pb2_grpc.server_divaStub(server_channel)
-                else:
-                    total_frames += 1 
-                    break
-            else: 
-                logger.warn("we failed all attempts") 
-            # logger.warn("uploader:submitted one frame. server says " + resp.msg)
-                                  
-            clog.print("uploader: sent %d frames since born" %(total_frames))
-    except Exception as err:
-        logger.error(err)
-        logger.error("uploader: channel seems broken. bye!")
-        return
+    #except Exception as err:
+    #    print("exception is ", err)
+    #    logger.error("uploader: channel seems broken. bye!")
+    #    return
 
 the_uploader = None # threading.Thread(target=thread_uploader)
 the_op_worker = None # XXX can be multiple workers
  
+# make reentrant with locks?   
 def _GraceKillOpWorkers():
     global the_op_worker
     
@@ -575,6 +590,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                     'crop' : request.crop,
                     'status' : 'STARTED', 
                     'n_frames_processed' : 0,
+                    'n_frames_sent' : 0,
                     'n_frames_total' : ll
             }
 
@@ -600,7 +616,10 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                 
             with the_stats_lock:
                 the_stats.clear()
-                             
+
+            with the_buf_lock:  # no need to upload anything
+                the_send_buf.clear()
+                                
             # do not resume uploader/opworkers
             return cam_cloud_pb2.StrMsg(msg='OK')  
                 
@@ -641,10 +660,13 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                 n_frames_processed = the_stats[request.qid]['n_frames_processed']
                 n_frames_total = the_stats[request.qid]['n_frames_total']
                 status = the_stats[request.qid]['status']
+                ts_comp = the_stats[request.qid]['ts_comp']
+                n_frames_sent = the_stats[request.qid]['n_frames_sent']
                                         
         return cam_cloud_pb2.QueryProgress(qid = request.qid, 
                     video_name = the_query.video_name, # XXX lock
                     n_frames_processed = n_frames_processed,
+                    n_frames_sent = n_frames_processed,
                     n_frames_total = n_frames_total,
                     status = status)
 
@@ -854,7 +876,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
 def serve():    
     
     logger.info('Init camera service')
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
     diva_cam_servicer = DivaCameraServicer()
     cam_cloud_pb2_grpc.add_DivaCameraServicer_to_server(
         diva_cam_servicer, server)

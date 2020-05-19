@@ -96,8 +96,19 @@ def list_queries():
     else:
         table = tables.QueryList(queries)
         table.border = True
-        return render_template('videos.html', table=table)
-            
+        return render_template('queries.html', table=table)
+
+@app.route('/results/<int:qid>', methods=['GET'])        
+def query_results(qid):
+    results = cloud.query_results(qid)
+    
+    if not results:
+        return ("No results found")
+    else:
+        table = tables.QueryResultsList(results)
+        table.borader = True
+        return render_template('results.html', table=table, qid=qid)
+                
 # cf: "Variable Rules" in https://flask.palletsprojects.com/en/1.1.x/quickstart/        
 @app.route('/query/<videoname>', methods=['GET', 'POST'])
 def query(videoname):        
@@ -110,7 +121,7 @@ def query(videoname):
         form.artist.data = "aaa"
         return render_template('query.html', form=form)
     elif request.method == 'POST' and form.validate():        
-        print(form.artist.data) # debug...
+        # print(form.artist.data) # debug...
         # flash('Query submitted') # must require secret key...
         qid = query_submit(video_name = 'chaweng-1_10FPS', 
         op_name = 'random', crop = '-1,-1,-1,-1', target_class = 'motorbike')
@@ -118,6 +129,8 @@ def query(videoname):
     else:
         return 'Error'
         
+
+    
 # xzl: client asks to process a specific video & display results (where does "request" come from?)
 @app.route('/display', methods=['GET', 'POST'])
 def display():
@@ -241,6 +254,10 @@ def temp():
 #     return jsonify(coordinates)
 
 
+# xzl: it's crucial to have use_reloader=False otherwise the Werkzeug reloader
+# will exec the following __main__ twice, causing issues with grpc server.
+# cf. https://stackoverflow.com/questions/25504149/why-does-running-the-flask-dev-server-run-itself-twice/25504196
 if __name__ == '__main__':
-    _server = grpc_serve()
-    app.run('0.0.0.0', 10000)   # xzl: will block
+    logger.info("--------- flask server running --------------------")
+    _server = cloud.grpc_serve()    
+    app.run('0.0.0.0', 10000, use_reloader=False)   # xzl: will block

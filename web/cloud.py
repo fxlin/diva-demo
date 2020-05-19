@@ -6,7 +6,7 @@ xzl: the controller code (?)
 
 import os
 import sys
-import logging
+import logging, coloredlogs
 from concurrent import futures
 import time
 import threading
@@ -23,6 +23,8 @@ import cam_cloud_pb2_grpc
 import server_diva_pb2_grpc
 import common_pb2
 from google.protobuf import empty_pb2
+
+import traceback
 
 from util import ClockLog
 
@@ -62,6 +64,7 @@ FORMAT = '%(levelname)8s %(thread)d %(threadName)s %(message)s' # xzl: simpler
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format=FORMAT)
 logger = logging.getLogger(__name__)
  
+coloredlogs.install(level='DEBUG', logger=logger)
 
 class ImageDoesNotExistException(Exception):
     """Image does not exist"""
@@ -146,9 +149,11 @@ def query_progress(qid):
             'video_name' : resp.video_name, 
             'n_frames_processed_cam' : resp.n_frames_processed,
             'n_frames_total_cam' : resp.n_frames_total,
-            'status_cam' : resp.status}
+            'n_frames_sent_cam' : resp.n_frames_sent,
+            'status_cam' : resp.status,
+            'ts_comp_cam' : resp.ts_comp}
 
-# return:
+# return: a *single* query's results
 # {name: XXX, n_bboxes: XXX, high_confidence: XXX, [elements...]}
 # see SubmitFrame()            
 def query_results(qid, to_sort = True):
@@ -169,17 +174,7 @@ def query_submit(video_name, op_name, crop, target_class):
     with the_queries_lock:
         qid = len(the_queries)        
     
-    request = cam_cloud_pb2.QueryRequest(video_name = video_name, 
-        op_name = op_name, crop = crop, target_class = target_class, qid = qid)
-    
-    try:
-        camera_channel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
-        camera_stub = cam_cloud_pb2_grpc.DivaCameraStub(camera_channel)
-        resp = camera_stub.SubmitQuery(request)
-        camera_channel.close()
-    except Exception as err:
-        logger.warning(err)
-
+    # must do it before sending query out
     with the_queries_lock:
         the_queries[qid] = {
            'qid' : len(the_queries), 
@@ -192,8 +187,19 @@ def query_submit(video_name, op_name, crop, target_class):
            'target_class': target_class,
            'results' : [] # query results, a list of frames. see SubmitFrame() 
         }
+
+    request = cam_cloud_pb2.QueryRequest(video_name = video_name, 
+        op_name = op_name, crop = crop, target_class = target_class, qid = qid)
     
-    logger.info("submitted a query = {request}, id %d. camera says %s" %(qid, resp.msg))    
+    try:
+        camera_channel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
+        camera_stub = cam_cloud_pb2_grpc.DivaCameraStub(camera_channel)
+        resp = camera_stub.SubmitQuery(request)
+        camera_channel.close()
+    except Exception as err:
+        logger.warning(err)
+
+    logger.info("submitted a query, len(the_queries) %d qid %d. camera says %s" %(len(the_queries), qid, resp.msg))    
     return qid
 
 # will return a list of videos. to be called by web server
@@ -208,6 +214,7 @@ def list_videos_cam():
 
 
 # return a list of queries. to be called by web server
+# see query_submit for query metadata
 def list_queries_cloud():
     qid_list = []
     with the_queries_lock:
@@ -305,13 +312,27 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
         
     # recv a frame submitted from cam. parse it. 
     def SubmitFrame(self, request, context):
-        #logger.info("got a frame. id %s frame %d bytes" 
-        #            %(request.name, len(request.image.data)))
-                
+        global the_queries
+        
+        '''
+        logger.info("got a frame. name %s frame %d bytes" 
+                    %(request.name, len(request.image.data)))
+                                    
+        with the_queries_lock:
+            if (len(the_queries) == 0):
+                logger.error(f"submitframe1 bug??? - no queries  {len(the_queries)}")
+            else: 
+                logger.info(f"++++++ submitframe1 ok - {len(the_queries)}")
+        '''       
+
         # XXX: hardcoded qid = 0 handle multi query case. incr the actual query
         qid = request.qid
         with the_queries_lock:
-            the_queries[qid]['n_frames_recv_cam'] += 1
+            try: 
+                the_queries[qid]['n_frames_recv_cam'] += 1
+            except Exception as err:
+                logger.error(f"bug - no queries  {len(the_queries)}")
+                sys.exit(1)
         
         with the_queries_lock:
             target_class = the_queries[qid]['target_class']
@@ -339,7 +360,11 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
             the_queries[qid]['n_frames_processed_yolo'] +=1 
             if len(elements) > 0:
                 the_queries[qid]['n_frames_recv_yolo'] += 1
-                            
+
+        with the_queries_lock:
+            if (len(the_queries) == 0):
+                logger.error(f"submitframe2 bug??? - no queries  {len(the_queries)}")
+                                            
         return cam_cloud_pb2.StrMsg(msg='OK')
 
     # old
@@ -373,7 +398,9 @@ def grpc_serve():
         diva_servicer, server)
     server.add_insecure_port(f'[::]:{DIVA_CHANNEL_PORT}')
     server.start()
-    logger.info("GRPC server is runing")
+    logger.info("--------- cloud GRPC server is runing --------------------")
+
+    traceback.print_stack()
 
     return server
 
@@ -624,7 +651,7 @@ def console():
 if __name__ == '__main__':
 
     logger.info("test cloud controller")
-
+    
     _server = grpc_serve()
     # _server.wait_for_termination() # xzl: won't return. dont need. 
 

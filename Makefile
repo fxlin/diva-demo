@@ -46,6 +46,9 @@ setup-env: start-network
 	@echo "check if ${PERSISTENT_VOLUME} exists"
 	@[ ! -d "${PERSISTENT_VOLUME}" ] && mkdir -p "${PERSISTENT_VOLUME}"
 
+grpc: 
+	python3 -m grpc_tools.protoc -I protos --python_out=. --grpc_python_out=. protos/*
+	 
 run-cloud:
 	docker run --network=${NETWORK_NAME} -it -d -p ${CLOUD_SERVICE_PORT}:${CLOUD_SERVICE_PORT} --name cloud -v ${VIDEO_DATA_PATH}:${VIDEO_DATA_PATH_IN_CONTAINER}:ro -v ${PERSISTENT_VOLUME}:${CONTROLLER_SERVER_IMAGE_VOLUME} ${DOCKER_USERNAME}/diva-cloud:latest
 

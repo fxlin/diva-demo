@@ -23,8 +23,8 @@ virtualenv --system-site-packages -p python3 ./venv
 source ./venv/bin/activate
 pip3 list
 
-# cam has compat issue with latest tf2. see comments in main_camera there  
-pip3 install tensorflow-1.13.1 
+# ``cam'' has compat issue with latest tf2. see comments in main_camera there  
+pip3 install tensorflow==1.13.1 
 pip3 install pandas
 pip3 install opencv-python 
 pip3 install numpy \
@@ -33,6 +33,7 @@ opencv-python flask
 pip3 install pillow  # python image library
 pip install flask_table # for webserver to gen table
 pip install WTForms # for webserver to render forms
+pip install coloredlogs # easy tracing
 
 # python-yolov3 depends on resize() func absent in tf-1
 # in a separate virtualenv
