@@ -35,6 +35,7 @@ from google.protobuf import empty_pb2
 
 # since 3.7
 # cf https://realpython.com/python-data-classes/#basic-data-classes
+# https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html#built-in-types
 from dataclasses import dataclass, field
 import typing 
 
@@ -75,24 +76,26 @@ coloredlogs.install(level='DEBUG', logger=logger)
 # FIXME (xzl: unused?)
 # OP_FNAME_PATH = '/home/bryanjw01/workspace/test_data/source/chaweng-a3d16c61813043a2711ed3f5a646e4eb.hdf5'
 
-# TODO: use Python3's PriorityQueue
-# buf for outgoing frames. only holding image metadata (path, score, etc.)
-# out of which msgs for outgoing frames (including metadata) will be assembled 
-the_send_buf = []   
-the_buf_lock = threading.Lock()
-the_cv = threading.Condition(the_buf_lock)
+
 
 # for tracking the current query 
 @dataclass
 class QueryInfo():
-    qid : int = -1    # current qid
-    crop : typing.List[int] = field(default_factory = lambda: [-1,-1,-1,-1])
-    op_name : str = ""
-    op_fname : str = ""
-    img_dir : str = ""
-    video_name : str = ""
+    qid: int = -1    # current qid
+    crop: typing.List[int] = field(default_factory = lambda: [-1,-1,-1,-1])
+    op_name: str = ""
+    op_fname: str = ""
+    img_dir: str = ""
+    video_name: str = ""
     run_imgs : typing.List[str] = field(default_factory = lambda: []) # maybe put a separate lock over this
 
+@dataclass 
+class FrameInfo():
+    name: str
+    cam_score: float
+    local_path: str
+    qid: int
+        
 @dataclass 
 class QueryStat():
     qid : int = -1    # current qid
@@ -110,11 +113,18 @@ the_query_lock = threading.Lock()
 the_query = QueryInfo() 
 
 # queries ever executed
-the_stats = {}
+the_stats: typing.Dict[int, QueryStat] = {}
 the_stats_lock = threading.Lock()
 
-
 the_uploader_stop_req = 0
+
+# TODO: use Python3's PriorityQueue
+# buf for outgoing frames. only holding image metadata (path, score, etc.)
+# out of which msgs for outgoing frames (including metadata) will be assembled 
+#the_send_buf = []   
+the_send_buf: typing.List[FrameInfo] = []
+the_buf_lock = threading.Lock()
+the_cv = threading.Condition(the_buf_lock)
 
 '''
 ev_uploader_stop_req = threading.Event()
@@ -196,7 +206,7 @@ class OP_WORKER(threading.Thread):
         return in_h, in_w
     
     def run(self):        
-        logger.warn(f"op worker start running id = {threading.get_ident()}")
+        logger.warning(f"op worker start running id = {threading.get_ident()}")
         clog = ClockLog(5)  # xzl: in Mengwei's util
         
         with the_query_lock:
@@ -237,10 +247,10 @@ class OP_WORKER(threading.Thread):
                 #with the_query_lock: # can't do this, as uploading may be ongoing
                 #    the_query.qid = -1
                 with the_stats_lock:
-                    if the_stats[qid]['status'] != 'COMPLETED': # there may be other op workers            
-                        the_stats[qid]['status'] = 'COMPLETED'       
+                    if the_stats[qid].status != 'COMPLETED': # there may be other op workers            
+                        the_stats[qid].status = 'COMPLETED'       
                         # seconds since epoch. protobuf's timestamp types seem too complicated...             
-                        the_stats[qid]['ts_comp'] = time.time() # float                                                                                                                       
+                        the_stats[qid].ts_comp = time.time() # float                                                                                                                       
                 logger.info("opworker: nothing in run_imgs. bye!")
                 return 
                         
@@ -256,12 +266,12 @@ class OP_WORKER(threading.Thread):
                     heapq.heappush(the_send_buf, 
                         (-scores[i, 1] + random.uniform(0.00001, 0.00002), 
                          #imgs[i].split('/')[-1],    # tie breaker to prevent heapq from comparing the following dict 
-                            {
-                                'name': imgs[i].split('/')[-1],
-                                'cam_score': -scores[i, 1],
-                                'local_path': imgs[i],
-                                'qid': qid, 
-                            }
+                            FrameInfo(
+                                name=imgs[i].split('/')[-1],
+                                cam_score=-scores[i, 1],
+                                local_path=imgs[i],
+                                qid=qid
+                            ) 
                         )
                     )
                     sz_send_buf = len(the_send_buf)
@@ -269,7 +279,7 @@ class OP_WORKER(threading.Thread):
                 
             # self.n_frames_processed += OP_BATCH_SZ
             with the_stats_lock:
-                the_stats[qid]['n_frames_processed'] += batch                
+                the_stats[qid].n_frames_processed += batch                
                             
             clog.print('Op worker: send_buf size: %d frames (nb: OP_BATCH_SZ=%d), remaining : %d' 
                        %(sz_send_buf, OP_BATCH_SZ, sz_run_imgs))
@@ -277,7 +287,7 @@ class OP_WORKER(threading.Thread):
 
 # a thread keep uploading images from the_send_buf to the server
 def thread_uploader():    
-    logger.warn(f"------------ uploader start running id = {threading.get_ident()}")
+    logger.warning(f"------------ uploader start running id = {threading.get_ident()}")
 
     total_frames = 0
     
@@ -286,7 +296,7 @@ def thread_uploader():
     server_channel = grpc.insecure_channel(DIVA_CHANNEL_ADDRESS)
     server_stub = server_diva_pb2_grpc.server_divaStub(server_channel)    
     
-    logger.warn('uploader: channel connected')
+    logger.warning('uploader: channel connected')
     clog = ClockLog(5)  # xzl: in Mengwei's util
     
     while True: 
@@ -297,13 +307,13 @@ def thread_uploader():
                 the_cv.wait()
             if (the_uploader_stop_req):
                 server_channel.close()
-                logger.warn('uploader: got a stop req. bye!')
+                logger.warning('uploader: got a stop req. bye!')
                 return 
             
             send_frame = heapq.heappop(the_send_buf)[1]
             # print ('uploader: Buf size: ', len(the_send_buf))
         #f = open(os.path.join(the_img_dirprefix, send_frame['name']), 'rb')
-        f = open(send_frame['local_path'], 'rb')
+        f = open(send_frame.local_path, 'rb')
         
         # assemble the request ...
         # _height, _width, _chan = frame.shape # TODO: fill in with opencv2
@@ -315,13 +325,13 @@ def thread_uploader():
 
         req = common_pb2.DetFrameRequest(
             image=_img,
-            name=send_frame['name'],
-            cam_score=send_frame['cam_score'],
+            name=send_frame.name,
+            cam_score=send_frame.cam_score,
             cls = 'XXX', # TODO
-            qid = send_frame['qid']
+            qid = send_frame.qid
         )
         
-        # logger.warn("uploader:about to submit one frame")
+        # logger.warning("uploader:about to submit one frame")
         
         # https://stackoverflow.com/a/7663441
         for attempt in range (5): 
@@ -341,13 +351,13 @@ def thread_uploader():
                     qid = the_query.qid
                     assert (qid >= 0)
                 with the_stats_lock:
-                    the_stats[qid]['n_frames_sent'] += 1 
+                    the_stats[qid].n_frames_sent += 1 
                 if attempt > 0:
-                    logger.warn("------------- we've reconnected!--------")
+                    logger.warning("------------- we've reconnected!--------")
                 break
         else: 
-            logger.warn("we failed all attempts") 
-        # logger.warn("uploader:submitted one frame. server says " + resp.msg)
+            logger.warning("we failed all attempts") 
+        # logger.warning("uploader:submitted one frame. server says " + resp.msg)
                               
         clog.print("uploader: sent %d frames since born" %(total_frames))
     
@@ -551,7 +561,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         
         with the_stats_lock:
             if request.qid in the_stats:
-                logger.warn("qid exists")    
+                logger.warning("qid exists")    
                 return cam_cloud_pb2.StrMsg(msg='FAIL: qid exists')
     
         logger.info("stop op workers..")
@@ -583,7 +593,18 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
             
         # init stats 
         with the_stats_lock:
-            the_stats[request.qid] = {
+            the_stats[request.qid] = QueryStat(
+                    qid=request.qid,
+                    video_name=request.video_name,
+                    op_name=request.op_name,
+                    crop=request.crop,
+                    status='STARTED', 
+                    n_frames_processed=0,
+                    n_frames_sent=0,
+                    n_frames_total=ll                
+                )            
+            '''            
+            {
                     'qid' : request.qid,
                     'video_name' : request.video_name,
                     'op_name' : request.op_name,
@@ -593,7 +614,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                     'n_frames_sent' : 0,
                     'n_frames_total' : ll
             }
-
+            '''
         _StartOpWorkerIfDead()                            
         _StartUploaderIfDead()
             
@@ -656,6 +677,18 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         status = "UNKNOWN"
                                 
         with the_stats_lock:
+            if request.qid in the_stats:
+                return cam_cloud_pb2.QueryProgress(qid = request.qid, 
+                            video_name = the_query.video_name, # XXX lock
+                            n_frames_processed = the_stats[request.qid].n_frames_processed,
+                            n_frames_sent = the_stats[request.qid].n_frames_sent,
+                            n_frames_total = the_stats[request.qid].n_frames_total,
+                            status = the_stats[request.qid].status)
+            else:
+                return cam_cloud_pb2.QueryProgress(qid = -1)
+            
+        '''
+        with the_stats_lock:
             if request.qid in the_stats:            
                 n_frames_processed = the_stats[request.qid]['n_frames_processed']
                 n_frames_total = the_stats[request.qid]['n_frames_total']
@@ -669,7 +702,8 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                     n_frames_sent = n_frames_processed,
                     n_frames_total = n_frames_total,
                     status = status)
-
+        '''
+        
     '''        
     # OLD 
     # xzl: on receiving a req (webframework -> controller ->), asking for processing footage
