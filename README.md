@@ -35,8 +35,9 @@ pip install flask_table # for webserver to gen table
 pip install WTForms # for webserver to render forms
 pip install coloredlogs # easy tracing
 pip3 install grpcio-tools
+pip install zc.lockfile # to avoid multiple running instances
 
-# To run YOLO
+# the YOLO env...
 pip3 install tensorflow
 
 ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3_backbone.py

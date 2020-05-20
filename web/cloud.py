@@ -37,6 +37,8 @@ from variables import *  # xzl
 from dataclasses import dataclass, field
 import typing
 
+import zc.lockfile # detect& avoid multiple instances
+
 from constants.grpc_constant import INIT_DIVA_SUCCESS
 
 # from sqlalchemy.orm.exc import MultipleResultsFound
@@ -543,8 +545,18 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
 
         return empty_pb2.Empty()
 
+# https://raspberrypi.stackexchange.com/questions/22005/how-to-prevent-python-script-from-running-more-than-once
+the_instance_lock = None
 
 def grpc_serve():
+    global the_instance_lock
+    try:
+        the_instance_lock = zc.lockfile.LockFile('/tmp/diva-cloud')
+        logger.debug("grabbed diva lock")
+    except zc.lockfile.LockError:
+        logger.error("cannot lock file. are we running multiple instances?")
+        sys.exit(1)
+
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     diva_servicer = DivaGRPCServer()
     server_diva_pb2_grpc.add_server_divaServicer_to_server(
@@ -553,7 +565,7 @@ def grpc_serve():
     server.start()
     logger.info("--------- cloud GRPC server is runing --------------------")
 
-    traceback.print_stack()
+    # traceback.print_stack() # dbg
 
     return server
 

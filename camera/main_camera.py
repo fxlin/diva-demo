@@ -41,6 +41,8 @@ from google.protobuf import empty_pb2
 from dataclasses import dataclass, field
 import typing 
 
+import zc.lockfile # detect& avoid multiple instances
+
 from variables import CAMERA_CHANNEL_PORT
 from variables import DIVA_CHANNEL_ADDRESS # for submitting frames
 from variables import  * # xzl
@@ -957,10 +959,21 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                                          camera=request.camera,
                                          object_name=object_name)
     '''
-    
-def serve():    
-    
+
+# https://raspberrypi.stackexchange.com/questions/22005/how-to-prevent-python-script-from-running-more-than-once
+the_instance_lock = None
+
+def serve():
+    global the_instance_lock
     logger.info('Init camera service')
+    try:
+        the_instance_lock = zc.lockfile.LockFile('/tmp/diva-cam')
+        logger.debug("grabbed diva lock")
+    except zc.lockfile.LockError:
+        logger.error("cannot lock file. are we running multiple instances?")
+        sys.exit(1)
+
+
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
     diva_cam_servicer = DivaCameraServicer()
     cam_cloud_pb2_grpc.add_DivaCameraServicer_to_server(
