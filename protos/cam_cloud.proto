@@ -20,6 +20,8 @@ service DivaCamera {
     rpc GetQueryProgress (ControlQueryRequest) returns (QueryProgress) {}
     rpc ListVideos(google.protobuf.Empty) returns (VideoList) {};
     // rpc ListQueries(google.protobuf.Empty) returns (QueryList) {};
+    // xzl: return encoded image data eg jpg
+    rpc GetVideoFrame(GetVideoFrameRequest) returns (common.Image) {}; 
        
     rpc get_videos(google.protobuf.Empty) returns (common.get_videos_resp) {};
     rpc get_video(common.VideoRequest) returns (common.video_metadata) {};
@@ -75,6 +77,12 @@ message GetFrameRequest {
     string name = 1;
 }
 
+// xzl
+message GetVideoFrameRequest {
+    string video_name = 1;
+    int64 frame_id = 2; // has to be int (not str) which is our assumption
+}
+
 message Frame {
     string name = 1;
     bytes data = 2;
@@ -102,12 +110,14 @@ message VideoList {
 // cf: https://github.com/protocolbuffers/protobuf/blob/master/src/google/protobuf/timestamp.proto
 
 message VideoMetadata {
-    string name = 1; // name of the video, must be unique
+    string video_name = 1; // name of the video, must be unique
     int64 n_frames = 2; // how many frames
     int64 n_missing_frames = 3;
     int32 fps = 4; 
     google.protobuf.Timestamp start = 5; // optional
     google.protobuf.Timestamp end = 6; // optional
     google.protobuf.Duration duration = 7; // optional     
+    int64 frame_id_min = 8; 
+    int64 frame_id_max = 9;
 }
 

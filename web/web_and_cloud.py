@@ -14,7 +14,7 @@ import json
 import os
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 # import grpc-tools
-import requests
+#import requests
 
 import web.tables as tables
 import web.forms as forms
@@ -25,7 +25,9 @@ from .cloud import grpc_serve
 from .cloud import list_videos_cam
 from .cloud import query_submit
 
-OUTPUT_DIR = './result/retrieval_imgs/' # xzl: query results for the web server? 
+OUTPUT_DIR = './result/retrieval_imgs/' # xzl: query results for the web server?
+VIDEO_PREVIEW_DIR = '/video-preview'
+
 app = Flask(__name__, static_url_path='/static') # xzl: static contents of the website
 app.config['DEBUG'] = True
 
@@ -43,7 +45,7 @@ def hello():
 def index():
     return render_template('index.html')
 
-# xzl: return give files to the client. why /uploads?/
+# xzl: return given files to the client. why /uploads?/
 @app.route('/uploads/<path:filename>')
 def download_file(filename):
     return send_from_directory(OUTPUT_DIR, filename, as_attachment=True)
@@ -98,6 +100,21 @@ def list_queries():
         table.border = True
         return render_template('queries.html', table=table)
 
+@app.route('/query_pause',methods=['POST'])
+def query_pause():
+    msg = cloud.query_pause()
+    return msg
+
+@app.route('/query_resume',methods=['POST'])
+def query_resume():
+    msg = cloud.query_resume()
+    return msg
+    
+@app.route('/query_reset',methods=['POST'])
+def query_reset():
+    msg = cloud.query_reset()
+    return msg
+    
 @app.route('/results/<int:qid>', methods=['GET'])        
 def query_results(qid):
     results = cloud.query_results(qid)
@@ -128,9 +145,7 @@ def query(videoname):
         return f'Okay, {qid}'
     else:
         return 'Error'
-        
-
-    
+            
 # xzl: client asks to process a specific video & display results (where does "request" come from?)
 @app.route('/display', methods=['GET', 'POST'])
 def display():

@@ -7,7 +7,9 @@ CAMERA_CHANNEL_PORT = '10086'
 
 # xzl: the following addrs seem fine as they are containers on the same machine?
 #YOLO_CHANNEL_ADDRESS = 'yolo:10088'
-YOLO_CHANNEL_ADDRESS = '127.0.0.1:10088'
+#YOLO_CHANNEL_ADDRESS = '127.0.0.1:10088'
+YOLO_CHANNEL_ADDRESS = '128.46.76.161:10088'
+
 YOLO_CHANNEL_PORT = "10088"
 
 #DIVA_CHANNEL_ADDRESS = 'cloud:10090'
@@ -24,11 +26,12 @@ OP_DIR = 'result/ops'
 WEB_PICTURE_FOLDER = os.path.join('web', 'static', 'output')
 
 # CONTROLLER Folder that saves processed video frames
-CONTROLLER_VIDEO_DIRECTORY = os.path.join('web', 'static', 'video')
-CONTROLLER_PICTURE_DIRECTORY = os.path.join('web', 'static', 'output')
+# CONTROLLER_VIDEO_DIRECTORY = os.path.join('web', 'static', 'video')
+# CONTROLLER_PICTURE_DIRECTORY = os.path.join('web', 'static', 'output')
 
-RESULT_PATH = 'result'
-RESULT_IMAGE_PATH = os.path.join(RESULT_PATH, 'retrieval_imgs')
+CFG_RESULT_PATH = 'result'
+CFG_PREVIEW_PATH = 'preview'
+# RESULT_IMAGE_PATH = os.path.join(RESULT_PATH, 'retrieval_imgs') # unused?
 
 # FIXME
 FAKE_IMAGE_DIRECTOR_PATH = '/media/YOLO-RES-720P/jpg/lausanne-1'

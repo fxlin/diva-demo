@@ -9,7 +9,7 @@ https://flask-table.readthedocs.io/en/stable/#quick-start
 from flask_table import Table, Col, LinkCol
 
 class VideoList(Table):
-    name = Col('Name')
+    video_name = Col('Name')
     n_frames = Col('#Frames')
     n_missing_frames = Col('#MissingFrames')
     fps = Col('fps')
@@ -40,9 +40,9 @@ class QueryList(Table):
         
 # a list of all query results        
 class QueryResultsList(Table):
-    qid = Col('qid')
+#    qid = Col('qid')
     status = Col('status')
-    n_frames_recv_cam = Col('n_frames_recv_cam')
+    n_frames_recv_cam = Col('n_frames_sent_cam')
     n_frames_processed_cam = Col('n_frames_processed_cam')
     n_frames_recv_yolo = Col('n_frames_recv_yolo')
     n_frames_processed_yolo = Col('n_frames_processed_yolo')

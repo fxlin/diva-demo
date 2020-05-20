@@ -13,6 +13,7 @@ import threading
 from queue import Queue
 import cv2
 import copy
+import shutil
 import numpy as np
 
 import grpc
@@ -30,9 +31,11 @@ from util import ClockLog
 
 from variables import CAMERA_CHANNEL_ADDRESS, YOLO_CHANNEL_ADDRESS
 from variables import IMAGE_PATH, OP_FNAME_PATH
-from variables import DIVA_CHANNEL_PORT, CONTROLLER_VIDEO_DIRECTORY
-from variables import RESULT_IMAGE_PATH, CONTROLLER_PICTURE_DIRECTORY
-from variables import * #xzl
+from variables import DIVA_CHANNEL_PORT
+from variables import *  # xzl
+
+from dataclasses import dataclass, field
+import typing
 
 from constants.grpc_constant import INIT_DIVA_SUCCESS
 
@@ -59,29 +62,66 @@ image task: (image name, image data, bounding_boxes)
 TaskQueue = Queue(0)
 ImageQueue = Queue(10)
 
-#FORMAT = '%(asctime)-15s %(levelname)8s %(thread)d %(threadName)s %(message)s'
-FORMAT = '%(levelname)8s %(thread)d %(threadName)s %(message)s' # xzl: simpler
+'''
+%(pathname)s Full pathname of the source file where the logging call was issued(if available).
+%(filename)s Filename portion of pathname.
+%(module)s Module (name portion of filename).
+%(funcName)s Name of function containing the logging call.
+%(lineno)d Source line number where the logging call was issued (if available).
+'''
+# FOR'MAT = '%(asctime)-15s %(levelname)8s %(thread)d %(threadName)s %(message)s'
+#FORMAT = '%(levelname)8s %(thread)d %(threadName)s %(message)s'  # xzl: simpler
+FORMAT = '%(levelname)8s {%(module)s:%(lineno)d} %(thread)d %(threadName)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format=FORMAT)
 logger = logging.getLogger(__name__)
- 
-coloredlogs.install(level='DEBUG', logger=logger)
+
+coloredlogs.install(fmt=FORMAT, level='DEBUG', logger=logger)
+
 
 class ImageDoesNotExistException(Exception):
     """Image does not exist"""
     pass
 
 
+@dataclass
+class FrameResults():
+    name: str
+    elements: typing.Any  # from grpc resp
+    high_confidence: int = -1
+    n_bboxes: int = 0
+
+
 _CAMERA_STORAGE = {'jetson': {'host': CAMERA_CHANNEL_ADDRESS}}
 
+
+# the info of a query kept by the cloud
+@dataclass
+class QueryInfoCloud():
+    qid: int
+    status_cloud: str
+    status_cam: str
+    target_class: str
+    results: typing.List[FrameResults]
+    video_name: str = ""
+    ts_comp_cam: float = 0
+    n_frames_sent_cam: int = 0
+    n_frames_processed_cam: int = 0
+    n_frames_total_cam: int = 0
+    n_frames_recv_yolo: int = 0
+    n_frames_processed_yolo: int = 0
+
+
 # metadata of queries ever executed
-the_queries = {} # qid:query_metadata
+# the_queries = {} # qid:query_metadata
+the_queries: typing.Dict[int, QueryInfoCloud] = {}
 the_queries_lock = threading.Lock()
 
-# a query's results -- as a collection (simple) in the_queries[qid]? 
+
+# a query's results -- as a collection (simple) in the_queries[qid]?
 # web thread can have its own way to org/present/render it
- 
-#the_query_results = {} # qid: a priority queyue
-#$the_query_results_lock = threading.Lock()
+
+# the_query_results = {} # qid: a priority queyue
+# $the_query_results_lock = threading.Lock()
 
 # given query id
 # return: query info, None if no query exists
@@ -90,61 +130,154 @@ def query_status(qid):
         return None
     return the_queries[qid]
 
+# clean up a subdir (preview or results)
+# prefix=results,preview (full path); subdir=qid,video_name
+def _CleanStoredFrames(prefix:str, subdir:str):
+    if not os.path.exists(prefix):
+        os.mkdir(prefix)
+
+    path = os.path.join(prefix, subdir)
+    try:
+        if os.path.exists(path) and os.path.isdir(path):
+            shutil.rmtree(path)
+            logger.info(f"cleaned {path}")
+        elif not os.path.exists(path):
+            os.mkdir(path)
+        else:
+            logger.error(f'{path} exists but not a dir? abort')
+            sys.exit(1)
+    except Exception as err:
+        logger.error(err)
+
+# clean up any stale results for an upcoming query (qid)
+def clean_results_frames(qid:int):
+    _CleanStoredFrames(CFG_RESULT_PATH, f'{qid}')
+
+def clean_preview_frames(video_name:str):
+    _CleanStoredFrames(CFG_PREVIEW_PATH, video_name)
+
+# save a result frame. draw bboxes
+# @img is the image.data loaded from jpg file and passed over grpc
+# return: full path of the stored frame
+def _SaveResultFrame(request, elements) -> str:
+    qid = request.qid
+    img_data = request.image.data
+    raw_img = cv2.imdecode(np.fromstring(img_data, dtype=np.uint8), -1)
+
+    # render bboxes
+    for idx, ele in enumerate(elements):
+        x1, y1, x2, y2 = int(ele.x1), int(ele.y1), int(ele.x2), int(ele.y2)
+        cv2.rectangle(raw_img, (x1, y1), (x2, y2),
+                      (0, 255, 0), 3)
+        # print("draw--->", x1, y1, x2, y2)
+
+    frame_name = request.name
+    if not (frame_name.endswith('.jpg') or frame_name.endswith('.JPG')):
+        frame_name += '.jpg'
+    path = os.path.join(CFG_RESULT_PATH, f'{qid}', frame_name)
+
+    try:
+        cv2.imwrite(path, raw_img)
+    except Exception as err:
+        logger.error(err)
+        path = None
+
+    return path
+
+# sample @n_frames from the given video from the cam. save them locally
+def download_video_preview_frames(v:cam_cloud_pb2.VideoMetadata, n_frames:int):
+    delta = int((v.frame_id_max - v.frame_id_min) / n_frames)
+    assert(delta > 10)
+    for i in range(n_frames):
+        frameid = v.frame_id_min + delta * i
+        try:
+            print(f"get preview frame id {frameid}")
+            img = get_video_frame(v.video_name, frameid)
+            # get  again. save to local disk this time
+            save_video_frame(v.video_name, frameid, CFG_PREVIEW_PATH)
+            print(f'saved preview frame size is {len(img.data)}')
+        except Exception as err:
+            print(err)
+            sys.exit(1)
+
+
 # forget query res in mem. to be invoked by web
 def query_cleanup(qid):
     return
 
-def _query_control(qid, command):
+
+def _query_control(qid, command) -> str:
     if command not in CFG_QUERY_CMDS:
-        logger.error("unknown cmd %s" %command)
+        logger.error("unknown cmd %s" % command)
         return "FAILED"
-        
+
     try:
         camera_channel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
         camera_stub = cam_cloud_pb2_grpc.DivaCameraStub(camera_channel)
         resp = camera_stub.ControlQuery(
-            cam_cloud_pb2.ControlQueryRequest(qid = qid, command = command)
-            )
+            cam_cloud_pb2.ControlQueryRequest(qid=qid, command=command)
+        )
         camera_channel.close()
         return resp.msg
-    
+
     except Exception as err:
         logger.warning(err)
-    
+
+
 def query_abort(qid):
     msg = _query_control(qid, "ABORT")
     return msg
 
-def query_resume(qid):
-    msg = _query_control(qid, "RESUME")
-    return msg 
 
-def query_pause(qid):
-    msg = _query_control(qid, "PAUSE")
+def query_resume():
+    msg = _query_control(-1, "RESUME")
     return msg
+
+
+def query_pause():
+    msg = _query_control(-1, "PAUSE")
+    return msg
+
 
 def query_reset():
     msg = _query_control(-1, "RESET")
     return msg
 
-def query_progress(qid):
+
+def query_progress(qid: int) -> QueryInfoCloud:
     try:
         camera_channel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
         camera_stub = cam_cloud_pb2_grpc.DivaCameraStub(camera_channel)
         resp = camera_stub.GetQueryProgress(
-            cam_cloud_pb2.ControlQueryRequest(qid = qid) # overloaded
+            cam_cloud_pb2.ControlQueryRequest(qid=qid)  # overloaded
         )
         camera_channel.close()
     except Exception as err:
         logger.warning(err)
-        sys.exit(1)    
+        sys.exit(1)
 
-    # also update cloud's query metadata    
+        # also update cloud's query metadata
     with the_queries_lock:
-        the_queries[resp.qid]['n_frames_processed_cam'] = resp.n_frames_processed
-        the_queries[resp.qid]['n_frames_total_cam'] = resp.n_frames_total
-        the_queries[resp.qid]['status_cam'] = resp.status
-        
+        the_queries[resp.qid].n_frames_processed_cam = resp.n_frames_processed
+        the_queries[resp.qid].n_frames_sent_cam = resp.n_frames_sent
+        the_queries[resp.qid].n_frames_total_cam = resp.n_frames_total
+        the_queries[resp.qid].status_cam = resp.status
+        the_queries[resp.qid].ts_comp_cam = resp.ts_comp
+        return copy.deepcopy(the_queries[resp.qid])
+
+    '''
+    return QueryInfoCloud(
+            qid = resp.qid,
+            video_name = resp.video_name, 
+            n_frames_processed_cam= resp.n_frames_processed,
+            n_frames_total_cam= resp.n_frames_total,
+            n_frames_sent_cam= resp.n_frames_sent,
+            status_cam= resp.status,
+            ts_comp_cam= resp.ts_comp        
+        )
+    '''
+
+    '''
     return {'qid' : resp.qid, 
             'video_name' : resp.video_name, 
             'n_frames_processed_cam' : resp.n_frames_processed,
@@ -152,45 +285,47 @@ def query_progress(qid):
             'n_frames_sent_cam' : resp.n_frames_sent,
             'status_cam' : resp.status,
             'ts_comp_cam' : resp.ts_comp}
+    '''
+
 
 # return: a *single* query's results
 # {name: XXX, n_bboxes: XXX, high_confidence: XXX, [elements...]}
 # see SubmitFrame()            
-def query_results(qid, to_sort = True):
-    res = []
+def query_results(qid, to_sort=True) -> typing.List[FrameResults]:
+    res: typing.List[FrameResults] = []
+
     with the_queries_lock:
         if not qid in the_queries:
-            return None 
-        res = copy.deepcopy(the_queries[qid]['results'])
-        
-    res.sort(key=lambda s: -s['high_confidence'])  # descending order
-    return res 
-    
-# nonblocking. will auto fill request.qid. return: qid
-def query_submit(video_name, op_name, crop, target_class):
+            return None
+        res = copy.deepcopy(the_queries[qid].results)
+
+    res.sort(key=lambda s: -s.high_confidence)  # descending order
+    return res
+
+
+# nonblocking. will auto fill request.qid. return: qid. -1 if failed
+# on failure: perhaps should negotiation a qid
+def query_submit(video_name: str, op_name: str, crop, target_class: str) -> int:
     global the_queries
 
     # auto assign qid
     with the_queries_lock:
-        qid = len(the_queries)        
-    
-    # must do it before sending query out
-    with the_queries_lock:
-        the_queries[qid] = {
-           'qid' : len(the_queries), 
-           'status_cloud' : 'SUBMITTED', 
-           'status_cam' : 'UNKNOWN',
-           'n_frames_recv_cam' : 0, 
-           'n_frames_processed_cam' : 0,
-           'n_frames_recv_yolo': 0,
-           'n_frames_processed_yolo': 0,
-           'target_class': target_class,
-           'results' : [] # query results, a list of frames. see SubmitFrame() 
-        }
+        qid = len(the_queries)
 
-    request = cam_cloud_pb2.QueryRequest(video_name = video_name, 
-        op_name = op_name, crop = crop, target_class = target_class, qid = qid)
-    
+    # init the query ... must do it before sending query out
+    with the_queries_lock:
+
+        the_queries[qid] = QueryInfoCloud(
+            qid=qid,
+            status_cloud='SUBMITTED', status_cam='UNKNOWN',
+            target_class=target_class, results=[]
+        )
+
+    clean_results_frames(qid)
+
+    request = cam_cloud_pb2.QueryRequest(video_name=video_name,
+                                         op_name=op_name, crop=crop, target_class=target_class, qid=qid)
+
     try:
         camera_channel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
         camera_stub = cam_cloud_pb2_grpc.DivaCameraStub(camera_channel)
@@ -199,45 +334,79 @@ def query_submit(video_name, op_name, crop, target_class):
     except Exception as err:
         logger.warning(err)
 
-    logger.info("submitted a query, len(the_queries) %d qid %d. camera says %s" %(len(the_queries), qid, resp.msg))    
-    return qid
+    logger.info("submitted a query, len(the_queries) %d qid %d. camera says %s" % (len(the_queries), qid, resp.msg))
+    if not resp.msg.startswith('OK'):
+        return -1
+    else:
+        return qid
 
 # will return a list of videos. to be called by web server
-def list_videos_cam():
+def list_videos_cam() -> cam_cloud_pb2.VideoList:
     camChannel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
     camStub = cam_cloud_pb2_grpc.DivaCameraStub(camChannel)
     resp = camStub.ListVideos(empty_pb2.Empty())
-         
+
     # note: won't print out fields w value 0        
-    print("get video list from camera:", resp)
-    return resp.videos   
+    print("get video list from camera: ---> ")
+    return resp.videos
 
 
 # return a list of queries. to be called by web server
 # see query_submit for query metadata
-def list_queries_cloud():
+def list_queries_cloud() -> typing.List[QueryInfoCloud]:
     qid_list = []
     with the_queries_lock:
         for qid, _ in the_queries.items():
             qid_list.append(qid)
-            
-    for qid in qid_list: 
+
+    for qid in qid_list:
+        assert (qid >= 0)
         query_progress(qid)
-                    
-    query_list = []
+
+    query_list: typing.List[QueryInfoCloud] = []
     with the_queries_lock:
         for id, q in the_queries.items():
             query_list.append(copy.deepcopy(q))
         return query_list
-        
+
+
+def get_video_frame(video_name: str, frame_id: int) -> common_pb2.Image:
+    camChannel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
+    camStub = cam_cloud_pb2_grpc.DivaCameraStub(camChannel)
+    resp = camStub.GetVideoFrame(cam_cloud_pb2.GetVideoFrameRequest(video_name=video_name, frame_id=frame_id))
+
+    return resp
+
+# get a video frame from cam, save to a local file under prefix/video_name/frame_id.jpg
+def save_video_frame(video_name: str, frame_id: int, prefix: str):
+    img = get_video_frame(video_name = video_name, frame_id = frame_id)
+    videodir = os.path.join(prefix, video_name)
+    if not os.path.isdir(videodir):
+        try:
+            os.mkdir(videodir)
+        except Exception as err:
+            print(err)
+            sys.exit(1)
+
+    frame_path = os.path.join(videodir, f'{frame_id}.jpg')
+    try:
+        # don't know how many leading 0s...
+        with open(frame_path, 'wb') as f:
+            f.write(img.data)
+    except Exception as err:
+        print("cannot write to file", err)
+    else:
+        logger.info(f"written to {frame_path}")
+
 class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
     """
     Implement server_divaServicer of gRPC
     """
+
     def __init__(self):
         server_diva_pb2_grpc.server_divaServicer.__init__(self)
         self.clog = ClockLog(5)  # max every 5 sec 
-        
+
     # xzl: proxy req ("get metadata of all stored videos") from client to cam
     def get_videos(self, request, context):
         resp = []
@@ -281,39 +450,21 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
     def InvokeYolo(self, img_msg, target_class, threshold=0.3):
         channel = grpc.insecure_channel(YOLO_CHANNEL_ADDRESS)
         stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(channel)
-                            
+
         req = det_yolov3_pb2.DetectionRequest(
-                            image=img_msg,
-                            name='',
-                            threshold=threshold,
-                            targets=[target_class])
-            
-        resp = stub.Detect(req)     
+            image=img_msg,
+            name='',
+            threshold=threshold,
+            targets=[target_class])
+
+        resp = stub.Detect(req)
         # print ('client received: ', resp)    
         return resp.elements
-        
-    
-    # optionally, render bboxes
-    # 
-    # @img is the image.data loaded from jpg file and passed over grpc
-    def StoreResultFrame(self, request, elements):
-        qid = request.qid
-        frame_name = request.name
-        img_data = request.image.data
-        raw_img = cv2.imdecode(np.fromstring(img_data, dtype=np.uint8), -1)
-        
-        for idx, ele in enumerate(elements):    
-            x1, y1, x2, y2 = int(ele.x1), int(ele.y1), int(ele.x2), int(ele.y2)    
-            cv2.rectangle(raw_img, (x1, y1), (x2, y2),
-                                  (0, 255, 0), 3)        
-            # print("draw--->", x1, y1, x2, y2)
-        cv2.imwrite("/data/diva-fork/tmp/%s.jpg" %request.name, raw_img)
-                
-        
+
     # recv a frame submitted from cam. parse it. 
     def SubmitFrame(self, request, context):
         global the_queries
-        
+
         '''
         logger.info("got a frame. name %s frame %d bytes" 
                     %(request.name, len(request.image.data)))
@@ -323,55 +474,57 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
                 logger.error(f"submitframe1 bug??? - no queries  {len(the_queries)}")
             else: 
                 logger.info(f"++++++ submitframe1 ok - {len(the_queries)}")
-        '''       
+        '''
 
-        # XXX: hardcoded qid = 0 handle multi query case. incr the actual query
         qid = request.qid
         with the_queries_lock:
-            try: 
-                the_queries[qid]['n_frames_recv_cam'] += 1
+            try:
+                the_queries[qid].n_frames_sent_cam += 1
+                target_class = the_queries[qid].target_class
             except Exception as err:
-                logger.error(f"bug - no queries  {len(the_queries)}")
+                logger.error(f"bug - cloud has no such a query  {len(the_queries)}")
                 sys.exit(1)
-        
-        with the_queries_lock:
-            target_class = the_queries[qid]['target_class']
-                    
-        # invoke YOLOV3 ... sync    
-        elements = self.InvokeYolo(img_msg = request.image, target_class = target_class)
-        
-        if len(elements) > 0:
-            self.StoreResultFrame(request, elements)
-            
-            frame_res = {'name' : request.name, 
-                        'high_confidence' : -1,
-                         'n_bboxes' : len(elements),
-                         'elements' : elements
-                        }            
-            for idx, ele in enumerate(elements):
-                if ele.confidence > frame_res['high_confidence']:
-                    frame_res['high_confidence'] = ele.confidence
-                    
-            with the_queries_lock:
-                the_queries[qid]['results'].append(frame_res)
-                
-        # todo: add det res to a d/s shared w/ web thread, including frame name, etc.         
-        with the_queries_lock:
-            the_queries[qid]['n_frames_processed_yolo'] +=1 
-            if len(elements) > 0:
-                the_queries[qid]['n_frames_recv_yolo'] += 1
 
+        #logger.info("======= invoking yolo.....")
+        elements = self.InvokeYolo(img_msg=request.image, target_class=target_class)
+        #logger.info("+++++++  yolo returns .....")
+
+        if len(elements) > 0:
+            saved = _SaveResultFrame(request, elements) # save the frame locally
+            logger.info("res frame saved to " + saved)
+
+            # keep metadata in mem
+            frame_res = FrameResults(name=request.name,
+                                     n_bboxes=len(elements), elements=elements)
+
+            for idx, ele in enumerate(elements):
+                if ele.confidence > frame_res.high_confidence:
+                    frame_res.high_confidence = ele.confidence
+
+            with the_queries_lock:
+                the_queries[qid].results.append(frame_res)
+
+        # update stats
+        n_proc = 0
+        with the_queries_lock:
+            the_queries[qid].n_frames_processed_yolo += 1
+            n_proc = the_queries[qid].n_frames_processed_yolo
+            if len(elements) > 0:
+                the_queries[qid].n_frames_recv_yolo += 1
+
+        '''
         with the_queries_lock:
             if (len(the_queries) == 0):
                 logger.error(f"submitframe2 bug??? - no queries  {len(the_queries)}")
-                                            
-        return cam_cloud_pb2.StrMsg(msg='OK')
+        '''
+
+        return cam_cloud_pb2.StrMsg(msg=f'OK frame {n_proc}')
 
     # old
     # xzl: proxy req ("process video footage") from client to cam. blocking until completion
     def process_video(self, request, context):
         logger.info("process_video")
-        
+
         req_camera = request.camera
         new_req_payload = common_pb2.VideoRequest(
             timestamp=request.timestamp,
@@ -389,7 +542,7 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
             logger.warning(err)
 
         return empty_pb2.Empty()
-        
+
 
 def grpc_serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
@@ -404,6 +557,7 @@ def grpc_serve():
 
     return server
 
+
 # xzl: unused?
 def draw_box(img, x1, y1, x2, y2):
     rw = float(img.shape[1]) / DET_SIZE
@@ -412,6 +566,7 @@ def draw_box(img, x1, y1, x2, y2):
     y1, y2 = int(y1 * rh), int(y2 * rh)
     cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 0), 2)
     return img
+
 
 # xzl: unused?
 def deploy_operator_on_camera(operator_path: str,
@@ -428,6 +583,7 @@ def deploy_operator_on_camera(operator_path: str,
     camStub.DeployOpNotify(
         cam_cloud_pb2.DeployOpRequest(name='random', crop=CROP_SPEC))
 
+'''
 # xzl: unused?
 def process_frame(img_name: str, img_data, det_res):
     """
@@ -452,6 +608,7 @@ def process_frame(img_name: str, img_data, det_res):
 
     img_fname = os.path.join(RESULT_IMAGE_PATH, img_name)
     cv2.imwrite(img_fname, img)
+
 
 # xzl: unused?
 def runDiva():
@@ -496,54 +653,55 @@ def runDiva():
 
     camChannel.close()
     yoloChannel.close()
-
+'''
 
 # test funcs with cam
 def test_cam():
     req = cam_cloud_pb2.QueryRequest()
-    
-    qid = query_submit(video_name = 'chaweng-1_10FPS', 
-        op_name = 'random', crop = '-1,-1,-1,-1', target_class = 'motorbike')
-    
+
+    qid = query_submit(video_name='chaweng-1_10FPS',
+                       op_name='random', crop='-1,-1,-1,-1', target_class='motorbike')
+
     time.sleep(10)
-    
+
     with the_queries_lock:
-        n_frames_recv_cam = the_queries[qid]['n_frames_recv_cam']        
-    logger.info("received %d frames from cam. now pause query." %n_frames_recv_cam)
-    
+        n_frames_sent_cam = the_queries[qid].n_frames_sent_cam
+    logger.info("received %d frames from cam. now pause query." % n_frames_sent_cam)
+
     query_pause(qid)
     time.sleep(10)
-    
-    print (query_progress(qid))
-    
-    query_resume(qid)
+
+    print(query_progress(qid))
+
+    query_resume()
     time.sleep(10)
-    
+
     with the_queries_lock:
-        n_frames_recv_cam = the_queries[qid]['n_frames_recv_cam']        
-    logger.info("received %d frames from cam." %n_frames_recv_cam)
+        n_frames_sent_cam = the_queries[qid].n_frames_sent_cam
+    logger.info("received %d frames from cam." % n_frames_sent_cam)
 
     print(list_queries_cloud)
-  
+
+
 # invoke yolo over grpc 
 # cf: testYOLO() in mengwei's main_cloud.py
 def test_yolo():
     channel = grpc.insecure_channel(YOLO_CHANNEL_ADDRESS)
     stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(channel)
     f = open('/data/hybridvs-demo/tensorflow-yolov3/data/demo_data/dog.jpg', 'rb')
-    
+
     _img = common_pb2.Image(data=f.read(),
                             height=0,
                             width=0,
-                            channel=0)        
+                            channel=0)
     req = det_yolov3_pb2.DetectionRequest(
-                        image=_img,
-                        name='dog.jpg',
-                        threshold=0.3,
-                        targets=['dog'])    
-    resp = stub.Detect(req) 
-    
-    print ('client received: ', resp)
+        image=_img,
+        name='dog.jpg',
+        threshold=0.3,
+        targets=['dog'])
+    resp = stub.Detect(req)
+
+    print('client received: ', resp)
 
     '''
     exist_target = False
@@ -576,18 +734,34 @@ def test_yolo():
         cv2.imwrite(img_path, frame)
         score_obj[str(counter)] = temp_score_map
     '''
-         
-def test_list_videos():
 
+
+def test_list_videos():
+    '''
     camChannel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
     camStub = cam_cloud_pb2_grpc.DivaCameraStub(camChannel)
     resp = camStub.ListVideos(empty_pb2.Empty())
          
     # note: won't print out fields w value 0        
     print("get video list from camera:", resp)
-    for r in resp.videos:
-        print(r.n_missing_frames)
+    '''
+    videos = list_videos_cam()
 
+    for r in videos:
+        print(r.video_name, r.n_missing_frames, r.frame_id_min, r.frame_id_max)
+        for _ in range(3):
+            # frameid = random.randint(r.frame_id_min, r.frame_id_max)
+            frameid = int((r.frame_id_min + r.frame_id_max) / 2)
+            print(f"Get frame id {frameid}")
+            img = get_video_frame(r.video_name, frameid)
+            print(f'frame size is {len(img.data)}')
+            # get  again. save to local disk this time
+            save_video_frame(r.video_name, frameid, '/tmp')
+
+    # test save
+    for v in videos:
+        clean_preview_frames(v.video_name)
+        download_video_preview_frames(v, 5)
 
 def console():
     while True:
@@ -600,67 +774,68 @@ def console():
         '''
         ss = input(msg)
         s = ss.split()
-        
-        if len(s) < 1: 
+
+        if len(s) < 1:
             continue
-        if s[0] =='lv':
-            resp = list_videos_cam()
-            print(resp)
+        if s[0] == 'lv':
+            test_list_videos()
         elif s[0] == 'lq':
             resp = list_queries_cloud()
             print(resp)
         elif s[0] == 'progress':
             if len(s) < 2:
-                print("need qid") 
-                continue            
+                print("need qid")
+                continue
             resp = query_progress(int(s[1]))
             print(resp)
         elif s[0] == 'pause':
-            if len(s) < 2:
-                print("need qid") 
-                continue
-            resp = query_pause(int(s[1]))
+            resp = query_pause()
             print(resp)
         elif s[0] == 'results':
             if len(s) < 2:
-                print("need qid") 
+                print("need qid")
                 continue
             resp = query_results(int(s[1]))
-            if not resp: 
+            if not resp:
                 print("no results. bad qid?")
-            else: 
+            else:
                 print("query results:")
                 for r in resp:
-                    print(f"{r['name']} {r['n_bboxes']} {r['high_confidence']}")
+                    print(f"{r.name} {r.n_bboxes} {r.high_confidence}")
         elif s[0] == 'resume':
-            if len(s) < 2:
-                print("need qid") 
-                continue            
-            resp = query_resume(int(s[1]))
-            print(resp)            
+            resp = query_resume()
+            print(resp)
         elif s[0] == 'query':
-            resp = query_submit(video_name = 'chaweng-1_10FPS', 
-                op_name = 'random', crop = '-1,-1,-1,-1', target_class = 'motorbike')
+            resp = query_submit(video_name='chaweng-1_10FPS',
+                                op_name='random', crop='-1,-1,-1,-1', target_class='motorbike')
             print('qid:', resp)
         elif s[0] == 'reset':
             resp = query_reset()
             print(resp)
+        elif s[0] == 'yolo':
+            test_yolo()
+        elif s[0] == 'log': # test logging facility
+            logger.debug("This is a debug log")
+            logger.info("This is an info log")
+            logger.critical("This is critical")
+            logger.error("An error occurred")
         else:
-             print("unknown cmd")    
-                                        
+            print("unknown cmd")
+
+
 if __name__ == '__main__':
 
     logger.info("test cloud controller")
-    
+
     _server = grpc_serve()
     # _server.wait_for_termination() # xzl: won't return. dont need. 
 
-    #test_cam()
-    #test_yolo()
-    #test_list_videos()
-    
+    # test_cam()
+    # test_yolo()
+    # test_list_videos()
+
     console()
-    
+
     try:
         while True:
             time.sleep(60 * 60 * 24)

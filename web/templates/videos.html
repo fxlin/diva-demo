@@ -1,3 +1,12 @@
 <document html>
 <title> A list of videos </title>
 {{ table }}
+
+
+<section class="row">
+  {% for image in images %}
+    <section class="col-md-4 col-sm-6" style="background-color: green;">
+      <img src="{{ url_for('static', filename='capture_image/' + image) }}">
+    </section>
+  {% endfor %}
+</section>

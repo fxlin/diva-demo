@@ -2,6 +2,8 @@
 
 import time
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # not working?
+
 import sys
 import json
 import cv2
@@ -65,13 +67,12 @@ OP_BATCH_SZ = 16
 the_op_dir = './ops'
 
 #FORMAT = '%(asctime)-15s %(levelname)8s %(thread)d %(threadName)s %(message)s'
-FORMAT = '%(levelname)8s %(thread)d %(threadName)s %(lineno)d %(message)s'
+#FORMAT = '%(levelname)8s %(thread)d %(threadName)s %(lineno)d %(message)s'
+FORMAT = '%(levelname)8s {%(module)s:%(lineno)d} %(thread)d %(threadName)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
 logger = logging.getLogger(__name__)
-#logger = logging.getLogger()
 
-# coloredlogs.install(level='DEBUG')
-coloredlogs.install(level='DEBUG', logger=logger)
+coloredlogs.install(fmt=FORMAT, level='DEBUG', logger=logger)
 
 # FIXME (xzl: unused?)
 # OP_FNAME_PATH = '/home/bryanjw01/workspace/test_data/source/chaweng-a3d16c61813043a2711ed3f5a646e4eb.hdf5'
@@ -291,8 +292,7 @@ def thread_uploader():
 
     total_frames = 0
     
-    #try: 
-    
+    #try:
     server_channel = grpc.insecure_channel(DIVA_CHANNEL_ADDRESS)
     server_stub = server_diva_pb2_grpc.server_divaStub(server_channel)    
     
@@ -346,6 +346,7 @@ def thread_uploader():
                 server_channel = grpc.insecure_channel(DIVA_CHANNEL_ADDRESS)
                 server_stub = server_diva_pb2_grpc.server_divaStub(server_channel)
             else:
+                logger.info("cloud accepts frame saying:" + resp.msg)
                 total_frames += 1
                 with the_query_lock:
                     qid = the_query.qid
@@ -544,13 +545,13 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         self.cur_op_data = bytearray(b'')
 
         _StartOpWorkerIfDead()  # will reload ops, etc.        
-        return cam_cloud_pb2.StrMsg(msg='OK')
+        return cam_cloud_pb2.StrMsg(msg='OK DeployOpNotify')
 
     # xzl: keep receiving op (a chunk of data) from cloud. 
     def DeployOp(self, request, context):
         self.cur_op_data += request.data
         # print ('XXX', len(request.data))
-        return cam_cloud_pb2.StrMsg(msg='OK')
+        return cam_cloud_pb2.StrMsg(msg='OK DeployOp')
         
     # got a query from the cloud. run it
     def SubmitQuery(self, request, context):
@@ -561,19 +562,21 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         
         with the_stats_lock:
             if request.qid in the_stats:
-                logger.warning("qid exists")    
-                return cam_cloud_pb2.StrMsg(msg='FAIL: qid exists')
-    
+                qids = the_stats.keys()
+                logger.warning(f"qid exists. existing: {qids}")
+                return cam_cloud_pb2.StrMsg(msg=f'FAIL: qid {request.qid} exists. suggested={max(qids)+1}')
+
+        _GraceKillUploader()
         logger.info("stop op workers..")
-        print("stop op workers")
-        # stop op workers
         _GraceKillOpWorkers()
         logger.info("op workers stopped")
-       
-        _GraceKillUploader()
-       
+
+        with the_buf_lock:  # no need to upload anything
+            the_send_buf.clear()
+
+        # set up the new query info
         with the_query_lock:            
-            the_query = QueryInfo() # wipe clean all old query info
+            the_query = QueryInfo() # wipe clean the current query info
             the_query.qid = request.qid
             the_query.crop = [int(x) for x in request.crop.split(',')]
             the_query.op_name = request.op_name
@@ -620,14 +623,21 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
             
         return cam_cloud_pb2.StrMsg(msg='OK: recvd query')
                                     
-    # got a cmd for controlling an ongoing query. exec it
+    # got a cmd for controlling the CURRENT query
     def ControlQuery(self, request, context):
         global the_query
         
         logger.info("got a query cmd qid %d cmd %s" 
                     %(request.qid, request.command))
-        
-        # commands w/o qid 
+                 
+               
+        with the_query_lock: 
+            '''
+            if (request.qid != the_query.qid):
+                return cam_cloud_pb2.StrMsg(msg=f'FAIL req qid {request.qid} != query qid {the_query.qid}')
+            '''
+            qid = the_query.qid
+                             
         if request.command == "RESET": # meaning clean up all query stats, etc.
             _GraceKillUploader()
             _GraceKillOpWorkers()
@@ -642,32 +652,33 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                 the_send_buf.clear()
                                 
             # do not resume uploader/opworkers
-            return cam_cloud_pb2.StrMsg(msg='OK')  
-                
-        # commands w/ qid. only can control the current query
-        with the_query_lock: 
-            if (request.qid != the_query.qid):
-                return cam_cloud_pb2.StrMsg(msg=f'FAIL req qid {request.qid} != query qid {the_query.qid}')
-                
+            return cam_cloud_pb2.StrMsg(msg='OK cam reset')  
+            
+        if qid == -1:
+            return cam_cloud_pb2.StrMsg(msg='FAIL: current qid == -1')
+                                                    
         if request.command == "PAUSE":
             # kill uploader/opworkers but retain query state & states
             _GraceKillUploader() 
             _GraceKillOpWorkers()        
-            return cam_cloud_pb2.StrMsg(msg='OK')
+            return cam_cloud_pb2.StrMsg(msg=f'OK query {qid} paused')
         elif request.command == "RESUME":
-            with the_query_lock:
-                if the_query.qid < 0:                 
-                    return cam_cloud_pb2.StrMsg(msg='FAIL: no active query')
-            
             _StartUploaderIfDead()
             _StartOpWorkerIfDead()
-            return cam_cloud_pb2.StrMsg(msg='OK') 
+            return cam_cloud_pb2.StrMsg(msg=f'OK query {qid} resumed') 
         elif request.command == "STOP":
             # TODO: implement
             return cam_cloud_pb2.StrMsg(msg='FAIL')
         else:
             logger.error("unknown cmd")
             return cam_cloud_pb2.StrMsg(msg='FAIL')
+
+        '''        
+        # commands w/ qid. only can control the current query
+        with the_query_lock: 
+            if (request.qid != the_query.qid):
+                return cam_cloud_pb2.StrMsg(msg=f'FAIL req qid {request.qid} != query qid {the_query.qid}')
+        '''
     
     def GetQueryProgress(self, request, context):
         logger.info("GetQueryProgress qid %d" %(request.qid))
@@ -685,7 +696,8 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                             n_frames_total = the_stats[request.qid].n_frames_total,
                             status = the_stats[request.qid].status)
             else:
-                return cam_cloud_pb2.QueryProgress(qid = -1)
+                return cam_cloud_pb2.QueryProgress(qid = request.qid, 
+                                                   status = 'NONEXISTING')
             
         '''
         with the_stats_lock:
@@ -840,7 +852,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
     # https://developers.google.com/protocol-buffers/docs/reference/python-generated#wkt
     # https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.util.time_util
     
-    def ListVideos(selfelf, request, context):
+    def ListVideos(self, request, context):
         video_name_list = [o for o in os.listdir(the_img_dirprefix) 
                          if os.path.isdir(os.path.join(the_img_dirprefix, o))] 
         
@@ -858,7 +870,9 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                             
             # a list of frame nums without file extensions
             frame_name_list = [int(img[:-4]) for img in os.listdir(video_path)]
-            diff = max(frame_name_list) - min(frame_name_list) + 1        
+            minid = min(frame_name_list)
+            maxid = max(frame_name_list)            
+            diff = maxid - minid + 1        
             n_missing_frames = diff - len(frame_name_list)
             assert(n_missing_frames >= 0)
             
@@ -869,16 +883,53 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                 duration.seconds = int((diff) / fps)
                                         
             video_list.append(cam_cloud_pb2.VideoMetadata(
-                    name = f, 
+                    video_name = f, 
                     n_frames = len(frame_name_list), 
                     fps = fps,  
                     n_missing_frames = n_missing_frames,
                     start = Timestamp(), # fake one, or Timestamp(), 
                     end = Timestamp(), 
-                    duration = duration
+                    duration = duration,
+                    frame_id_min = minid,
+                    frame_id_max = maxid
                 ))
         return cam_cloud_pb2.VideoList(videos = video_list)
                              
+    def GetVideoFrame(self, request, context):
+        # try various heuristics to locate frames...
+        video_path = os.path.join(the_img_dirprefix, request.video_name)
+        frame_id = request.frame_id
+        frame_path = ""
+        found = False
+        
+        for ext in ['.JPG', '.jpg']:
+            for frame_fname in [f'{frame_id:d}', f'{frame_id:06d}', f'{frame_id:07d}', f'{frame_id:08d}']:
+                frame_path = os.path.join(video_path, frame_fname + ext)
+                if (os.path.isfile(frame_path)):
+                    found = True
+                    logger.info(f"try {frame_path}... found")
+                    break
+                else:
+                    # print(f"try {frame_path}... not found")
+                    pass
+            else:
+                continue
+            break
+            
+        if not found: 
+            return common_pb2.Image()   # nothing            
+        
+        try:                         
+            f = open(frame_path, 'rb')            
+            _height, _width, _chan = 0, 0, 0
+            return common_pb2.Image(data=f.read(),
+                                    height=_height,
+                                    width=_width,
+                                    channel=_chan) 
+        except Exception as e:
+            logger.error(e)
+            return common_pb2.Image()   # nothing            
+        
     '''
     # xzl: return res of a completed query. with images/score urls. w/o video url
     # for the client to display query results

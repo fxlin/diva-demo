@@ -52,16 +52,76 @@
 </nav>
 <!-- Navigation ends -->
 
-<a href="/videos">List videos</a>
-<br>
-<a href="/queries">List queries</a>
-<br>
-<a href="/query/videoname">Start a query</a>
+<!-- Home begins -->
+<header id="home" class="header">
+    <div class="blurImg">
+        <div class="image"></div>
+        <div class="blur blurimage"></div>
+    </div>
 
-<img src="./static/img/traffic.jpg" 
-  class="img-responsive grow text-center" 
-  style="grid-auto-rows: auto"  alt="" title="video1" id="video1">
-  
+    <div class="text-vertical-center">
+        <img class="img-responsive img-circle center-block grow" src="/static/img/default-user.jpg" width="200px"
+             alt="">
+        <h1>Hyper Cam Team</h1>
+        <h3>Senior Design Project</h3>
+        <br>
+        <br>
+        <a href="#summary" class="btn page-scroll">
+            <i class="fa fa-angle-double-down animated"></i>
+        </a>
+    </div>
+</header>
+<!-- Home ends -->
+
+<!-- Summary begins -->
+<section id="summary" class="summary">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-3"></div>
+            <div class="col-lg-6 text-center">
+                <i class="fa fa-user-circle fa-4x"></i>
+                <h2>Summary</h2>
+                <hr>
+                <p class="lead">
+                    The goal of this project is to make surveillance cameras more user friendly by utilizing object
+                    detection and machining learning to review footage for the user. The team will deliver a product
+                    that allows the user to configure a search entry to enable the camera to locate specific targets.
+                </p>
+
+                <p class="lead">
+                    This approach is new to the market because object detection and classification is hardware intensive
+                    and costly. As a result, companies have not seen the need to adopt it. The proposed product takes
+                    the shortcomings of processing images via a server or onboard the camera by implementing a two-step
+                    process. This enables the camera to perform an initial-filter of the captured frames before sending
+                    the frames over.
+
+                    This product is targeted towards companies, stores, and communities that currently have a large
+                    network of cameras that need to be reviewed. The product benefits them the most because they are
+                    able to autonomously review lots of footage but can still reduce their network traffic.
+
+                </p>
+
+            </div>
+            <div class="col-lg-3"></div>
+        </div>
+    </div>
+    <!-- /.container -->
+</section>
+<!-- Summary ends -->
+<!--<div class="progress">-->
+<!--        <div id="myBar" class="progress-bar progress-bar-success progress-bar-striped active" role="progressbar"-->
+<!--             aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width:0%; color: #1F1F1F">-->
+<!--            0%-->
+<!--        </div>-->
+<!--</div>-->
+<!-- Projects Image begins-->
+<section id="projectimage" class="content-section text-center">
+    <div class="text-container">
+        <p><strong>Project</strong></p>
+    </div>
+</section>
+<!-- Projects Image ends -->
+
 <!-- Projects begins -->
 <section id="projects" class="projects">
     <div class="container">
@@ -88,6 +148,19 @@
 
     <div class="row">
         <div class="col-lg-4 text-center"></div>
+
+        <div class="col-lg-4 text-center">
+            <img class="img-responsive img-circle center-block grow" src="./static/img/html.png" id="query" width="150px" alt="">
+            <h2><span>DIVA</span><br>
+                <small>Fall 2019 - Spring 2020</small><br>
+                <small><a target="_blank" href="https://github.com/swhsiang/diva-fork">GitHub</a></small>
+            </h2>
+            <p class="lead">
+                Please select the video you would like to query then click on the icon for a quick demo of the project.
+            </p>
+        </div>
+
+
     </div>
 <!--  button to request video meta information   -->
     <div class="col-md-12 school-options-dropdown text-center">
@@ -99,9 +172,29 @@
     </div>
 
 
+<!--    <br>-->
+<!--    <br>-->
+<!--    <br>-->
     <script type="text/javascript" src="/static/js/extra_stuff.js"></script>
 
     <script type="text/javascript" src="/static/js/dropdown.js?20"></script>
+
+  <div class="col-md-12 school-options-dropdown text-center" style="display: none" id="obj_dropdown">
+    <div class="dropdown btn-group">
+
+      <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown" id="drop">motorbike
+        <span class="caret"></span>
+      </button>
+
+        <ul class="dropdown-menu" style="background: white; overflow: auto; height: 60px">
+            <li id="bike" style="color: black; border-color: #1F1F1F"><a>motorbike</a></li>
+            <li id="people" style="color: black"><a>people</a></li>
+        </ul>
+
+    </div>
+  </div>
+    <br>
+    <br>
 
 
     <script>
@@ -158,6 +251,12 @@
 <!--    <script type="text/javascript" src="/static/js/canvas.js?v=5"></script>-->
 
 
+<section id="workimage" class="content-section text-center" style="display:none;">
+    <div class="text-container">
+        <p><strong>Demo Results</strong></p>
+    </div>
+</section>
+
 <!--   xzl: hand crafted progress bar ... -->
 <div class="progress">
         <div id="myBar" class="progress-bar progress-bar-success progress-bar-striped active" role="progressbar"
@@ -192,7 +291,6 @@
 <script>
     let vid='/static/video/sonic.mp4';
 </script>
-
 <!-- <script type="text/javascript" src="/static/js/video.js?11"></script>-->
 <!-- <script type="text/javascript" src="/static/js/query.js?15"></script>-->
 <!-- <script type="text/javascript" src="/static/js/temp_query.js?15"></script>-->

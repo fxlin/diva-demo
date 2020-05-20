@@ -1,0 +1,72 @@
+<document html>
+<h2> A list of queries </h2>
+{{ table }}
+
+   
+<script>
+document.addEventListener('DOMContentLoaded', function(){    
+  function sayHello() {
+       alert("Hello World")
+    }
+    
+  document.getElementById("XXXX").addEventListener("click", function() {
+    query_pause();
+  }, false);
+    
+},false); 
+
+
+function query_pause(){
+    let computeReturn = $.ajax({
+            method: "POST",
+            contentType: 'application/json',
+            url: "/query_pause",
+    }).done(function (computeReturn) {
+        console.log(computeReturn);
+        var element = document.getElementById('current-query');
+        element.innerHTML = computeReturn
+    });
+}
+
+function query_resume(){
+    let computeReturn = $.ajax({
+            method: "POST",
+            contentType: 'application/json',
+            url: "/query_resume",
+    }).done(function (computeReturn) {
+        console.log(computeReturn);
+        var element = document.getElementById('current-query');
+        element.innerHTML = computeReturn
+    });
+}
+
+function query_reset(){
+    let computeReturn = $.ajax({
+            method: "POST",
+            contentType: 'application/json',
+            url: "/query_reset",
+    }).done(function (computeReturn) {
+        console.log(computeReturn);
+        var element = document.getElementById('current-query');
+        element.innerHTML = computeReturn
+    });
+}
+
+
+
+</script>  
+
+<body>
+
+      <input id="id-pause" type = "button" onclick = "query_pause()" value = "Pause Query" />
+      
+      <input type = "button" onclick = "query_resume()" value = "Resume Query" />
+                        
+      <input type = "button" onclick = "query_reset()" value = "Reset Cam" />      
+      
+      <h1 id="current-query">Query Status</h1>
+      
+</body>
+
+<!-- jQuery -->
+<script src="/static/js/jquery.js"></script>
