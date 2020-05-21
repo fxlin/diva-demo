@@ -15,6 +15,7 @@ import cv2
 import copy
 import shutil
 import numpy as np
+import PIL
 
 import grpc
 import det_yolov3_pb2
@@ -187,21 +188,26 @@ def _SaveResultFrame(request, elements) -> str:
     return path
 
 # sample @n_frames from the given video from the cam. save them locally
-def download_video_preview_frames(v:cam_cloud_pb2.VideoMetadata, n_frames:int):
+# return: a list of frame ids, in integers
+def download_video_preview_frames(v:cam_cloud_pb2.VideoMetadata, n_frames:int) -> typing.List[int]:
     delta = int((v.frame_id_max - v.frame_id_min) / n_frames)
     assert(delta > 10)
+
+    fl = []
+
     for i in range(n_frames):
         frameid = v.frame_id_min + delta * i
         try:
             print(f"get preview frame id {frameid}")
             img = get_video_frame(v.video_name, frameid)
-            # get  again. save to local disk this time
-            save_video_frame(v.video_name, frameid, CFG_PREVIEW_PATH)
-            print(f'saved preview frame size is {len(img.data)}')
+            save_video_frame(v.video_name, frameid, CFG_PREVIEW_PATH, True)
+            logger.info(f'saved preview frame size is {len(img.data)}')
+            fl.append(frameid)
         except Exception as err:
-            print(err)
+            logger.error(err)
             sys.exit(1)
 
+    return fl
 
 # forget query res in mem. to be invoked by web
 def query_cleanup(qid):
@@ -380,7 +386,8 @@ def get_video_frame(video_name: str, frame_id: int) -> common_pb2.Image:
     return resp
 
 # get a video frame from cam, save to a local file under prefix/video_name/frame_id.jpg
-def save_video_frame(video_name: str, frame_id: int, prefix: str):
+# return: full frame path
+def save_video_frame(video_name: str, frame_id: int, prefix: str, thumbnail: bool = False) -> str:
     img = get_video_frame(video_name = video_name, frame_id = frame_id)
     videodir = os.path.join(prefix, video_name)
     if not os.path.isdir(videodir):
@@ -391,14 +398,19 @@ def save_video_frame(video_name: str, frame_id: int, prefix: str):
             sys.exit(1)
 
     frame_path = os.path.join(videodir, f'{frame_id}.jpg')
+    thumbnail_path = os.path.join(videodir, f'{frame_id}.thumbnail.jpg')
     try:
         # don't know how many leading 0s...
         with open(frame_path, 'wb') as f:
             f.write(img.data)
+        im = PIL.Image.open(frame_path)
+        im.thumbnail([128, 128])  # 128x128 thumbnail
+        im.save(thumbnail_path)
     except Exception as err:
-        print("cannot write to file", err)
+        logger.error("cannot write to file", err)
     else:
         logger.info(f"written to {frame_path}")
+    return frame_path
 
 class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
     """

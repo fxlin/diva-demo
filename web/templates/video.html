@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Video for {{ video.name }}</title>
+</head>
+<body>
+
+
+<!--<section class="row">-->
+<!--  {% for image in images %}-->
+<!--    <section class="col-md-4 col-sm-6" style="background-color: green;">-->
+<!--      <img src="{{ url_for('static', filename='preview/' + image) }}">-->
+<!--    </section>-->
+<!--  {% endfor %}-->
+<!--</section>-->
+
+<div class="row">
+  {% for image in images %}
+    <div class="col-md-4 col-sm-6">
+      <img src="{{ url_for('static', filename='preview/' + image) }}">
+    </div>
+  {% endfor %}
+</div>
+
+</body>
+</html>

@@ -1,12 +1,39 @@
 <document html>
-<title> A list of videos </title>
+
+<head>
+
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title> A list of videos </title>
+
+  <!-- Bootstrap Core CSS -->
+  <link href="/static/css/bootstrap.css" rel="stylesheet">
+
+  <!-- Custom CSS -->
+  <link href="/static/css/style.css" rel="stylesheet">
+</head>
+
+
+<h1> A list of videos </h1>
 {{ table }}
 
+<div class="row">
+<div class="col-sm-1">.col-sm-4</div>
+<div class="col-sm-1">.col-sm-4</div>
+<div class="col-sm-1">.col-sm-4</div>
+</div>
 
-<section class="row">
-  {% for image in images %}
-    <section class="col-md-4 col-sm-6" style="background-color: green;">
-      <img src="{{ url_for('static', filename='capture_image/' + image) }}">
-    </section>
-  {% endfor %}
-</section>
+{% for ll in frame_lists %}
+  <div class="row">
+    <h2> {{ ll['video_name'] }} </h2>
+    {% for frameid in ll['frame_list'] %}
+      <div class="col-sm-1" style="">
+        <h2> {{ frameid }} </h2>
+        <img src="{{ url_for('show_preview_frame', videoname=ll['video_name'], frameid=frameid) }}">
+      </div>
+    {% endfor %}
+  </div>
+{% endfor %}
+

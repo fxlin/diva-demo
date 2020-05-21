@@ -8,8 +8,11 @@ import grpc
 import server_diva_pb2
 import server_diva_pb2_grpc
 from variables import DIVA_CHANNEL_ADDRESS
+
+import flask
 from flask import Flask, render_template, request, flash, redirect
 from flask import jsonify,  send_from_directory
+
 import json
 import os
 from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
@@ -20,6 +23,8 @@ import web.tables as tables
 import web.forms as forms
 import web.cloud as cloud
 
+import PIL # for thumbnail etc
+
 #from .cloud import DivaGRPCServer
 from .cloud import grpc_serve
 from .cloud import list_videos_cam
@@ -27,6 +32,8 @@ from .cloud import query_submit
 
 OUTPUT_DIR = './result/retrieval_imgs/' # xzl: query results for the web server?
 VIDEO_PREVIEW_DIR = '/video-preview'
+
+from variables import *
 
 app = Flask(__name__, static_url_path='/static') # xzl: static contents of the website
 app.config['DEBUG'] = True
@@ -86,7 +93,33 @@ def list_videos():
     else:
         table = tables.VideoList(videos)
         table.border = True
-        return render_template('videos.html', table=table)
+
+        fl = []
+        for v in videos:
+            cloud.clean_preview_frames(v.video_name)
+            fl.append(
+                {'video_name': v.video_name,
+                'frame_list': cloud.download_video_preview_frames(v, 5)}
+            )
+
+        #return render_template('videos.html', table=table, videos=videos, videoname=v.video_name, frame_lists=fl)
+        return render_template('videos.html', table=table, frame_lists=fl)
+        #return render_template('videos.html', table=table)
+
+@app.route('/video/<videoname>',methods=['GET'])
+def show_video():
+    pass
+
+@app.route('/preview/<videoname>/<frameid>',methods=['GET'])
+def show_preview_frame(videoname, frameid):
+    print(f"to send {os.path.join(CFG_PREVIEW_PATH, videoname)} {frameid}.jpg")
+    #return send_from_directory(os.path.join(CFG_PREVIEW_PATH, videoname), f"{frameid}.jpg", as_attachment=True)
+
+    # return thumbnail.
+    # this is dirty
+    return flask.send_file(os.path.join("../" + CFG_PREVIEW_PATH, videoname, f"{frameid}.thumbnail.jpg"),
+                           cache_timeout = 0)
+    #return "OK"
 
 @app.route('/queries',methods=['GET'])
 def list_queries():

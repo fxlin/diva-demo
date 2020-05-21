@@ -12,12 +12,13 @@ class VideoList(Table):
     video_name = Col('Name')
     n_frames = Col('#Frames')
     n_missing_frames = Col('#MissingFrames')
+    frame_id_min = Col('FrameMin')
+    frame_id_max = Col('FrameMax')
     fps = Col('fps')
     start = Col('start')
     end = Col('end')
     duration = Col('duration')
-    query = LinkCol('Query', 'query', url_kwargs=dict(videoname='name'))
-    
+    query = LinkCol('Query', 'query', url_kwargs=dict(videoname='video_name'))
 
 class QueryList(Table):
     qid = Col('qid')
@@ -38,7 +39,7 @@ class QueryList(Table):
     show_results = LinkCol('Results', 'query_results', url_kwargs=dict(qid='qid'))
     #query = LinkCol('Pause', 'pause', url_kwargs=dict(qid='qid'))
         
-# a list of all query results        
+# a list of summaries of all query results
 class QueryResultsList(Table):
 #    qid = Col('qid')
     status = Col('status')
