@@ -18,7 +18,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='common',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=b'\n\x0c\x63ommon.proto\x12\x06\x63ommon\"E\n\x05Image\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0e\n\x06height\x18\x02 \x01(\x05\x12\r\n\x05width\x18\x03 \x01(\x05\x12\x0f\n\x07\x63hannel\x18\x04 \x01(\x05\"|\n\x0f\x44\x65tFrameRequest\x12\x1c\n\x05image\x18\x01 \x01(\x0b\x32\r.common.Image\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0b\n\x03\x63ls\x18\x03 \x01(\t\x12\x11\n\tcam_score\x18\x04 \x01(\x02\x12\x10\n\x08nn_score\x18\x05 \x01(\x02\x12\x0b\n\x03qid\x18\x06 \x01(\x05\"\x14\n\x04\x46ile\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"z\n\x0cVideoRequest\x12\x11\n\ttimestamp\x18\x01 \x01(\x05\x12\x0e\n\x06offset\x18\x02 \x01(\x05\x12\x12\n\nvideo_name\x18\x03 \x01(\t\x12\x13\n\x0bobject_name\x18\x04 \x01(\t\x12\x1e\n\x06\x63\x61mera\x18\x05 \x01(\x0b\x32\x0e.common.Camera\"\'\n\x06\x43\x61mera\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\t\"9\n\x0fget_videos_resp\x12&\n\x06videos\x18\x01 \x03(\x0b\x32\x16.common.video_metadata\"\xa2\x01\n\x0evideo_metadata\x12\x0e\n\x06\x66rames\x18\x01 \x01(\x05\x12\x16\n\x0escore_file_url\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x1e\n\x06\x63\x61mera\x18\x04 \x01(\x0b\x32\x0e.common.Camera\x12\x11\n\tvideo_url\x18\x05 \x01(\t\x12\x12\n\nimages_url\x18\x06 \x01(\t\x12\x13\n\x0bobject_name\x18\x07 \x01(\t\"K\n\x11\x44\x65tFrameRequestv2\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0b\n\x03\x63ls\x18\x03 \x01(\t\x12\r\n\x05score\x18\x04 \x01(\x05\x62\x06proto3'
+  serialized_pb=b'\n\x0c\x63ommon.proto\x12\x06\x63ommon\"E\n\x05Image\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0e\n\x06height\x18\x02 \x01(\x05\x12\r\n\x05width\x18\x03 \x01(\x05\x12\x0f\n\x07\x63hannel\x18\x04 \x01(\x05\"\x94\x01\n\x0f\x44\x65tFrameRequest\x12\x1c\n\x05image\x18\x01 \x01(\x0b\x32\r.common.Image\x12\x10\n\x08\x66rame_id\x18\x02 \x01(\x03\x12\x0b\n\x03\x63ls\x18\x03 \x01(\t\x12\x11\n\tcam_score\x18\x04 \x01(\x02\x12\x10\n\x08nn_score\x18\x05 \x01(\x02\x12\x0b\n\x03qid\x18\x06 \x01(\x05\x12\x12\n\nvideo_name\x18\x07 \x01(\t\"\x14\n\x04\x46ile\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"z\n\x0cVideoRequest\x12\x11\n\ttimestamp\x18\x01 \x01(\x05\x12\x0e\n\x06offset\x18\x02 \x01(\x05\x12\x12\n\nvideo_name\x18\x03 \x01(\t\x12\x13\n\x0bobject_name\x18\x04 \x01(\t\x12\x1e\n\x06\x63\x61mera\x18\x05 \x01(\x0b\x32\x0e.common.Camera\"\'\n\x06\x43\x61mera\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x02 \x01(\t\"9\n\x0fget_videos_resp\x12&\n\x06videos\x18\x01 \x03(\x0b\x32\x16.common.video_metadata\"\xa2\x01\n\x0evideo_metadata\x12\x0e\n\x06\x66rames\x18\x01 \x01(\x05\x12\x16\n\x0escore_file_url\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x1e\n\x06\x63\x61mera\x18\x04 \x01(\x0b\x32\x0e.common.Camera\x12\x11\n\tvideo_url\x18\x05 \x01(\t\x12\x12\n\nimages_url\x18\x06 \x01(\t\x12\x13\n\x0bobject_name\x18\x07 \x01(\t\"K\n\x11\x44\x65tFrameRequestv2\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0b\n\x03\x63ls\x18\x03 \x01(\t\x12\r\n\x05score\x18\x04 \x01(\x05\x62\x06proto3'
 )
 
 
@@ -91,9 +91,9 @@ _DETFRAMEREQUEST = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='name', full_name='common.DetFrameRequest.name', index=1,
-      number=2, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
+      name='frame_id', full_name='common.DetFrameRequest.frame_id', index=1,
+      number=2, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
@@ -125,6 +125,13 @@ _DETFRAMEREQUEST = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='video_name', full_name='common.DetFrameRequest.video_name', index=6,
+      number=7, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -137,8 +144,8 @@ _DETFRAMEREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=95,
-  serialized_end=219,
+  serialized_start=96,
+  serialized_end=244,
 )
 
 
@@ -168,8 +175,8 @@ _FILE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=221,
-  serialized_end=241,
+  serialized_start=246,
+  serialized_end=266,
 )
 
 
@@ -227,8 +234,8 @@ _VIDEOREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=243,
-  serialized_end=365,
+  serialized_start=268,
+  serialized_end=390,
 )
 
 
@@ -265,8 +272,8 @@ _CAMERA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=367,
-  serialized_end=406,
+  serialized_start=392,
+  serialized_end=431,
 )
 
 
@@ -296,8 +303,8 @@ _GET_VIDEOS_RESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=408,
-  serialized_end=465,
+  serialized_start=433,
+  serialized_end=490,
 )
 
 
@@ -369,8 +376,8 @@ _VIDEO_METADATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=468,
-  serialized_end=630,
+  serialized_start=493,
+  serialized_end=655,
 )
 
 
@@ -421,8 +428,8 @@ _DETFRAMEREQUESTV2 = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=632,
-  serialized_end=707,
+  serialized_start=657,
+  serialized_end=732,
 )
 
 _DETFRAMEREQUEST.fields_by_name['image'].message_type = _IMAGE

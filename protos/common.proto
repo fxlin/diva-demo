@@ -16,11 +16,13 @@ message Image {
 // based on Mengwei's DetFrameRequest which inlines frame data
 message DetFrameRequest {
     common.Image image = 1;
-    string name = 2; // shall be unique globally
+    // string name = 2; // shall be unique globally
+    int64 frame_id = 2;
     string cls = 3; // class, e.g. 'bike'
     float cam_score = 4; 
     float nn_score = 5; 
     int32 qid = 6; // used to track queries
+    string video_name = 7; // will need this in the future
 }
 
 message File {

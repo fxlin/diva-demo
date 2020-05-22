@@ -35,7 +35,8 @@ from variables import IMAGE_PATH, OP_FNAME_PATH
 from variables import DIVA_CHANNEL_PORT
 from variables import *  # xzl
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
+
 import typing
 
 import zc.lockfile # detect& avoid multiple instances
@@ -88,7 +89,8 @@ class ImageDoesNotExistException(Exception):
 
 @dataclass
 class FrameResults():
-    name: str
+    #name: str
+    frame_id: int
     elements: typing.Any  # from grpc resp
     high_confidence: int = -1
     n_bboxes: int = 0
@@ -174,7 +176,7 @@ def _SaveResultFrame(request, elements) -> str:
                       (0, 255, 0), 3)
         # print("draw--->", x1, y1, x2, y2)
 
-    frame_name = request.name
+    frame_name = f'{request.frame_id}'
     if not (frame_name.endswith('.jpg') or frame_name.endswith('.JPG')):
         frame_name += '.jpg'
     path = os.path.join(CFG_RESULT_PATH, f'{qid}', frame_name)
@@ -480,8 +482,8 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
         global the_queries
 
         '''
-        logger.info("got a frame. name %s frame %d bytes" 
-                    %(request.name, len(request.image.data)))
+        logger.info("got a frame. id %d frame %d bytes" 
+                    %(request.frame_id, len(request.image.data)))
                                     
         with the_queries_lock:
             if (len(the_queries) == 0):
@@ -505,10 +507,10 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
 
         if len(elements) > 0:
             saved = _SaveResultFrame(request, elements) # save the frame locally
-            logger.info("res frame saved to " + saved)
+            #logger.info("res frame saved to " + saved)
 
             # keep metadata in mem
-            frame_res = FrameResults(name=request.name,
+            frame_res = FrameResults(frame_id=request.frame_id,
                                      n_bboxes=len(elements), elements=elements)
 
             for idx, ele in enumerate(elements):
@@ -805,7 +807,29 @@ def console():
             test_list_videos()
         elif s[0] == 'lq':
             resp = list_queries_cloud()
-            print(resp)
+            print(f"{len(resp)} queries found:")
+            if len(resp) == 0:
+                continue
+            # print header
+            '''
+            keys = asdict(resp[0]).keys()
+            for k in keys:
+                print(k, end=" ")
+            print()
+            '''
+            for info in resp:
+                '''
+                vs = asdict(info).values()
+                for v in vs:
+                    print(v, end=" ")
+                '''
+                dic = asdict(info)
+                dic['results'] = len(dic['results']) # overwrite it to be # of results
+
+                for k, v in dic.items():
+                    print(f"{k}={v}", end=" ")
+                print()
+            #print(resp)
         elif s[0] == 'progress':
             if len(s) < 2:
                 print("need qid")

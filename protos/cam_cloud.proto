@@ -18,6 +18,8 @@ service DivaCamera {
     
     // xzl: only ControlQueryRequest.qid is used
     rpc GetQueryProgress (ControlQueryRequest) returns (QueryProgress) {}
+    rpc GetQueryFrameStates (ControlQueryRequest) returns (FrameMap) {}
+
     rpc ListVideos(google.protobuf.Empty) returns (VideoList) {};
     // rpc ListQueries(google.protobuf.Empty) returns (QueryList) {};
     // xzl: return encoded image data eg jpg
@@ -121,3 +123,8 @@ message VideoMetadata {
     int64 frame_id_max = 9;
 }
 
+message FrameMap {
+    repeated int64 frame_ids = 1;
+    // repeated int32 frame_states = 2;
+    string frame_states = 2;
+}

@@ -19,16 +19,16 @@ from google.protobuf import empty_pb2 as google_dot_protobuf_dot_empty__pb2
 # import grpc-tools
 #import requests
 
-import web.tables as tables
-import web.forms as forms
-import web.cloud as cloud
+import server.tables as tables
+import server.forms as forms
+import server.control as cloud
 
 import PIL # for thumbnail etc
 
 #from .cloud import DivaGRPCServer
-from .cloud import grpc_serve
-from .cloud import list_videos_cam
-from .cloud import query_submit
+from .control import grpc_serve
+from .control import list_videos_cam
+from .control import query_submit
 
 OUTPUT_DIR = './result/retrieval_imgs/' # xzl: query results for the web server?
 VIDEO_PREVIEW_DIR = '/video-preview'

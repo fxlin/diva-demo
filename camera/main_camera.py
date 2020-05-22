@@ -10,6 +10,7 @@ import cv2
 import threading
 import heapq
 import re
+import copy
 import random
 
 from google.protobuf.timestamp_pb2 import *
@@ -70,35 +71,52 @@ the_op_dir = './ops'
 
 #FORMAT = '%(asctime)-15s %(levelname)8s %(thread)d %(threadName)s %(message)s'
 #FORMAT = '%(levelname)8s %(thread)d %(threadName)s %(lineno)d %(message)s'
-FORMAT = '%(levelname)8s {%(module)s:%(lineno)d} %(thread)d %(threadName)s %(message)s'
+FORMAT = '%(levelname)8s {%(module)s:%(lineno)d} %(threadName)s %(message)s'
+#FORMAT = '{%(module)s:%(lineno)d} %(thread)d %(threadName)s %(message)s'
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
 logger = logging.getLogger(__name__)
 
 coloredlogs.install(fmt=FORMAT, level='DEBUG', logger=logger)
+#coloredlogs.install(level='DEBUG', logger=logger)
 
 # FIXME (xzl: unused?)
 # OP_FNAME_PATH = '/home/bryanjw01/workspace/test_data/source/chaweng-a3d16c61813043a2711ed3f5a646e4eb.hdf5'
 
-
+'''
+@dataclass
+class FrameMap():
+    frame_ids: typing.List[int]
+    frame_states: str
+    # . init
+    # r ranked
+    # s sent
+'''
 
 # for tracking the current query 
 @dataclass
 class QueryInfo():
+    # each frame_id: . init, r ranked s sent
+    # will compress before sending to gRPC
+    framestates: typing.Dict[int, str] = None
     qid: int = -1    # current qid
     crop: typing.List[int] = field(default_factory = lambda: [-1,-1,-1,-1])
     op_name: str = ""
     op_fname: str = ""
     img_dir: str = ""
     video_name: str = ""
-    run_imgs : typing.List[str] = field(default_factory = lambda: []) # maybe put a separate lock over this
+    # run_imgs : typing.List[str] = field(default_factory = lambda: []) # maybe put a separate lock over this
+    run_frames : typing.List[id] = field(default_factory = lambda: []) # maybe put a separate lock over this
 
 @dataclass 
 class FrameInfo():
-    name: str
+    #name: str
+    video_name : str
+    frame_id : int
     cam_score: float
-    local_path: str
+    #local_path: str
     qid: int
-        
+
+# todo: combine it to queryinfo
 @dataclass 
 class QueryStat():
     qid : int = -1    # current qid
@@ -143,9 +161,75 @@ ev_worker_stop_done = threading.Event()
 
 PQueue = PriorityQueue()
 
+# caller must hold the query lock
+def frameid_to_abspath(fid: int) -> str:
+    assert(the_query.imgdir != "")
+    return os
 
-# will terminate after finishing up the current query 
+# for a specific video
+class VideoStore():
+    def __init__(self, video_name:str):
+        self.lock= threading.Lock()
 
+        self.video_name = video_name
+        self.video_abspath =  os.path.join(the_img_dirprefix, video_name)
+
+        # use hint to find FPS from video name. best effort
+        m = re.search(r'''\D*(\d+)(FPS|fps)''', video_name)
+        if m:
+            self.fps = int(m.group(1))
+        else:
+            self.fps = -1
+
+        # NB: listdir can be very slow
+        # a list of frame nums without file extensions. all leading 0s are removed
+        self.frame_ids = [int(img[:-4]) for img in os.listdir(self.video_abspath)]
+
+        self.minid = min(self.frame_ids)
+        self.maxid = max(self.frame_ids)
+        diff = self.maxid - self.minid + 1
+        self.n_missing_frames = diff - len(self.frame_ids)
+        assert (self.n_missing_frames >= 0)
+
+    # by design should made public. do so right now for cv2.imread()
+    def GetFramePath(self, frame_id:int) -> str:
+        frame_path = None
+        for ext in ['.JPG', '.jpg']:
+            for frame_fname in [f'{frame_id:07d}', f'{frame_id:06d}', f'{frame_id:d}', f'{frame_id:08d}']:
+                frame_path = os.path.join(self.video_abspath, frame_fname + ext)
+                if os.path.isfile(frame_path):
+                    found = True
+                    # logger.info(f"try {frame_path}... found")
+                    break
+                else:
+                    # print(f"try {frame_path}... not found")
+                    pass
+            else:
+                continue
+            break
+
+        return frame_path
+
+    def GetFrame(self, frame_id:int) -> common_pb2.Image:
+        frame_path = self.GetFramePath(frame_id)
+
+        if not frame_path:
+            return common_pb2.Image()  # nothing
+
+        try:
+            f = open(frame_path, 'rb')
+            _height, _width, _chan = 0, 0, 0
+            return common_pb2.Image(data=f.read(),
+                                    height=_height,
+                                    width=_width,
+                                    channel=_chan)
+        except Exception as e:
+            logger.error(e)
+            return common_pb2.Image()  # nothing
+
+the_video_stores: typing.Dict[str, VideoStore] = {}
+
+# will terminate after finishing up the current query
 class OP_WORKER(threading.Thread):
     # xzl: read from disk a batch of images. 
     # @imgs: a list of img filenames
@@ -165,7 +249,7 @@ class OP_WORKER(threading.Thread):
         threading.Thread.__init__(self)
         self.batch_size = 16
         self.kill = False   # notify the worker thread to terminate. not to be set externally. call stop() instead
-        self.op = None # the actual op
+        # self.op = None # the actual op
         
         '''
         self.crop = None
@@ -223,14 +307,7 @@ class OP_WORKER(threading.Thread):
             if self.kill:
                 logger.info("worker: got a stop notice. bye!")
                 return 
-            '''
-            if not self.is_run:
-                #logger.info("op worker: !is_run. sleep 1 sec...")
-                clog.print("op worker: !is_run. sleep...")
-                time.sleep(1)
-                continue
-            '''
-            
+
             # pull work from global buf 
             
             # the worker won't lost a batch of images, as it won't termiante here            
@@ -240,11 +317,13 @@ class OP_WORKER(threading.Thread):
             batch = OP_BATCH_SZ
             
             with the_query_lock: 
-                if len(the_query.run_imgs) < OP_BATCH_SZ:
-                    batch = len(the_query.run_imgs)                
-                imgs = [the_query.run_imgs.pop(random.randrange(len(the_query.run_imgs))) for _ in range(batch)]
+                if len(the_query.run_frames) < OP_BATCH_SZ:
+                    batch = len(the_query.run_frames)
+                fids = [the_query.run_frames.pop(random.randrange(len(the_query.run_frames))) for _ in range(batch)]
                 crop = the_query.crop
-                sz_run_imgs = len(the_query.run_imgs)
+                sz_run_frames = len(the_query.run_frames)
+                vn = the_query.video_name
+                vs = the_video_stores[vn]
                 
             if batch == 0: # we got nothing, clean up...
                 #with the_query_lock: # can't do this, as uploading may be ongoing
@@ -254,15 +333,22 @@ class OP_WORKER(threading.Thread):
                         the_stats[qid].status = 'COMPLETED'       
                         # seconds since epoch. protobuf's timestamp types seem too complicated...             
                         the_stats[qid].ts_comp = time.time() # float                                                                                                                       
-                logger.info("opworker: nothing in run_imgs. bye!")
+                logger.info("opworker: nothing in run_frames. bye!")
                 return 
-                        
+
+
+            with vs.lock:
+                frame_paths = [vs.GetFramePath(fid) for fid in fids]
+
             #TODO: IO shall be seperated thread
             # xzl: fixing this by having multiple op workers
-            frames = self.read_images(imgs, in_h, in_w, crop) 
+            frames = self.read_images(frame_paths, in_h, in_w, crop)
             scores = self.op.predict(frames)
             # print ('Predict scores: ', scores)
-            
+
+            for x in fids:
+                the_query.framestates[x] = 'r'
+
             # push a scored frame (metadata) to send buf            
             with the_cv: # auto grab send buf lock
                 for i in range(batch):
@@ -270,9 +356,10 @@ class OP_WORKER(threading.Thread):
                         (-scores[i, 1] + random.uniform(0.00001, 0.00002), 
                          #imgs[i].split('/')[-1],    # tie breaker to prevent heapq from comparing the following dict 
                             FrameInfo(
-                                name=imgs[i].split('/')[-1],
+                                video_name=vn,
+                                frame_id=fids[i],
                                 cam_score=-scores[i, 1],
-                                local_path=imgs[i],
+                                #local_path=imgs[i],
                                 qid=qid
                             ) 
                         )
@@ -285,7 +372,7 @@ class OP_WORKER(threading.Thread):
                 the_stats[qid].n_frames_processed += batch                
                             
             clog.print('Op worker: send_buf size: %d frames (nb: OP_BATCH_SZ=%d), remaining : %d' 
-                       %(sz_send_buf, OP_BATCH_SZ, sz_run_imgs))
+                       %(sz_send_buf, OP_BATCH_SZ, sz_run_frames))
             #logger.info('Buf size: %d, total num: %d' %(sz,total))
 
 # a thread keep uploading images from the_send_buf to the server
@@ -315,8 +402,13 @@ def thread_uploader():
             send_frame = heapq.heappop(the_send_buf)[1]
             # print ('uploader: Buf size: ', len(the_send_buf))
         #f = open(os.path.join(the_img_dirprefix, send_frame['name']), 'rb')
-        f = open(send_frame.local_path, 'rb')
-        
+
+        vn = send_frame.video_name
+        with the_video_stores[vn].lock:
+            _img = the_video_stores[vn].GetFrame(send_frame.frame_id)
+
+        '''
+        f = open(send_frame.local_path, 'rb')        
         # assemble the request ...
         # _height, _width, _chan = frame.shape # TODO: fill in with opencv2
         _height, _width, _chan = 0, 0, 0
@@ -324,10 +416,11 @@ def thread_uploader():
                                 height=_height,
                                 width=_width,
                                 channel=_chan)
+        '''
 
         req = common_pb2.DetFrameRequest(
             image=_img,
-            name=send_frame.name,
+            frame_id=send_frame.frame_id,
             cam_score=send_frame.cam_score,
             cls = 'XXX', # TODO
             qid = send_frame.qid
@@ -353,6 +446,7 @@ def thread_uploader():
                 with the_query_lock:
                     qid = the_query.qid
                     assert (qid >= 0)
+                    the_query.framestates[send_frame.frame_id] = 's'
                 with the_stats_lock:
                     the_stats[qid].n_frames_sent += 1 
                 if attempt > 0:
@@ -460,18 +554,7 @@ def _StartUploaderIfDead():
 class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
     
     cur_op_data = bytearray(b'') # xzl: the buffer for receiving op
-    
-    '''
-    img_dir = ''  # the queried video, a subdir under @the_img_dirprefix
-    cur_op_name = '' # used to saved a received op
-    op_fname = '' # full path of the current op
-    video_name = '' 
-    #send_buf = []   # buf for outgoing frames. only holding image metadata (path, score, etc.)
-    crop = ''
-    operator_ = None
-    qid = -1  # current query we are running
-    '''
-    
+
     def __init__(self):
         cam_cloud_pb2_grpc.DivaCameraServicer.__init__(self)
         
@@ -483,54 +566,10 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         # self.op_worker.start()
         pass
 
-    '''
-    # cloud is requesting one "top" frame from send_buf
-    # deprecated
-    def GetFrame(self, request, context):
-        the_buf_lock.acquire()
-        if len(the_send_buf) == 0:
-            print ('Empty queue, nothing to send')
-            the_buf_lock.release()
-            return cam_cloud_pb2.Frame(name='', data=b'')
-        send_img = heapq.heappop(self.send_buf)[1]
-        the_buf_lock.release()
-        
-        with open(os.path.join(self.img_dir, send_img), 'rb') as f:
-            return cam_cloud_pb2.Frame(
-                    name=send_img.split('/')[-1],
-                    data=f.read())
-
-    # not needed?
-    def InitDiva(self, request, context):
-        self.img_dir = os.path.join(the_img_dirprefix, request.video_name) 
-        with the_buf_lock:
-            the_send_buf = []
-        return cam_cloud_pb2.StrMsg(msg='OK')
-    '''
-    
     # propagate the self's query info to the op worker
     # (re-)gen the frame list for op worker. update the worker's working list, 
     # op, crop, etc.
-    # NOT resuming the worker 
-    '''
-    def LoadQuery(self):
-        if self.op_worker.isRunning():
-            logger.error("bug: must stop worker first")
-            sys.exit(1)
-        
-        # xzl: sample down to 1FPS. listdir can be very slow
-        all_imgs = os.listdir(self.img_dir)
-        selected_imgs = [img for img in all_imgs if int(img[:-4]) % 10 == 0] # 1 FPS
-        
-        with the_work_lock:
-            the_work_buf.clear() 
-            for img in selected_imgs:
-                the_work_buf.append(os.path.join(self.img_dir, img))
-        
-        self.op_worker.load(
-                self.img_dir, selected_imgs, self.op_fname, self.crop, self.qid) 
-        pass     
-    '''
+    # NOT resuming the worker
 
     # xzl: cloud told us - all data chunks of an op has been sent. 
     def DeployOpNotify(self, request, context):
@@ -585,16 +624,38 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
             the_query.op_fname = os.path.join(the_op_dir, the_query.op_name)
             the_query.video_name = request.video_name
             the_query.img_dir = os.path.join(the_img_dirprefix, the_query.video_name) 
-               
+
+
+        ### gen the list of frame ids to process ###
+        try:
+            vs = the_video_stores[request.video_name]
+            with vs.lock:
+                frame_ids = [img for img in vs.frame_ids if img % 10 == 0]  # downsample.. 1/10??
+        except Exception as err:
+            logger.error(err)
+
+        ll = len(frame_ids)
+        frame_states = '.' * ll
+
+        '''
         # xzl: sample down to 1FPS. listdir can be very slow
-        all_imgs = os.listdir(the_query.img_dir)
+        all_imgs = os.listdir(the_query.img_dir) # relative, not full paths, with extension
         selected_imgs = [img for img in all_imgs if int(img[:-4]) % 10 == 0] # 1 FPS
-        
+
+        ll = len(selected_imgs)
+
+        frame_ids = [int(x[:-4]) for x in selected_imgs]
+        frame_states = '.' * ll
+        '''
+
         with the_query_lock:
-            the_query.run_imgs.clear() 
-            for img in selected_imgs:
-                the_query.run_imgs.append(os.path.join(the_query.img_dir, img))
-                ll = len(the_query.run_imgs) 
+            #the_query.run_frames.clear()
+            #for img in frame_ids:
+                # the_query.run_imgs.append(os.path.join(the_query.img_dir, img))
+            the_query.run_frames = frame_ids
+            the_query.framestates = {}
+            for fi in frame_ids:
+                the_query.framestates[fi] = '.'
             
         # init stats 
         with the_stats_lock:
@@ -607,19 +668,8 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                     n_frames_processed=0,
                     n_frames_sent=0,
                     n_frames_total=ll                
-                )            
-            '''            
-            {
-                    'qid' : request.qid,
-                    'video_name' : request.video_name,
-                    'op_name' : request.op_name,
-                    'crop' : request.crop,
-                    'status' : 'STARTED', 
-                    'n_frames_processed' : 0,
-                    'n_frames_sent' : 0,
-                    'n_frames_total' : ll
-            }
-            '''
+                )
+
         _StartOpWorkerIfDead()                            
         _StartUploaderIfDead()
             
@@ -700,24 +750,23 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
             else:
                 return cam_cloud_pb2.QueryProgress(qid = request.qid, 
                                                    status = 'NONEXISTING')
-            
-        '''
-        with the_stats_lock:
-            if request.qid in the_stats:            
-                n_frames_processed = the_stats[request.qid]['n_frames_processed']
-                n_frames_total = the_stats[request.qid]['n_frames_total']
-                status = the_stats[request.qid]['status']
-                ts_comp = the_stats[request.qid]['ts_comp']
-                n_frames_sent = the_stats[request.qid]['n_frames_sent']
-                                        
-        return cam_cloud_pb2.QueryProgress(qid = request.qid, 
-                    video_name = the_query.video_name, # XXX lock
-                    n_frames_processed = n_frames_processed,
-                    n_frames_sent = n_frames_processed,
-                    n_frames_total = n_frames_total,
-                    status = status)
-        '''
-        
+
+    def GetQueryFrameStates(self, request, context):
+        logger.info("GetQueryFrameStates qid %d" % (request.qid))
+
+        with the_query_lock:
+            fs = copy.deepcopy(the_query.framestates) # a snapshot
+
+        # fs = {5: 'a', 3: 'b', 4: 'c'}
+        # s = [(5, 'a'), (3, 'b'), (4, 'c')]
+
+        s = [(fid, st) for fid, st in fs.items()]
+        sorted(s, key=lambda x: x[0])
+        fids = [x[0] for x in s]
+        states = [x[1] for x in s]
+
+        return cam_cloud_pb2.FrameMap(frame_ids = fids, frame_states = ''.join(states))
+
     '''        
     # OLD 
     # xzl: on receiving a req (webframework -> controller ->), asking for processing footage
@@ -854,7 +903,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
     # https://developers.google.com/protocol-buffers/docs/reference/python-generated#wkt
     # https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.util.time_util
     
-    def ListVideos(self, request, context):
+    def ListVideos_0(self, request, context):
         video_name_list = [o for o in os.listdir(the_img_dirprefix) 
                          if os.path.isdir(os.path.join(the_img_dirprefix, o))] 
         
@@ -896,8 +945,32 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                     frame_id_max = maxid
                 ))
         return cam_cloud_pb2.VideoList(videos = video_list)
-                             
-    def GetVideoFrame(self, request, context):
+
+    def ListVideos(self, request, context):
+        video_name_list = [o for o in os.listdir(the_img_dirprefix)
+                           if os.path.isdir(os.path.join(the_img_dirprefix, o))]
+
+        video_list = []
+
+        try:
+            for f in video_name_list:
+                vs = the_video_stores[f]
+                with vs.lock:
+                    video_list.append(cam_cloud_pb2.VideoMetadata(
+                        video_name=f,
+                        n_frames=len(vs.frame_ids),
+                        fps=vs.fps,
+                        n_missing_frames=vs.n_missing_frames,
+                        frame_id_min=vs.minid,
+                        frame_id_max=vs.maxid
+                    ))
+        except Exception as err:
+            logger.error(err)
+
+        return cam_cloud_pb2.VideoList(videos=video_list)
+
+
+    def GetVideoFrame_0(self, request, context):
         # try various heuristics to locate frames...
         video_path = os.path.join(the_img_dirprefix, request.video_name)
         frame_id = request.frame_id
@@ -931,7 +1004,14 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         except Exception as e:
             logger.error(e)
             return common_pb2.Image()   # nothing            
-        
+
+    def GetVideoFrame(self, request, context):
+        try:
+            with the_video_stores[request.video_name].lock:
+                return the_video_stores[request.video_name].GetFrame(request.frame_id)
+        except Exception as err:
+            logger.error(err)
+
     '''
     # xzl: return res of a completed query. with images/score urls. w/o video url
     # for the client to display query results
@@ -960,6 +1040,18 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                                          object_name=object_name)
     '''
 
+def build_video_stores():
+    video_name_list = [o for o in os.listdir(the_img_dirprefix)
+                       if os.path.isdir(os.path.join(the_img_dirprefix, o))]
+
+    try:
+        for vn in video_name_list:
+            the_video_stores[vn] = VideoStore(video_name = vn)
+            logger.info(f"build videostore... {vn}")
+
+    except Exception as err:
+        logger.error(err)
+
 # https://raspberrypi.stackexchange.com/questions/22005/how-to-prevent-python-script-from-running-more-than-once
 the_instance_lock = None
 
@@ -973,6 +1065,7 @@ def serve():
         logger.error("cannot lock file. are we running multiple instances?")
         sys.exit(1)
 
+    build_video_stores()
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
     diva_cam_servicer = DivaCameraServicer()

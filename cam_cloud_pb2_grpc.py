@@ -55,6 +55,11 @@ class DivaCameraStub(object):
                 request_serializer=cam__cloud__pb2.ControlQueryRequest.SerializeToString,
                 response_deserializer=cam__cloud__pb2.QueryProgress.FromString,
                 )
+        self.GetQueryFrameStates = channel.unary_unary(
+                '/camera.DivaCamera/GetQueryFrameStates',
+                request_serializer=cam__cloud__pb2.ControlQueryRequest.SerializeToString,
+                response_deserializer=cam__cloud__pb2.FrameMap.FromString,
+                )
         self.ListVideos = channel.unary_unary(
                 '/camera.DivaCamera/ListVideos',
                 request_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
@@ -134,6 +139,12 @@ class DivaCameraServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetQueryFrameStates(self, request, context):
+        """Missing associated documentation comment in .proto file"""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def ListVideos(self, request, context):
         """Missing associated documentation comment in .proto file"""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -208,6 +219,11 @@ def add_DivaCameraServicer_to_server(servicer, server):
                     servicer.GetQueryProgress,
                     request_deserializer=cam__cloud__pb2.ControlQueryRequest.FromString,
                     response_serializer=cam__cloud__pb2.QueryProgress.SerializeToString,
+            ),
+            'GetQueryFrameStates': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetQueryFrameStates,
+                    request_deserializer=cam__cloud__pb2.ControlQueryRequest.FromString,
+                    response_serializer=cam__cloud__pb2.FrameMap.SerializeToString,
             ),
             'ListVideos': grpc.unary_unary_rpc_method_handler(
                     servicer.ListVideos,
@@ -369,6 +385,22 @@ class DivaCamera(object):
         return grpc.experimental.unary_unary(request, target, '/camera.DivaCamera/GetQueryProgress',
             cam__cloud__pb2.ControlQueryRequest.SerializeToString,
             cam__cloud__pb2.QueryProgress.FromString,
+            options, channel_credentials,
+            call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetQueryFrameStates(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/camera.DivaCamera/GetQueryFrameStates',
+            cam__cloud__pb2.ControlQueryRequest.SerializeToString,
+            cam__cloud__pb2.FrameMap.FromString,
             options, channel_credentials,
             call_credentials, compression, wait_for_ready, timeout, metadata)
 
