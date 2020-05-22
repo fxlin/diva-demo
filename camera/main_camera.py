@@ -161,10 +161,31 @@ ev_worker_stop_done = threading.Event()
 
 PQueue = PriorityQueue()
 
+'''
 # caller must hold the query lock
 def frameid_to_abspath(fid: int) -> str:
     assert(the_query.imgdir != "")
     return os
+'''
+
+def FrameMapToFrameStates(fm:cam_cloud_pb2.FrameMap) -> typing.Dict[int,str]:
+    fids = fm.frame_ids
+    states = fm.frame_states
+    dic = {}
+
+    assert(len(fids) == len(states))
+    for idx, fid in enumerate(fids):
+        dic[fid] = states[idx]
+    return dic
+
+def FrameStatesToFrameMap(fs:typing.Dict[int,str]) ->cam_cloud_pb2.FrameMap:
+    # fs = {5: 'a', 3: 'b', 4: 'c'}
+    # s = [(5, 'a'), (3, 'b'), (4, 'c')]
+    s = [(fid, st) for fid, st in fs.items()]
+    sorted(s, key=lambda x: x[0])
+    fids = [x[0] for x in s]
+    states = [x[1] for x in s]
+    return cam_cloud_pb2.FrameMap(frame_ids = fids, frame_states = ''.join(states))
 
 # for a specific video
 class VideoStore():
@@ -347,7 +368,7 @@ class OP_WORKER(threading.Thread):
             # print ('Predict scores: ', scores)
 
             for x in fids:
-                the_query.framestates[x] = 'r'
+                the_query.framestates[x] = 'p'
 
             # push a scored frame (metadata) to send buf            
             with the_cv: # auto grab send buf lock
@@ -757,15 +778,17 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         with the_query_lock:
             fs = copy.deepcopy(the_query.framestates) # a snapshot
 
-        # fs = {5: 'a', 3: 'b', 4: 'c'}
-        # s = [(5, 'a'), (3, 'b'), (4, 'c')]
-
+        '''
         s = [(fid, st) for fid, st in fs.items()]
         sorted(s, key=lambda x: x[0])
         fids = [x[0] for x in s]
         states = [x[1] for x in s]
 
         return cam_cloud_pb2.FrameMap(frame_ids = fids, frame_states = ''.join(states))
+        '''
+
+        # transfer as framemap
+        return FrameStatesToFrameMap(fs)
 
     '''        
     # OLD 

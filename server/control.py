@@ -36,19 +36,14 @@ from variables import DIVA_CHANNEL_PORT
 from variables import *  # xzl
 
 from dataclasses import dataclass, field, asdict
-
 import typing
 
 import zc.lockfile # detect& avoid multiple instances
 
 from constants.grpc_constant import INIT_DIVA_SUCCESS
 
-# from sqlalchemy.orm.exc import MultipleResultsFound
-# from models.common import db_session, init_db
-# from models.camera import Camera
-# from models.video import Video, VideoStatus
-# from models.frame import Frame, Status
-# from models.element import Element
+# careful...
+from camera.main_camera import FrameMapToFrameStates
 
 CHUNK_SIZE = 1024 * 100
 OBJECT_OF_INTEREST = 'bicycle'
@@ -81,7 +76,6 @@ logger = logging.getLogger(__name__)
 
 coloredlogs.install(fmt=FORMAT, level='DEBUG', logger=logger)
 
-
 class ImageDoesNotExistException(Exception):
     """Image does not exist"""
     pass
@@ -98,6 +92,16 @@ class FrameResults():
 
 _CAMERA_STORAGE = {'jetson': {'host': CAMERA_CHANNEL_ADDRESS}}
 
+# a snapshot of current query progress...
+@dataclass
+class QueryProgressSnapshot():
+    ts: float # since epoch
+    framestates: typing.Dict[int, str]
+    n_frames_sent_cam: int = 0
+    n_frames_processed_cam: int = 0
+    n_frames_total_cam: int = 0
+    n_frames_recv_yolo: int = 0
+    n_frames_processed_yolo: int = 0
 
 # the info of a query kept by the cloud
 @dataclass
@@ -107,13 +111,20 @@ class QueryInfoCloud():
     status_cam: str
     target_class: str
     results: typing.List[FrameResults]
+    progress_snapshots: typing.List[QueryProgressSnapshot] # higher idx == more recent snapshot of progress
+
     video_name: str = ""
     ts_comp_cam: float = 0
+
+    # the scratch space for yolo stats. will be copied to snapshot
+    n_frames_recv_yolo: int = 0
+    n_frames_processed_yolo: int = 0
+
+    # deprecated
     n_frames_sent_cam: int = 0
     n_frames_processed_cam: int = 0
     n_frames_total_cam: int = 0
-    n_frames_recv_yolo: int = 0
-    n_frames_processed_yolo: int = 0
+
 
 
 # metadata of queries ever executed
@@ -253,7 +264,6 @@ def query_reset():
     msg = _query_control(-1, "RESET")
     return msg
 
-
 def query_progress(qid: int) -> QueryInfoCloud:
     try:
         camera_channel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
@@ -297,6 +307,43 @@ def query_progress(qid: int) -> QueryInfoCloud:
             'ts_comp_cam' : resp.ts_comp}
     '''
 
+# return a deepcopy of the snapshot created
+def take_query_progress_snapshot(qid: int) -> QueryProgressSnapshot:
+    try:
+        camera_channel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
+        camera_stub = cam_cloud_pb2_grpc.DivaCameraStub(camera_channel)
+        resp = camera_stub.GetQueryFrameStates(
+            cam_cloud_pb2.ControlQueryRequest(qid=qid)  # overloaded
+        )
+        camera_channel.close()
+    except Exception as err:
+        logger.warning(err)
+        sys.exit(1)
+
+    fm_states = resp.frame_states
+    fs = FrameMapToFrameStates(resp)
+
+    with the_queries_lock:
+        q = the_queries[qid]
+        n_frames_recv_yolo = q.n_frames_recv_yolo
+        n_frames_processed_yolo = q.n_frames_processed_yolo
+
+    ps = QueryProgressSnapshot(
+        ts = time.time(), # the server's ts
+        framestates = fs,
+        n_frames_processed_cam = fm_states.count('p'),
+        n_frames_sent_cam = fm_states.count('s'),
+        n_frames_total_cam = len(fm_states),
+        n_frames_recv_yolo = n_frames_recv_yolo,
+        n_frames_processed_yolo = n_frames_processed_yolo
+    )
+
+    ps1 = copy.deepcopy(ps)
+    with the_queries_lock:
+        the_queries[qid].progress_snapshots.append(ps)
+
+    return ps1
+
 
 # return: a *single* query's results
 # {name: XXX, n_bboxes: XXX, high_confidence: XXX, [elements...]}
@@ -328,7 +375,7 @@ def query_submit(video_name: str, op_name: str, crop, target_class: str) -> int:
         the_queries[qid] = QueryInfoCloud(
             qid=qid,
             status_cloud='SUBMITTED', status_cam='UNKNOWN',
-            target_class=target_class, results=[]
+            target_class=target_class, results=[], progress_snapshots = []
         )
 
     clean_results_frames(qid)
@@ -862,6 +909,11 @@ def console():
             print(resp)
         elif s[0] == 'yolo':
             test_yolo()
+        elif s[0] == 'prog':
+            s = take_query_progress_snapshot(qid=0)
+            sdic = asdict(s)
+            sdic['framestates'] = "removed"
+            print(sdic)
         elif s[0] == 'log': # test logging facility
             logger.debug("This is a debug log")
             logger.info("This is an info log")
