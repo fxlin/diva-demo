@@ -53,7 +53,6 @@ DET_SIZE = 608
 IMAGE_PROCESSOR_WORKER_NUM = 1
 FRAME_PROCESSOR_WORKER_NUM = 1
 
-SHUTDOWN_SIGNAL = threading.Event()
 """
 frame task: (video_name, video_path, frame_number, object_of_interest)
 image task: (image name, image data, bounding_boxes)
@@ -88,7 +87,6 @@ class FrameResults():
     elements: typing.Any  # from grpc resp
     high_confidence: int = -1
     n_bboxes: int = 0
-
 
 _CAMERA_STORAGE = {'jetson': {'host': CAMERA_CHANNEL_ADDRESS}}
 
@@ -126,11 +124,25 @@ class QueryInfoCloud():
     n_frames_total_cam: int = 0
 
 
+# to be consistent with cam_cloud_pb2.VideoMetadata
+@dataclass
+class VideoInfo():
+    video_name: str
+    n_frames: int
+    n_missing_frames: int
+    fps: int
+    duration: float
+    frame_id_min: int
+    frame_id_max: int
+    start: float = 0
+    end: float = 0
 
 # metadata of queries ever executed
 # the_queries = {} # qid:query_metadata
 the_queries: typing.Dict[int, QueryInfoCloud] = {}
 the_queries_lock = threading.Lock()
+logger.info('----------------the queries init-----------------')
+traceback.print_stack()  # dbg
 
 
 # a query's results -- as a collection (simple) in the_queries[qid]?
@@ -307,8 +319,13 @@ def query_progress(qid: int) -> QueryInfoCloud:
             'ts_comp_cam' : resp.ts_comp}
     '''
 
-# return a deepcopy of the snapshot created
-def take_query_progress_snapshot(qid: int) -> QueryProgressSnapshot:
+# do NOT call with holding the_queries_lock
+# return a deepcopy of the snapshot created, or None if failed
+def create_query_progress_snapshot(qid: int) -> QueryProgressSnapshot:
+    with the_queries_lock:
+        if not qid in the_queries:
+            return None
+
     try:
         camera_channel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
         camera_stub = cam_cloud_pb2_grpc.DivaCameraStub(camera_channel)
@@ -317,8 +334,11 @@ def take_query_progress_snapshot(qid: int) -> QueryProgressSnapshot:
         )
         camera_channel.close()
     except Exception as err:
-        logger.warning(err)
+        logger.warning("create_query_progress_snapshot", err)
         sys.exit(1)
+
+    if not resp:
+        return None
 
     fm_states = resp.frame_states
     fs = FrameMapToFrameStates(resp)
@@ -344,6 +364,17 @@ def take_query_progress_snapshot(qid: int) -> QueryProgressSnapshot:
 
     return ps1
 
+
+# do NOT call with holding the_queries_lock
+# return a deepcopy of the most recent snapshot
+def get_latest_query_progress(qid: int) -> QueryProgressSnapshot:
+    with the_queries_lock:
+        try:
+            return copy.deepcopy(the_queries[qid].progress_snapshots[-1])
+        except Exception as err:
+            #print(err)
+            logger.error(f"failed to get most recent prog. qid {qid}", err)
+            return None
 
 # return: a *single* query's results
 # {name: XXX, n_bboxes: XXX, high_confidence: XXX, [elements...]}
@@ -371,11 +402,14 @@ def query_submit(video_name: str, op_name: str, crop, target_class: str) -> int:
 
     # init the query ... must do it before sending query out
     with the_queries_lock:
-
         the_queries[qid] = QueryInfoCloud(
             qid=qid,
-            status_cloud='SUBMITTED', status_cam='UNKNOWN',
-            target_class=target_class, results=[], progress_snapshots = []
+            status_cloud='SUBMITTED',
+            status_cam='UNKNOWN',
+            video_name=video_name,
+            target_class=target_class,
+            results=[],
+            progress_snapshots = []
         )
 
     clean_results_frames(qid)
@@ -387,17 +421,33 @@ def query_submit(video_name: str, op_name: str, crop, target_class: str) -> int:
         camera_channel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
         camera_stub = cam_cloud_pb2_grpc.DivaCameraStub(camera_channel)
         resp = camera_stub.SubmitQuery(request)
+        if not resp.msg.startswith('OK'):
+            # "FAIL: qid 1 exists. suggested=2"
+            tokens = resp.msg.split('suggested=')
+            if len(tokens) > 1:
+                newqid = int(tokens[1])
+                with the_queries_lock:
+                    the_queries[newqid] = the_queries.pop(qid)
+                    the_queries[newqid].qid = newqid
+                logger.warning(f"resubmit query with qid {newqid}")
+                request.qid = newqid
+                resp = camera_stub.SubmitQuery(request)
+                # no more try
         camera_channel.close()
     except Exception as err:
-        logger.warning(err)
+        logger.error('failed to submit a query', err)
+        return -1
 
     logger.info("submitted a query, len(the_queries) %d qid %d. camera says %s" % (len(the_queries), qid, resp.msg))
+    logger.info(f"the_queries {id(the_queries)}")
+
     if not resp.msg.startswith('OK'):
         return -1
     else:
         return qid
 
 # will return a list of videos. to be called by web server
+# deprecated
 def list_videos_cam() -> cam_cloud_pb2.VideoList:
     camChannel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
     camStub = cam_cloud_pb2_grpc.DivaCameraStub(camChannel)
@@ -407,6 +457,30 @@ def list_videos_cam() -> cam_cloud_pb2.VideoList:
     print("get video list from camera: ---> ")
     return resp.videos
 
+
+def list_videos() -> typing.List[VideoInfo]:
+    camChannel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
+    camStub = cam_cloud_pb2_grpc.DivaCameraStub(camChannel)
+    resp = camStub.ListVideos(empty_pb2.Empty())
+
+    if len(resp.videos) == 0:
+        return None
+
+    vl = []
+    for v in resp.videos:
+        vl.append(VideoInfo(
+            video_name=v.video_name,
+            n_frames=v.n_frames,
+            n_missing_frames=v.n_frames,
+            fps=v.fps,
+            start=v.start,
+            end=v.end,
+            duration=v.duration,
+            frame_id_min=v.frame_id_min,
+            frame_id_max=v.frame_id_max
+        ))
+
+    return vl
 
 # return a list of queries. to be called by web server
 # see query_submit for query metadata
@@ -529,9 +603,9 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
         global the_queries
 
         '''
-        logger.info("got a frame. id %d frame %d bytes" 
-                    %(request.frame_id, len(request.image.data)))
-                                    
+        logger.info("got a frame. id %d frame %d bytes. queries %d"
+                    %(request.frame_id, len(request.image.data), id(the_queries)))
+
         with the_queries_lock:
             if (len(the_queries) == 0):
                 logger.error(f"submitframe1 bug??? - no queries  {len(the_queries)}")
@@ -545,7 +619,8 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
                 the_queries[qid].n_frames_sent_cam += 1
                 target_class = the_queries[qid].target_class
             except Exception as err:
-                logger.error(f"bug - cloud has no such a query  {len(the_queries)}")
+                logger.error(f"SubmitFrame: bug - cloud has no query  {len(the_queries)}")
+                logger.error(f"queries:{id(the_queries)} {the_queries.keys()}")
                 sys.exit(1)
 
         #logger.info("======= invoking yolo.....")
@@ -606,11 +681,27 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
 
         return empty_pb2.Empty()
 
+
+def thread_progress_snapshot(interval_sec:int):
+    logger.warning(f"------------ progress snapshot start running id = {threading.get_ident()}")
+
+    # XXX stop track completed queries
+    while True:
+        with the_queries_lock:
+            qids = the_queries.keys()
+        for qid in qids:
+            create_query_progress_snapshot(qid)
+            logger.warning(f"took a prog snapshot for qid {qid}")
+        time.sleep(interval_sec)
+
 # https://raspberrypi.stackexchange.com/questions/22005/how-to-prevent-python-script-from-running-more-than-once
 the_instance_lock = None
 
 def grpc_serve():
     global the_instance_lock
+
+    #traceback.print_stack()  # dbg
+
     try:
         the_instance_lock = zc.lockfile.LockFile('/tmp/diva-cloud')
         logger.debug("grabbed diva lock")
@@ -628,8 +719,15 @@ def grpc_serve():
 
     # traceback.print_stack() # dbg
 
-    return server
+    '''
+    tps = threading.Thread(target=thread_progress_snapshot, args=(1,))
+    tps.start()
+    assert(tps.is_alive())
+        
+    return server, tps
+    '''
 
+    return server, None
 
 # xzl: unused?
 def draw_box(img, x1, y1, x2, y2):
@@ -870,9 +968,16 @@ def console():
                 for v in vs:
                     print(v, end=" ")
                 '''
+
+                if (len(info.progress_snapshots) > 0):
+                    last = info.progress_snapshots[-1]
+                    sdic = asdict(last)
+                    sdic['framestates'] = "removed"
+                    print("most recent prog", sdic)
+
                 dic = asdict(info)
                 dic['results'] = len(dic['results']) # overwrite it to be # of results
-
+                dic['progress_snapshots'] = len(dic['progress_snapshots'])
                 for k, v in dic.items():
                     print(f"{k}={v}", end=" ")
                 print()
@@ -910,7 +1015,7 @@ def console():
         elif s[0] == 'yolo':
             test_yolo()
         elif s[0] == 'prog':
-            s = take_query_progress_snapshot(qid=0)
+            s = create_query_progress_snapshot(qid=0)
             sdic = asdict(s)
             sdic['framestates'] = "removed"
             print(sdic)
@@ -927,7 +1032,7 @@ if __name__ == '__main__':
 
     logger.info("test cloud controller")
 
-    _server = grpc_serve()
+    _server, _tps = grpc_serve()
     # _server.wait_for_termination() # xzl: won't return. dont need. 
 
     # test_cam()

@@ -22,7 +22,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='camera',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=b'\n\x0f\x63\x61m_cloud.proto\x12\x06\x63\x61mera\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x0c\x63ommon.proto\"E\n\x0cVideoRequest\x12\x11\n\ttimestamp\x18\x01 \x01(\x05\x12\x0e\n\x06offset\x18\x02 \x01(\x05\x12\x12\n\nvideo_name\x18\x03 \x01(\t\"N\n\rVideoResponse\x12\x0b\n\x03msg\x18\x01 \x01(\t\x12\x13\n\x0bstatus_code\x18\x02 \x01(\x05\x12\x1b\n\x05video\x18\x03 \x01(\x0b\x32\x0c.common.File\"-\n\x0f\x44\x65ployOpRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x63rop\x18\x02 \x01(\t\"d\n\x0cQueryRequest\x12\x12\n\nvideo_name\x18\x01 \x01(\t\x12\x0f\n\x07op_name\x18\x02 \x01(\t\x12\x0c\n\x04\x63rop\x18\x03 \x01(\t\x12\x0b\n\x03qid\x18\x04 \x01(\x05\x12\x14\n\x0ctarget_class\x18\x05 \x01(\t\"3\n\x13\x43ontrolQueryRequest\x12\x0b\n\x03qid\x18\x01 \x01(\x05\x12\x0f\n\x07\x63ommand\x18\x02 \x01(\t\"\x9c\x01\n\rQueryProgress\x12\x0b\n\x03qid\x18\x01 \x01(\x05\x12\x12\n\nvideo_name\x18\x02 \x01(\t\x12\x1a\n\x12n_frames_processed\x18\x03 \x01(\x03\x12\x16\n\x0en_frames_total\x18\x04 \x01(\x03\x12\x0e\n\x06status\x18\x05 \x01(\t\x12\x0f\n\x07ts_comp\x18\x06 \x01(\x02\x12\x15\n\rn_frames_sent\x18\x07 \x01(\x03\"#\n\x0fInitDivaRequest\x12\x10\n\x08img_path\x18\x01 \x01(\t\"\x1f\n\x0fGetFrameRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\"<\n\x14GetVideoFrameRequest\x12\x12\n\nvideo_name\x18\x01 \x01(\t\x12\x10\n\x08\x66rame_id\x18\x02 \x01(\x03\"#\n\x05\x46rame\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"\x15\n\x06StrMsg\x12\x0b\n\x03msg\x18\x01 \x01(\t\"\x15\n\x05\x43hunk\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"2\n\tVideoList\x12%\n\x06videos\x18\x01 \x03(\x0b\x32\x15.camera.VideoMetadata\"\x89\x02\n\rVideoMetadata\x12\x12\n\nvideo_name\x18\x01 \x01(\t\x12\x10\n\x08n_frames\x18\x02 \x01(\x03\x12\x18\n\x10n_missing_frames\x18\x03 \x01(\x03\x12\x0b\n\x03\x66ps\x18\x04 \x01(\x05\x12)\n\x05start\x18\x05 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\'\n\x03\x65nd\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12+\n\x08\x64uration\x18\x07 \x01(\x0b\x32\x19.google.protobuf.Duration\x12\x14\n\x0c\x66rame_id_min\x18\x08 \x01(\x03\x12\x14\n\x0c\x66rame_id_max\x18\t \x01(\x03\"3\n\x08\x46rameMap\x12\x11\n\tframe_ids\x18\x01 \x03(\x03\x12\x14\n\x0c\x66rame_states\x18\x02 \x01(\t2\xe8\x06\n\nDivaCamera\x12\x35\n\x08InitDiva\x12\x17.camera.InitDivaRequest\x1a\x0e.camera.StrMsg\"\x00\x12\x34\n\x08GetFrame\x12\x17.camera.GetFrameRequest\x1a\r.camera.Frame\"\x00\x12+\n\x08\x44\x65ployOp\x12\r.camera.Chunk\x1a\x0e.camera.StrMsg\"\x00\x12;\n\x0e\x44\x65ployOpNotify\x12\x17.camera.DeployOpRequest\x1a\x0e.camera.StrMsg\"\x00\x12\x41\n\rDownloadVideo\x12\x17.camera.DeployOpRequest\x1a\x15.camera.VideoResponse\"\x00\x12\x35\n\x0bSubmitQuery\x12\x14.camera.QueryRequest\x1a\x0e.camera.StrMsg\"\x00\x12=\n\x0c\x43ontrolQuery\x12\x1b.camera.ControlQueryRequest\x1a\x0e.camera.StrMsg\"\x00\x12H\n\x10GetQueryProgress\x12\x1b.camera.ControlQueryRequest\x1a\x15.camera.QueryProgress\"\x00\x12\x46\n\x13GetQueryFrameStates\x12\x1b.camera.ControlQueryRequest\x1a\x10.camera.FrameMap\"\x00\x12\x39\n\nListVideos\x12\x16.google.protobuf.Empty\x1a\x11.camera.VideoList\"\x00\x12>\n\rGetVideoFrame\x12\x1c.camera.GetVideoFrameRequest\x1a\r.common.Image\"\x00\x12?\n\nget_videos\x12\x16.google.protobuf.Empty\x1a\x17.common.get_videos_resp\"\x00\x12;\n\tget_video\x12\x14.common.VideoRequest\x1a\x16.common.video_metadata\"\x00\x12?\n\rprocess_video\x12\x14.common.VideoRequest\x1a\x16.google.protobuf.Empty\"\x00\x62\x06proto3'
+  serialized_pb=b'\n\x0f\x63\x61m_cloud.proto\x12\x06\x63\x61mera\x1a\x1bgoogle/protobuf/empty.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x0c\x63ommon.proto\"E\n\x0cVideoRequest\x12\x11\n\ttimestamp\x18\x01 \x01(\x05\x12\x0e\n\x06offset\x18\x02 \x01(\x05\x12\x12\n\nvideo_name\x18\x03 \x01(\t\"N\n\rVideoResponse\x12\x0b\n\x03msg\x18\x01 \x01(\t\x12\x13\n\x0bstatus_code\x18\x02 \x01(\x05\x12\x1b\n\x05video\x18\x03 \x01(\x0b\x32\x0c.common.File\"-\n\x0f\x44\x65ployOpRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x63rop\x18\x02 \x01(\t\"d\n\x0cQueryRequest\x12\x12\n\nvideo_name\x18\x01 \x01(\t\x12\x0f\n\x07op_name\x18\x02 \x01(\t\x12\x0c\n\x04\x63rop\x18\x03 \x01(\t\x12\x0b\n\x03qid\x18\x04 \x01(\x05\x12\x14\n\x0ctarget_class\x18\x05 \x01(\t\"3\n\x13\x43ontrolQueryRequest\x12\x0b\n\x03qid\x18\x01 \x01(\x05\x12\x0f\n\x07\x63ommand\x18\x02 \x01(\t\"\x9c\x01\n\rQueryProgress\x12\x0b\n\x03qid\x18\x01 \x01(\x05\x12\x12\n\nvideo_name\x18\x02 \x01(\t\x12\x1a\n\x12n_frames_processed\x18\x03 \x01(\x03\x12\x16\n\x0en_frames_total\x18\x04 \x01(\x03\x12\x0e\n\x06status\x18\x05 \x01(\t\x12\x0f\n\x07ts_comp\x18\x06 \x01(\x02\x12\x15\n\rn_frames_sent\x18\x07 \x01(\x03\"#\n\x0fInitDivaRequest\x12\x10\n\x08img_path\x18\x01 \x01(\t\"\x1f\n\x0fGetFrameRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\"<\n\x14GetVideoFrameRequest\x12\x12\n\nvideo_name\x18\x01 \x01(\t\x12\x10\n\x08\x66rame_id\x18\x02 \x01(\x03\"#\n\x05\x46rame\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0c\n\x04\x64\x61ta\x18\x02 \x01(\x0c\"\x15\n\x06StrMsg\x12\x0b\n\x03msg\x18\x01 \x01(\t\"\x15\n\x05\x43hunk\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\"2\n\tVideoList\x12%\n\x06videos\x18\x01 \x03(\x0b\x32\x15.camera.VideoMetadata\"\xb6\x01\n\rVideoMetadata\x12\x12\n\nvideo_name\x18\x01 \x01(\t\x12\x10\n\x08n_frames\x18\x02 \x01(\x03\x12\x18\n\x10n_missing_frames\x18\x03 \x01(\x03\x12\x0b\n\x03\x66ps\x18\x04 \x01(\x05\x12\r\n\x05start\x18\x05 \x01(\x02\x12\x0b\n\x03\x65nd\x18\x06 \x01(\x02\x12\x10\n\x08\x64uration\x18\x07 \x01(\x02\x12\x14\n\x0c\x66rame_id_min\x18\x08 \x01(\x03\x12\x14\n\x0c\x66rame_id_max\x18\t \x01(\x03\"3\n\x08\x46rameMap\x12\x11\n\tframe_ids\x18\x01 \x03(\x03\x12\x14\n\x0c\x66rame_states\x18\x02 \x01(\t2\xe8\x06\n\nDivaCamera\x12\x35\n\x08InitDiva\x12\x17.camera.InitDivaRequest\x1a\x0e.camera.StrMsg\"\x00\x12\x34\n\x08GetFrame\x12\x17.camera.GetFrameRequest\x1a\r.camera.Frame\"\x00\x12+\n\x08\x44\x65ployOp\x12\r.camera.Chunk\x1a\x0e.camera.StrMsg\"\x00\x12;\n\x0e\x44\x65ployOpNotify\x12\x17.camera.DeployOpRequest\x1a\x0e.camera.StrMsg\"\x00\x12\x41\n\rDownloadVideo\x12\x17.camera.DeployOpRequest\x1a\x15.camera.VideoResponse\"\x00\x12\x35\n\x0bSubmitQuery\x12\x14.camera.QueryRequest\x1a\x0e.camera.StrMsg\"\x00\x12=\n\x0c\x43ontrolQuery\x12\x1b.camera.ControlQueryRequest\x1a\x0e.camera.StrMsg\"\x00\x12H\n\x10GetQueryProgress\x12\x1b.camera.ControlQueryRequest\x1a\x15.camera.QueryProgress\"\x00\x12\x46\n\x13GetQueryFrameStates\x12\x1b.camera.ControlQueryRequest\x1a\x10.camera.FrameMap\"\x00\x12\x39\n\nListVideos\x12\x16.google.protobuf.Empty\x1a\x11.camera.VideoList\"\x00\x12>\n\rGetVideoFrame\x12\x1c.camera.GetVideoFrameRequest\x1a\r.common.Image\"\x00\x12?\n\nget_videos\x12\x16.google.protobuf.Empty\x1a\x17.common.get_videos_resp\"\x00\x12;\n\tget_video\x12\x14.common.VideoRequest\x1a\x16.common.video_metadata\"\x00\x12?\n\rprocess_video\x12\x14.common.VideoRequest\x1a\x16.google.protobuf.Empty\"\x00\x62\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_empty__pb2.DESCRIPTOR,google_dot_protobuf_dot_timestamp__pb2.DESCRIPTOR,google_dot_protobuf_dot_duration__pb2.DESCRIPTOR,common__pb2.DESCRIPTOR,])
 
@@ -595,22 +595,22 @@ _VIDEOMETADATA = _descriptor.Descriptor(
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='start', full_name='camera.VideoMetadata.start', index=4,
-      number=5, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
+      number=5, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='end', full_name='camera.VideoMetadata.end', index=5,
-      number=6, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
+      number=6, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='duration', full_name='camera.VideoMetadata.duration', index=6,
-      number=7, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
+      number=7, type=2, cpp_type=6, label=1,
+      has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
@@ -641,7 +641,7 @@ _VIDEOMETADATA = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=915,
-  serialized_end=1180,
+  serialized_end=1097,
 )
 
 
@@ -678,15 +678,12 @@ _FRAMEMAP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1182,
-  serialized_end=1233,
+  serialized_start=1099,
+  serialized_end=1150,
 )
 
 _VIDEORESPONSE.fields_by_name['video'].message_type = common__pb2._FILE
 _VIDEOLIST.fields_by_name['videos'].message_type = _VIDEOMETADATA
-_VIDEOMETADATA.fields_by_name['start'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
-_VIDEOMETADATA.fields_by_name['end'].message_type = google_dot_protobuf_dot_timestamp__pb2._TIMESTAMP
-_VIDEOMETADATA.fields_by_name['duration'].message_type = google_dot_protobuf_dot_duration__pb2._DURATION
 DESCRIPTOR.message_types_by_name['VideoRequest'] = _VIDEOREQUEST
 DESCRIPTOR.message_types_by_name['VideoResponse'] = _VIDEORESPONSE
 DESCRIPTOR.message_types_by_name['DeployOpRequest'] = _DEPLOYOPREQUEST
@@ -817,8 +814,8 @@ _DIVACAMERA = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=1236,
-  serialized_end=2108,
+  serialized_start=1153,
+  serialized_end=2025,
   methods=[
   _descriptor.MethodDescriptor(
     name='InitDiva',

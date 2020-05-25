@@ -231,3 +231,24 @@ ii  cuda-sanitizer-api-10-1                              10.1.243-1             
 ii  cuda-toolkit-10-1                                    10.1.243-1                                               amd64        CUDA Toolkit 10.1 meta-package
 ii  cuda-tools-10-1                                      10.1.243-1                                               amd64        CUDA Tools meta-package
 ii  cuda-visual-tools-10-1                               10.1.243-1                                               amd64        CUDA visual tools
+
+
+# host env
+sudo apt install python3.7
+
+# https://unix.stackexchange.com/questions/410579/change-the-python3-default-version-in-ubuntu
+
+#sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.4 1
+sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.6 1
+sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.7 2
+
+sudo update-alternatives --config python
+
+# create new 3.7 venv
+virtualenv --system-site-packages -p python3.7 ./venv3.7
+
+# or upgrade existing venv (not working??)
+sudo apt install python3.7-venv
+python -m venv --upgrade YOUR_VENV_DIRECTORY
+
+

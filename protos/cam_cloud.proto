@@ -116,9 +116,12 @@ message VideoMetadata {
     int64 n_frames = 2; // how many frames
     int64 n_missing_frames = 3;
     int32 fps = 4; 
-    google.protobuf.Timestamp start = 5; // optional
-    google.protobuf.Timestamp end = 6; // optional
-    google.protobuf.Duration duration = 7; // optional     
+    //google.protobuf.Timestamp start = 5; // optional
+    //google.protobuf.Timestamp end = 6; // optional
+    //google.protobuf.Duration duration = 7; // optional
+    float start = 5;    // optional
+    float end = 6; // optional
+    float duration = 7;
     int64 frame_id_min = 8; 
     int64 frame_id_max = 9;
 }

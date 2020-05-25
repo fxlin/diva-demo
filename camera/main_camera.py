@@ -1,5 +1,13 @@
 #!/usr/bin/env python3.7
 
+'''
+
+
+server example, callbacks, cf:
+https://docs.bokeh.org/en/latest/docs/user_guide/server.html
+
+'''
+
 import time
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # not working?
@@ -148,7 +156,7 @@ the_buf_lock = threading.Lock()
 the_cv = threading.Condition(the_buf_lock)
 
 '''
-ev_uploader_stop_req = threading.Event()
+ev_uploader_stop_req = threading.`Event`()
 ev_uploader_stop_req.clear()
 ev_uploader_stop_done = threading.Event()
 ev_uploader_stop_done.clear()
@@ -772,10 +780,13 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                 return cam_cloud_pb2.QueryProgress(qid = request.qid, 
                                                    status = 'NONEXISTING')
 
+    # XXX: only return the current query's state. can be extended
     def GetQueryFrameStates(self, request, context):
         logger.info("GetQueryFrameStates qid %d" % (request.qid))
 
         with the_query_lock:
+            if (the_query.qid < 0):
+                return None # what to return?
             fs = copy.deepcopy(the_query.framestates) # a snapshot
 
         '''
@@ -950,20 +961,23 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
             n_missing_frames = diff - len(frame_name_list)
             assert(n_missing_frames >= 0)
             
-            duration = Duration()
-            duration.seconds = 0        
-            
-            if fps > 0:
-                duration.seconds = int((diff) / fps)
+            #duration = Duration()
+            #duration.seconds = 0
+            #duration = 0
+            #if fps > 0:
+            #    duration.seconds = int((diff) / fps)
                                         
             video_list.append(cam_cloud_pb2.VideoMetadata(
                     video_name = f, 
                     n_frames = len(frame_name_list), 
                     fps = fps,  
                     n_missing_frames = n_missing_frames,
-                    start = Timestamp(), # fake one, or Timestamp(), 
-                    end = Timestamp(), 
-                    duration = duration,
+                    #start = Timestamp(), # fake one, or Timestamp(),
+                    #end = Timestamp(),
+                    #duration = duration,
+                    start = 0, # fake
+                    end = 0,
+                    duration = int(diff / fps) if fps > 0 else 0,
                     frame_id_min = minid,
                     frame_id_max = maxid
                 ))
