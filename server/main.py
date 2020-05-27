@@ -106,27 +106,32 @@ b_resume = Button(label="Resume", button_type="success", width=50, disabled=True
 the_started = False
 the_paused = False
 
+the_qid = -1
+
 def cb_resume():
-    global the_paused
+    global the_paused, the_poll_cb
     if the_paused:
-        console_append("resume query requested")
+        console_write("resume query requested")
         msg = control.query_resume()
         console_append("cam replied:" + msg)
         if msg.startswith("OK"):
             the_paused = False
+            the_poll_cb = doc.add_periodic_callback(update_camsrc_request, 500)
             b_resume.disabled = True
             b_pause.disabled = False
     else:
         logger.error("bug?")
 
 def cb_pause():
-    global the_paused
+    global the_paused, the_poll_cb
+
     if not the_paused:
-        console_append("pause query requested")
+        console_write("pause query requested")
         msg = control.query_pause()
         console_append("pause query. cam replied:" + msg)
         if msg.startswith("OK"):
             the_paused = True
+            doc.remove_periodic_callback(the_poll_cb)
             b_pause.disabled = True
             b_resume.disabled = False
     else:
@@ -143,13 +148,19 @@ src_cam = ColumnDataSource(dict(
     ts=[], n_frames_processed_cam=[], n_frames_recv_yolo=[]
 ))
 
-pcam = figure(plot_height=500, tools="xpan,xwheel_zoom,xbox_zoom,reset", x_axis_type=None, y_axis_location="right")
+pcam = figure(plot_height=300, plot_width=500, tools="xpan,xwheel_zoom,xbox_zoom,reset", x_axis_type=None, y_axis_location="right")
 pcam.x_range.follow = "end"
 pcam.x_range.follow_interval = 100
 pcam.x_range.range_padding = 0
 
 pcam.line(x='ts', y='n_frames_processed_cam', alpha=0.8, line_width=2, color='red', source=src_cam)
 pcam.line(x='ts', y='n_frames_recv_yolo', alpha=0.8, line_width=2, color='blue', source=src_cam)
+
+xaxis = LinearAxis()
+pcam.add_layout(xaxis, 'below')
+
+yaxis = LinearAxis()
+pcam.add_layout(yaxis,'left')
 
 @count()
 def update_camsrc(t):
@@ -192,7 +203,7 @@ def thread_progress():
     while True:
         ev_progress.wait()
         ev_progress.clear()
-        prog = control.create_query_progress_snapshot(qid=0) # test
+        prog = control.create_query_progress_snapshot(qid=the_qid) # test
         if prog:
             doc.add_next_tick_callback(partial(cb_update_camsrc, prog))
             # logger.info("poll progress.. ok")
@@ -213,7 +224,7 @@ the_poll_cb = None
 # text for log
 ######
 #para_log = Paragraph(text="hello world", width=200, height=100)
-para_log = Div(text="[log messages]", width=200, height=100)
+para_log = Div(text="[log messages]", width=200, height=50)
 
 def console_append(msg:str):
     para_log.text += '<ul>{}</ul>'.format(msg)
@@ -221,17 +232,22 @@ def console_append(msg:str):
 def console_clear():
     para_log.text = ''
 
+def console_write(msg:str):
+    console_clear()
+    console_append(msg)
+
 ######
 # start a sample query
 ######
 
 def cb_newquery():
-    global the_poll_cb
-    resp=control.query_submit(video_name='chaweng-1_10FPS',
+    global the_poll_cb, the_started, the_qid
+
+    the_qid = control.query_submit(video_name='chaweng-1_10FPS',
                  op_name='random', crop='-1,-1,-1,-1', target_class='motorbike')
     # print('qid:', resp)
-    console_append(f"new query started. qid {resp}")
-    # the_poll_cb = doc.add_periodic_callback(update_camsrc_request, 500)
+    console_append(f"new query started. qid {the_qid}")
+    the_poll_cb = doc.add_periodic_callback(update_camsrc_request, 500)
 
     the_started = True
     b_query.label="Abort"
@@ -287,6 +303,11 @@ def cb_listvideos():
 
 b_lv = Button(label="ListVideos", button_type="success")
 b_lv.on_click(cb_listvideos)
+
+def cb_listvideo_table(attraname, old, new):
+    print(f"selected! {attraname} {old} {new}")
+
+source_videos.selected.on_change('indices', cb_listvideo_table)
 
 ######
 # list queries
@@ -369,14 +390,12 @@ pimg = Plot(
     title=None, plot_width=300, plot_height=300,
     min_border=0, toolbar_location=None)
 
-xaxis = LinearAxis()
-pimg.add_layout(xaxis, 'below')
-
-yaxis = LinearAxis()
-pimg.add_layout(yaxis,'left')
-
 image1 = ImageURL(url="url", x="x1", y="y1", w="w1", h="h1", anchor="center")
 pimg.add_glyph(sourceimg, image1) # feed the data
+
+def load_preview_frames(video_name:str, n_max:int):
+
+
 ##############################
 
 def _create_prices(t):

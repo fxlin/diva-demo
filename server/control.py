@@ -44,6 +44,7 @@ from constants.grpc_constant import INIT_DIVA_SUCCESS
 
 # careful...
 from camera.main_camera import FrameMapToFrameStates
+from variables import the_videolib_results, the_videolib_preview
 
 CHUNK_SIZE = 1024 * 100
 OBJECT_OF_INTEREST = 'bicycle'
@@ -184,6 +185,7 @@ def clean_results_frames(qid:int):
 def clean_preview_frames(video_name:str):
     _CleanStoredFrames(CFG_PREVIEW_PATH, video_name)
 
+# deprecated. see VideoStore
 # save a result frame. draw bboxes
 # @img is the image.data loaded from jpg file and passed over grpc
 # return: full path of the stored frame
@@ -214,7 +216,7 @@ def _SaveResultFrame(request, elements) -> str:
 
 # sample @n_frames from the given video from the cam. save them locally
 # return: a list of frame ids, in integers
-def download_video_preview_frames(v:cam_cloud_pb2.VideoMetadata, n_frames:int) -> typing.List[int]:
+def download_video_preview_frames_0(v:cam_cloud_pb2.VideoMetadata, n_frames:int) -> typing.List[int]:
     delta = int((v.frame_id_max - v.frame_id_min) / n_frames)
     assert(delta > 10)
 
@@ -226,6 +228,33 @@ def download_video_preview_frames(v:cam_cloud_pb2.VideoMetadata, n_frames:int) -
             print(f"get preview frame id {frameid}")
             img = get_video_frame(v.video_name, frameid)
             save_video_frame(v.video_name, frameid, CFG_PREVIEW_PATH, True)
+            logger.info(f'saved preview frame size is {len(img.data)}')
+            fl.append(frameid)
+        except Exception as err:
+            logger.error(err)
+            sys.exit(1)
+
+    return fl
+
+# sample @n_frames from the given video from the cam. save them locally
+# return: a list of frame ids, in integers
+# not cleaning existing local cache
+# using VideoStore interface
+def download_video_preview_frames(v:cam_cloud_pb2.VideoMetadata, n_frames:int) -> typing.List[int]:
+    delta = int((v.frame_id_max - v.frame_id_min) / n_frames)
+    assert(delta > 10)
+
+    vs = the_videolib_preview.GetVideoStore(v.video_name)
+
+    fl = []
+
+    for i in range(n_frames):
+        frameid = v.frame_id_min + delta * i
+        try:
+            print(f"get preview frame id {frameid}")
+            img = get_video_frame(v.video_name, frameid)
+            print(f"got preview frame id {frameid}")
+            vs.StoreFrame(frameid, img, [128, 128])
             logger.info(f'saved preview frame size is {len(img.data)}')
             fl.append(frameid)
         except Exception as err:
@@ -412,7 +441,7 @@ def query_submit(video_name: str, op_name: str, crop, target_class: str) -> int:
             progress_snapshots = []
         )
 
-    clean_results_frames(qid)
+    # clean_results_frames(qid)
 
     request = cam_cloud_pb2.QueryRequest(video_name=video_name,
                                          op_name=op_name, crop=crop, target_class=target_class, qid=qid)
@@ -444,10 +473,12 @@ def query_submit(video_name: str, op_name: str, crop, target_class: str) -> int:
     if not resp.msg.startswith('OK'):
         return -1
     else:
+        # get the video store & clean any frames there
+        the_videolib_results.AddVideoStore(f'{qid}').CleanStoredFrames()
         return qid
 
-# will return a list of videos. to be called by web server
 # deprecated
+# will return a list of videos. to be called by web server
 def list_videos_cam() -> cam_cloud_pb2.VideoList:
     camChannel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
     camStub = cam_cloud_pb2_grpc.DivaCameraStub(camChannel)
@@ -459,6 +490,8 @@ def list_videos_cam() -> cam_cloud_pb2.VideoList:
 
 
 def list_videos() -> typing.List[VideoInfo]:
+    global the_videolib_preview
+
     camChannel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
     camStub = cam_cloud_pb2_grpc.DivaCameraStub(camChannel)
     resp = camStub.ListVideos(empty_pb2.Empty())
@@ -479,6 +512,8 @@ def list_videos() -> typing.List[VideoInfo]:
             frame_id_min=v.frame_id_min,
             frame_id_max=v.frame_id_max
         ))
+
+    the_videolib_preview.AddVideoStore(v.video_name)
 
     return vl
 
@@ -534,6 +569,7 @@ def save_video_frame(video_name: str, frame_id: int, prefix: str, thumbnail: boo
     else:
         logger.info(f"written to {frame_path}")
     return frame_path
+
 
 class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
     """
@@ -628,7 +664,8 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
         #logger.info("+++++++  yolo returns .....")
 
         if len(elements) > 0:
-            saved = _SaveResultFrame(request, elements) # save the frame locally
+            the_videolib_results.GetVideoStore(f'{qid}').StoreFrameBBoxes(request.frame_id, request.image, elements)
+            #saved = _SaveResultFrame(request, elements) # save the frame locally
             #logger.info("res frame saved to " + saved)
 
             # keep metadata in mem
@@ -699,8 +736,13 @@ the_instance_lock = None
 
 def grpc_serve():
     global the_instance_lock
+    global the_videolib_results, the_videolib_preview
 
     #traceback.print_stack()  # dbg
+
+    # move these to variables?
+    the_videolib_results = VideoLib(CFG_RESULT_PATH)
+    the_videolib_preview = VideoLib(CFG_PREVIEW_PATH)
 
     try:
         the_instance_lock = zc.lockfile.LockFile('/tmp/diva-cloud')
@@ -916,8 +958,12 @@ def test_list_videos():
     # note: won't print out fields w value 0        
     print("get video list from camera:", resp)
     '''
-    videos = list_videos_cam()
+    #videos = list_videos_cam()
 
+    videos = list_videos()
+    logger.warning(f'got {len(videos)} videos')
+
+    '''
     for r in videos:
         print(r.video_name, r.n_missing_frames, r.frame_id_min, r.frame_id_max)
         for _ in range(3):
@@ -928,10 +974,17 @@ def test_list_videos():
             print(f'frame size is {len(img.data)}')
             # get  again. save to local disk this time
             save_video_frame(r.video_name, frameid, '/tmp')
+    '''
 
-    # test save
+    # test save --- old
+    '''
     for v in videos:
         clean_preview_frames(v.video_name)
+        download_video_preview_frames(v, 5)
+    '''
+
+    for v in videos:
+        the_videolib_preview.AddVideoStore(v.video_name).CleanStoredFrames()
         download_video_preview_frames(v, 5)
 
 def console():

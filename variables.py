@@ -1,4 +1,6 @@
-import os
+import os, threading
+import typing
+from videostore import VideoLib
 
 # xzl: fix this to be camera's valid IP addr??
 #CAMERA_CHANNEL_ADDRESS = 'camera:10086'
@@ -58,3 +60,8 @@ class NO_DESIRED_OBJECT(Exception):
     """does not contain desired object"""
     def __str__(self):
         return """does not contain desired object"""
+
+# local video stores. video_name -> VideoStore
+# will be set up by control when it starts & connects to cam
+the_videolib_results:VideoLib = None
+the_videolib_preview:VideoLib = None

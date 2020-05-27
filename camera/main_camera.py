@@ -17,7 +17,6 @@ import json
 import cv2
 import threading
 import heapq
-import re
 import copy
 import random
 
@@ -42,6 +41,7 @@ import common_pb2
 import cam_cloud_pb2
 import server_diva_pb2_grpc # for submitting frames
 
+import videostore
 from google.protobuf import empty_pb2
 
 # since 3.7
@@ -55,6 +55,7 @@ import zc.lockfile # detect& avoid multiple instances
 from variables import CAMERA_CHANNEL_PORT
 from variables import DIVA_CHANNEL_ADDRESS # for submitting frames
 from variables import  * # xzl
+from videostore import VideoStore
 
 from camera.camera_constants import VIDEO_FOLDER, _HOST, _PORT, STATIC_FOLDER, WEB_APP_DNS
 from camera.camera_constants import _NAME, _ADDRESS, YOLO_CHANNEL_ADDRESS
@@ -195,67 +196,6 @@ def FrameStatesToFrameMap(fs:typing.Dict[int,str]) ->cam_cloud_pb2.FrameMap:
     states = [x[1] for x in s]
     return cam_cloud_pb2.FrameMap(frame_ids = fids, frame_states = ''.join(states))
 
-# for a specific video
-class VideoStore():
-    def __init__(self, video_name:str):
-        self.lock= threading.Lock()
-
-        self.video_name = video_name
-        self.video_abspath =  os.path.join(the_img_dirprefix, video_name)
-
-        # use hint to find FPS from video name. best effort
-        m = re.search(r'''\D*(\d+)(FPS|fps)''', video_name)
-        if m:
-            self.fps = int(m.group(1))
-        else:
-            self.fps = -1
-
-        # NB: listdir can be very slow
-        # a list of frame nums without file extensions. all leading 0s are removed
-        self.frame_ids = [int(img[:-4]) for img in os.listdir(self.video_abspath)]
-
-        self.minid = min(self.frame_ids)
-        self.maxid = max(self.frame_ids)
-        diff = self.maxid - self.minid + 1
-        self.n_missing_frames = diff - len(self.frame_ids)
-        assert (self.n_missing_frames >= 0)
-
-    # by design should made public. do so right now for cv2.imread()
-    def GetFramePath(self, frame_id:int) -> str:
-        frame_path = None
-        for ext in ['.JPG', '.jpg']:
-            for frame_fname in [f'{frame_id:07d}', f'{frame_id:06d}', f'{frame_id:d}', f'{frame_id:08d}']:
-                frame_path = os.path.join(self.video_abspath, frame_fname + ext)
-                if os.path.isfile(frame_path):
-                    found = True
-                    # logger.info(f"try {frame_path}... found")
-                    break
-                else:
-                    # print(f"try {frame_path}... not found")
-                    pass
-            else:
-                continue
-            break
-
-        return frame_path
-
-    def GetFrame(self, frame_id:int) -> common_pb2.Image:
-        frame_path = self.GetFramePath(frame_id)
-
-        if not frame_path:
-            return common_pb2.Image()  # nothing
-
-        try:
-            f = open(frame_path, 'rb')
-            _height, _width, _chan = 0, 0, 0
-            return common_pb2.Image(data=f.read(),
-                                    height=_height,
-                                    width=_width,
-                                    channel=_chan)
-        except Exception as e:
-            logger.error(e)
-            return common_pb2.Image()  # nothing
-
 the_video_stores: typing.Dict[str, VideoStore] = {}
 
 # will terminate after finishing up the current query
@@ -366,8 +306,8 @@ class OP_WORKER(threading.Thread):
                 return 
 
 
-            with vs.lock:
-                frame_paths = [vs.GetFramePath(fid) for fid in fids]
+            #with vs.lock:
+            frame_paths = [vs.GetFramePath(fid) for fid in fids]
 
             #TODO: IO shall be seperated thread
             # xzl: fixing this by having multiple op workers
@@ -433,8 +373,8 @@ def thread_uploader():
         #f = open(os.path.join(the_img_dirprefix, send_frame['name']), 'rb')
 
         vn = send_frame.video_name
-        with the_video_stores[vn].lock:
-            _img = the_video_stores[vn].GetFrame(send_frame.frame_id)
+        #with the_video_stores[vn].lock:
+        _img = the_video_stores[vn].GetFrame(send_frame.frame_id)
 
         '''
         f = open(send_frame.local_path, 'rb')        
@@ -658,8 +598,8 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         ### gen the list of frame ids to process ###
         try:
             vs = the_video_stores[request.video_name]
-            with vs.lock:
-                frame_ids = [img for img in vs.frame_ids if img % 10 == 0]  # downsample.. 1/10??
+            #with vs.lock:
+            frame_ids = [img for img in vs.GetFrameIds() if img % 10 == 0]  # downsample.. 1/10??
         except Exception as err:
             logger.error(err)
 
@@ -992,15 +932,15 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         try:
             for f in video_name_list:
                 vs = the_video_stores[f]
-                with vs.lock:
-                    video_list.append(cam_cloud_pb2.VideoMetadata(
-                        video_name=f,
-                        n_frames=len(vs.frame_ids),
-                        fps=vs.fps,
-                        n_missing_frames=vs.n_missing_frames,
-                        frame_id_min=vs.minid,
-                        frame_id_max=vs.maxid
-                    ))
+                #with vs.lock:
+                video_list.append(cam_cloud_pb2.VideoMetadata(
+                    video_name=f,
+                    n_frames=vs.GetNumFrames(),
+                    fps=vs.fps,
+                    n_missing_frames=vs.n_missing_frames,
+                    frame_id_min=vs.minid,
+                    frame_id_max=vs.maxid
+                ))
         except Exception as err:
             logger.error(err)
 
@@ -1043,9 +983,10 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
             return common_pb2.Image()   # nothing            
 
     def GetVideoFrame(self, request, context):
+        logger.info(f'GetVideoFrame {request.video_name} {request.frame_id}')
         try:
-            with the_video_stores[request.video_name].lock:
-                return the_video_stores[request.video_name].GetFrame(request.frame_id)
+            #with the_video_stores[request.video_name].lock:
+            return the_video_stores[request.video_name].GetFrame(request.frame_id)
         except Exception as err:
             logger.error(err)
 
@@ -1083,7 +1024,7 @@ def build_video_stores():
 
     try:
         for vn in video_name_list:
-            the_video_stores[vn] = VideoStore(video_name = vn)
+            the_video_stores[vn] = VideoStore(video_name = vn, prefix=the_img_dirprefix)
             logger.info(f"build videostore... {vn}")
 
     except Exception as err:
