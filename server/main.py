@@ -29,6 +29,11 @@ from bokeh.layouts import column, gridplot, row
 from bokeh.models import Select, Slider, Button, ImageURL, Plot, LinearAxis, Paragraph, Div, Range1d, Text
 from bokeh.models import CDSView, IndexFilter, RadioButtonGroup
 
+# palettes https://docs.bokeh.org/en/latest/docs/reference/palettes.html
+from bokeh.palettes import RdYlGn10, Spectral6
+from bokeh.transform import linear_cmap
+
+
 from bokeh.plotting import curdoc, figure
 
 from bokeh  .models import ColumnDataSource, DataTable, DateFormatter, TableColumn
@@ -602,56 +607,74 @@ class_sel.on_change('active', cb_class)
 ##############################
 NSPANS = 10
 timespans = [f'win{d}' for d in range(NSPANS)]
-states = ['.','p','s', 'r'] # years
+states = ['.','p','s', 'r']
 colors = ["#c9d9d3", "#718dbf", "#e84d60", "#000000"]
 data_span = {
     'timespans' : timespans,
-    '.' : [10] * NSPANS,
-    'p' : [20] * NSPANS,
+    '.' : [10] * NSPANS,   # number of '.' frames
+    'p' : [20] * NSPANS,    # ditto
     's' : [30] * NSPANS,
-    'r' : [30] * NSPANS
+    'r' : [30] * NSPANS,
+    'max_confidence' : [0.0] * NSPANS,  # max of confidence in all 'r' frames
+    'avg_confidence' : [0.0] * NSPANS,  # ditto
 }
 source_span = ColumnDataSource(data=data_span)
 
 pspan = figure(x_range=timespans, plot_height=250, plot_width=PLOT_IMG_WIDTH>>1,
                # title="Fruit Counts by Year", toolbar_location=None,
                tools="hover,box_select,tap", tooltips="$name @timespans: @$name")
-
 pspan.vbar_stack(states, x='timespans', width=0.9, color=colors, source=source_span,
              legend_label=states)
 
 pspan.y_range.start = 0
-pspan.x_range.range_padding = 0.1
+#pspan.x_range.range_padding = 0.1
 pspan.xgrid.grid_line_color = None
 pspan.axis.minor_tick_line_color = None
 pspan.outline_line_color = None
 pspan.legend.location = "top_left"
 pspan.legend.orientation = "horizontal"
 
+###########
+# callbacks, etc
 def cb_update_span(framestates:typing.Dict[int, str]):
     fs_list = [(frame_id, state) for frame_id, state in framestates.items()]
     sorted(fs_list, key=lambda x: x[0])
-    spans = np.array_split(fs_list, NSPANS)
+    spans = np.array_split(fs_list, NSPANS)    # slice into N spans
     new_data = copy.deepcopy(data_span)
 
     # new_data['timespans'] = [f'winXXX{d}' for d in range(NSPANS)]
 
+    # f is a (frame_id, state) tuple
     for idx, sp in enumerate(spans):
         new_data['.'][idx] = sum(1 for f in sp if f[1] == '.')
         new_data['p'][idx] = sum(1 for f in sp if f[1] == 'p')
         new_data['s'][idx] = sum(1 for f in sp if f[1] == 's')
-        new_data['r'][idx] = sum(1 for f in sp if f[1] == 'r')
+        #new_data['r'][idx] = sum(1 for f in sp if f[1] == 'r')
+        # a bit hack. for 'r' frames, we store the confidence as its framestate
+        new_data['r'][idx] = sum(1 for f in sp if f[1][0] == '0' or f[1][0] == '1')
+
+        max_conf_frame, new_data['max_confidence'][idx] = max(sp, key=lambda x: float(x[1]) if x[1][0] == '0' or x[1][0] == '1' else 0)
+        # todo: later...
+        #new_data['avg_confidence'][idx] = mean(sp, key=lambda x: float(x[1]) if x[1][0] == '0' or x[1][0] == '1' else 0)
 
     print(new_data)
 
     source_span.data = new_data
-
 
 def cb_span(attr, old, new):
     i = source_videos.selected.indices[0]
     print(f"selected! {attr} {old} {new} {i}")
 
 source_span.selected.on_change('indices', cb_span)
+
+###########
+# bar graph with only "results"
+pspan0 = figure(x_range=timespans, plot_height=250, plot_width=PLOT_IMG_WIDTH>>1,
+               # title="Fruit Counts by Year", toolbar_location=None,
+               tools="hover,box_select,tap", tooltips="pos: @r; max_confidence: @max_confidence")
+
+mapper = linear_cmap(field_name='max_confidence', palette=RdYlGn10, low=1, high=0) # reverse a palaette
+pspan0.vbar(x='timespans', top='r', width=0.9, color=mapper, source=source_span)
 
 ##############################
 
@@ -758,6 +781,7 @@ doc.add_root(column(
     row(b_pause, b_resume, b_lv, b_lq, b_query),
     row(pcam, table_results),
     pspan,
+    pspan0,
     presults,
     psingle,
     pimg

@@ -86,7 +86,7 @@ class FrameResults():
     #name: str
     frame_id: int
     elements: typing.Any  # from grpc resp
-    high_confidence: int = -1
+    high_confidence: float = -1  # highest confidence among all bbs on this frame
     n_bboxes: int = 0
 
 _CAMERA_STORAGE = {'jetson': {'host': CAMERA_CHANNEL_ADDRESS}}
@@ -380,7 +380,8 @@ def create_query_progress_snapshot(qid: int) -> QueryProgressSnapshot:
         n_frames_recv_yolo = q.n_frames_recv_yolo
         n_frames_processed_yolo = q.n_frames_processed_yolo
         for f in q.results:
-            fs[f.frame_id] = 'r'
+            #fs[f.frame_id] = 'r'
+            fs[f.frame_id] = f"{f.high_confidence}"  # a bit hack. storing confidence as string. wont break others
 
     ps = QueryProgressSnapshot(
         ts = time.time(), # the server's ts
