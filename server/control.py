@@ -236,6 +236,7 @@ def download_video_preview_frames_0(v:cam_cloud_pb2.VideoMetadata, n_frames:int)
 
     return fl
 
+
 # sample @n_frames from the given video from the cam. save them locally
 # return: a list of frame ids, in integers
 # not cleaning existing local cache
@@ -348,6 +349,8 @@ def query_progress(qid: int) -> QueryInfoCloud:
             'ts_comp_cam' : resp.ts_comp}
     '''
 
+
+# pull the current framestates from cam. gen a progress snapshot. append to the list of snapshots
 # do NOT call with holding the_queries_lock
 # return a deepcopy of the snapshot created, or None if failed
 def create_query_progress_snapshot(qid: int) -> QueryProgressSnapshot:
@@ -376,6 +379,8 @@ def create_query_progress_snapshot(qid: int) -> QueryProgressSnapshot:
         q = the_queries[qid]
         n_frames_recv_yolo = q.n_frames_recv_yolo
         n_frames_processed_yolo = q.n_frames_processed_yolo
+        for f in q.results:
+            fs[f.frame_id] = 'r'
 
     ps = QueryProgressSnapshot(
         ts = time.time(), # the server's ts
@@ -405,7 +410,9 @@ def get_latest_query_progress(qid: int) -> QueryProgressSnapshot:
             logger.error(f"failed to get most recent prog. qid {qid}", err)
             return None
 
-# return: a *single* query's results
+
+# return: a *single* query's results. frames sorted by score in descending order
+# return deepcopy
 # {name: XXX, n_bboxes: XXX, high_confidence: XXX, [elements...]}
 # see SubmitFrame()            
 def query_results(qid, to_sort=True) -> typing.List[FrameResults]:
@@ -416,7 +423,8 @@ def query_results(qid, to_sort=True) -> typing.List[FrameResults]:
             return None
         res = copy.deepcopy(the_queries[qid].results)
 
-    res.sort(key=lambda s: -s.high_confidence)  # descending order
+    if to_sort:
+        res.sort(key=lambda s: -s.high_confidence)  # descending order
     return res
 
 
@@ -504,7 +512,7 @@ def list_videos() -> typing.List[VideoInfo]:
         vl.append(VideoInfo(
             video_name=v.video_name,
             n_frames=v.n_frames,
-            n_missing_frames=v.n_frames,
+            n_missing_frames=v.n_missing_frames,
             fps=v.fps,
             start=v.start,
             end=v.end,
@@ -736,13 +744,13 @@ the_instance_lock = None
 
 def grpc_serve():
     global the_instance_lock
-    global the_videolib_results, the_videolib_preview
+    #global the_videolib_results, the_videolib_preview
 
     #traceback.print_stack()  # dbg
 
     # move these to variables?
-    the_videolib_results = VideoLib(CFG_RESULT_PATH)
-    the_videolib_preview = VideoLib(CFG_PREVIEW_PATH)
+    #the_videolib_results = VideoLib(CFG_RESULT_PATH)
+    #the_videolib_preview = VideoLib(CFG_PREVIEW_PATH)
 
     try:
         the_instance_lock = zc.lockfile.LockFile('/tmp/diva-cloud')

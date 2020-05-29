@@ -31,8 +31,13 @@ WEB_PICTURE_FOLDER = os.path.join('web', 'static', 'output')
 # CONTROLLER_VIDEO_DIRECTORY = os.path.join('web', 'static', 'video')
 # CONTROLLER_PICTURE_DIRECTORY = os.path.join('web', 'static', 'output')
 
-CFG_RESULT_PATH = 'result'
-CFG_PREVIEW_PATH = 'preview'
+#CFG_RESULT_PATH = 'result'
+#CFG_PREVIEW_PATH = 'preview'
+
+CFG_RESULT_PATH = 'server/static/result'
+CFG_PREVIEW_PATH = 'server/static/preview'
+
+
 # RESULT_IMAGE_PATH = os.path.join(RESULT_PATH, 'retrieval_imgs') # unused?
 
 # FIXME
@@ -63,5 +68,5 @@ class NO_DESIRED_OBJECT(Exception):
 
 # local video stores. video_name -> VideoStore
 # will be set up by control when it starts & connects to cam
-the_videolib_results:VideoLib = None
-the_videolib_preview:VideoLib = None
+the_videolib_results:VideoLib = VideoLib(CFG_RESULT_PATH)
+the_videolib_preview:VideoLib = VideoLib(CFG_PREVIEW_PATH)

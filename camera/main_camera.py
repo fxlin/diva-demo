@@ -96,9 +96,7 @@ coloredlogs.install(fmt=FORMAT, level='DEBUG', logger=logger)
 class FrameMap():
     frame_ids: typing.List[int]
     frame_states: str
-    # . init
-    # r ranked
-    # s sent
+    # see cam_cloud.proto
 '''
 
 # for tracking the current query 
@@ -967,8 +965,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
             else:
                 continue
             break
-            
-        if not found: 
+        if not found:
             return common_pb2.Image()   # nothing            
         
         try:                         
@@ -1024,8 +1021,9 @@ def build_video_stores():
 
     try:
         for vn in video_name_list:
-            the_video_stores[vn] = VideoStore(video_name = vn, prefix=the_img_dirprefix)
             logger.info(f"build videostore... {vn}")
+            the_video_stores[vn] = VideoStore(video_name = vn, prefix=the_img_dirprefix)
+            logger.info(f"done. {the_video_stores[vn].GetNumFrames()} frames found")
 
     except Exception as err:
         logger.error(err)

@@ -130,4 +130,9 @@ message FrameMap {
     repeated int64 frame_ids = 1;
     // repeated int32 frame_states = 2;
     string frame_states = 2;
+    //     . init
+    //    p processed (on cam)
+    //    s sent
+    //    e excluded (by user)
+    //    r result (pos frame as returned by yolo)
 }
