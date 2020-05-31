@@ -788,6 +788,6 @@ doc.add_root(column(
 ))
 
 # curdoc().add_periodic_callback(update, 500)
-doc.title = "^_^"
+doc.title = "📷⚙️"
 
 logger.info("main execed!")

@@ -107,8 +107,9 @@ class QueryInfo():
     framestates: typing.Dict[int, str] = None
     qid: int = -1    # current qid
     crop: typing.List[int] = field(default_factory = lambda: [-1,-1,-1,-1])
-    op_name: str = ""
-    op_fname: str = ""
+    op_names: typing.List[str]
+    op_fnames: typing.List[str]
+    op_index:int = 0 # the current op index
     img_dir: str = ""
     video_name: str = ""
     # run_imgs : typing.List[str] = field(default_factory = lambda: []) # maybe put a separate lock over this
@@ -216,7 +217,7 @@ class OP_WORKER(threading.Thread):
         threading.Thread.__init__(self)
         self.batch_size = 16
         self.kill = False   # notify the worker thread to terminate. not to be set externally. call stop() instead
-        # self.op = None # the actual op
+        self.op = None # the actual op
         
         '''
         self.crop = None
@@ -231,7 +232,8 @@ class OP_WORKER(threading.Thread):
     def stop(self):
         K.clear_session() # xzl: will there be race condition?
         self.kill = True
-        
+
+    # load the_query.op_fname
     def loadOp(self):
         with the_query_lock:
             op_fname = the_query.op_fname
@@ -242,7 +244,8 @@ class OP_WORKER(threading.Thread):
         # xzl: tf1 only
         config = tf.ConfigProto() 
         config.gpu_options.per_process_gpu_memory_fraction = 0.3
-        keras.backend.set_session(tf.Session(config=config))  # global tf session XXX TODO: only once
+        # global tf session XXX TODO: only once
+        keras.backend.set_session(tf.Session(config=config))
         
         # xzl: workaround in tf2. however, Keras=2.2.4 + TF 2
         # will cause the following issue. 
@@ -587,8 +590,9 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
             the_query = QueryInfo() # wipe clean the current query info
             the_query.qid = request.qid
             the_query.crop = [int(x) for x in request.crop.split(',')]
-            the_query.op_name = request.op_name
-            the_query.op_fname = os.path.join(the_op_dir, the_query.op_name)
+            the_query.op_names = request.op_names
+            the_query.op_fnames = [os.path.join(the_op_dir, on) for on in the_query.op_names]
+            the_query.op_index = 0
             the_query.video_name = request.video_name
             the_query.img_dir = os.path.join(the_img_dirprefix, the_query.video_name) 
 

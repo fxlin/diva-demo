@@ -50,7 +50,8 @@ message DeployOpRequest {
 // init a query
 message QueryRequest {
     string video_name = 1;  // cam uses this to locate video subdir
-    string op_name = 2; // cam uses this to locate op path
+    //string op_name = 2; // cam uses this to locate op path
+    repeated string op_names = 2; // cam uses this to locate op path
     string crop = 3;  // in the format of '-1, -1, -1, -1'. used by cam to pass in cv2.imread()
     int32 qid = 4; // used by cam to track query task
     string target_class = 5; 
