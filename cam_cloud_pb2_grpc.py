@@ -50,6 +50,16 @@ class DivaCameraStub(object):
                 request_serializer=cam__cloud__pb2.ControlQueryRequest.SerializeToString,
                 response_deserializer=cam__cloud__pb2.StrMsg.FromString,
                 )
+        self.PromoteFrames = channel.unary_unary(
+                '/camera.DivaCamera/PromoteFrames',
+                request_serializer=cam__cloud__pb2.FrameMap.SerializeToString,
+                response_deserializer=cam__cloud__pb2.StrMsg.FromString,
+                )
+        self.DemoteFrames = channel.unary_unary(
+                '/camera.DivaCamera/DemoteFrames',
+                request_serializer=cam__cloud__pb2.FrameMap.SerializeToString,
+                response_deserializer=cam__cloud__pb2.StrMsg.FromString,
+                )
         self.GetQueryProgress = channel.unary_unary(
                 '/camera.DivaCamera/GetQueryProgress',
                 request_serializer=cam__cloud__pb2.ControlQueryRequest.SerializeToString,
@@ -127,6 +137,18 @@ class DivaCameraServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def ControlQuery(self, request, context):
+        """Missing associated documentation comment in .proto file"""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def PromoteFrames(self, request, context):
+        """Missing associated documentation comment in .proto file"""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def DemoteFrames(self, request, context):
         """Missing associated documentation comment in .proto file"""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -213,6 +235,16 @@ def add_DivaCameraServicer_to_server(servicer, server):
             'ControlQuery': grpc.unary_unary_rpc_method_handler(
                     servicer.ControlQuery,
                     request_deserializer=cam__cloud__pb2.ControlQueryRequest.FromString,
+                    response_serializer=cam__cloud__pb2.StrMsg.SerializeToString,
+            ),
+            'PromoteFrames': grpc.unary_unary_rpc_method_handler(
+                    servicer.PromoteFrames,
+                    request_deserializer=cam__cloud__pb2.FrameMap.FromString,
+                    response_serializer=cam__cloud__pb2.StrMsg.SerializeToString,
+            ),
+            'DemoteFrames': grpc.unary_unary_rpc_method_handler(
+                    servicer.DemoteFrames,
+                    request_deserializer=cam__cloud__pb2.FrameMap.FromString,
                     response_serializer=cam__cloud__pb2.StrMsg.SerializeToString,
             ),
             'GetQueryProgress': grpc.unary_unary_rpc_method_handler(
@@ -368,6 +400,38 @@ class DivaCamera(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/camera.DivaCamera/ControlQuery',
             cam__cloud__pb2.ControlQueryRequest.SerializeToString,
+            cam__cloud__pb2.StrMsg.FromString,
+            options, channel_credentials,
+            call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def PromoteFrames(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/camera.DivaCamera/PromoteFrames',
+            cam__cloud__pb2.FrameMap.SerializeToString,
+            cam__cloud__pb2.StrMsg.FromString,
+            options, channel_credentials,
+            call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def DemoteFrames(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/camera.DivaCamera/DemoteFrames',
+            cam__cloud__pb2.FrameMap.SerializeToString,
             cam__cloud__pb2.StrMsg.FromString,
             options, channel_credentials,
             call_credentials, compression, wait_for_ready, timeout, metadata)

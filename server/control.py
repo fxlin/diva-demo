@@ -431,7 +431,8 @@ def query_results(qid, to_sort=True) -> typing.List[FrameResults]:
 
 # nonblocking. will auto fill request.qid. return: qid. -1 if failed
 # on failure: perhaps should negotiation a qid
-def query_submit(video_name: str, op_name: str, crop, target_class: str) -> int:
+def query_submit(video_name: str, op_names: typing.List[str], crop,
+                 target_class: str, frameskip:int = 1) -> int:
     global the_queries
 
     # auto assign qid
@@ -453,7 +454,10 @@ def query_submit(video_name: str, op_name: str, crop, target_class: str) -> int:
     # clean_results_frames(qid)
 
     request = cam_cloud_pb2.QueryRequest(video_name=video_name,
-                                         op_name=op_name, crop=crop, target_class=target_class, qid=qid)
+                                         op_names=op_names,
+                                         crop=crop,
+                                         target_class=target_class,
+                                         qid=qid, frameskip=frameskip)
 
     try:
         camera_channel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
@@ -525,6 +529,24 @@ def list_videos() -> typing.List[VideoInfo]:
     the_videolib_preview.AddVideoStore(v.video_name)
 
     return vl
+
+# promote a range of frames
+def promote_frames(qid: int, fid_start: int,
+                   fid_end: int, is_promote:bool=True) -> str:
+    camChannel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
+    camStub = cam_cloud_pb2_grpc.DivaCameraStub(camChannel)
+
+    frame_ids = [x for x in range(fid_start, fid_end)]
+    map = cam_cloud_pb2.FrameMap(frame_ids=frame_ids, frame_states="")
+
+    if is_promote:
+        resp = camStub.PromoteFrames(map)
+    else:
+        resp = camStub.DemoteFrames(map)
+    return resp.msg
+
+def demote_frames(qid: int, fid_start: int, fid_end: int) -> str:
+    return promote_frames(qid, fid_start, fid_end, is_promote=False)
 
 # return a list of queries. to be called by web server
 # see query_submit for query metadata
@@ -882,7 +904,7 @@ def test_cam():
     req = cam_cloud_pb2.QueryRequest()
 
     qid = query_submit(video_name='chaweng-1_10FPS',
-                       op_name='random', crop='-1,-1,-1,-1', target_class='motorbike')
+                       op_names=['random'], crop='-1,-1,-1,-1', target_class='motorbike')
 
     time.sleep(10)
 
@@ -1069,8 +1091,16 @@ def console():
             print(resp)
         elif s[0] == 'query':
             resp = query_submit(video_name='chaweng-1_10FPS',
-                                op_name='random', crop='-1,-1,-1,-1', target_class='motorbike')
+                                op_names=['random','random'],
+                                crop='-1,-1,-1,-1',
+                                target_class='motorbike', frameskip=10)
             print('qid:', resp)
+        elif s[0] == 'promo':
+            resp = promote_frames(-1, 80000, 85000)
+            print('resp:', resp)
+        elif s[0] == 'demo':
+            resp = demote_frames(-1, 80000, 85000)
+            print('resp:', resp)
         elif s[0] == 'reset':
             resp = query_reset()
             print(resp)

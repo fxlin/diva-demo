@@ -7,7 +7,7 @@ server example, callbacks, cf:
 https://docs.bokeh.org/en/latest/docs/user_guide/server.html
 
 '''
-#import queue
+import queue
 import time
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # not working?
@@ -27,7 +27,7 @@ from google.protobuf.duration_pb2 import *
 # from threading import Thread, Event, Lock
 from concurrent import futures
 import logging, coloredlogs
-#from queue import PriorityQueue
+from queue import PriorityQueue
 
 import grpc
 
@@ -98,39 +98,43 @@ class FrameMap():
     frame_states: str
     # see cam_cloud.proto
 '''
+
+
 @dataclass
 class FrameInfo():
     #name: str
+    cam_score: float  # must come first (priority key.
+    frame_id : int  # come second (2nd key)
     video_name : str
-    frame_id : int
-    cam_score: float
     #local_path: str
     qid: int
 
-# for tracking the current query 
+
+# for tracking the current query
 @dataclass
 class QueryInfo():
     # each frame_id: . init, r ranked s sent
     # will compress before sending to gRPC
     op_names: typing.List[str]
     op_fnames: typing.List[str]
-    framestates: typing.Dict[int, str]
-    workqueue : typing.List[FrameInfo] # maybe put a separate lock over this
-    backqueue : typing.List[FrameInfo] # maybe put a separate lock over this
-    op_index:int # the current op index
+    send_queue: queue.PriorityQueue()
+    work_queue: typing.List[FrameInfo]
+    op_index: int  # the current op index
+    back_buf: typing.List[id]  # frames NOT being actived ranked/uploaded
+    framestates: typing.Dict[int, str] = None
     qid: int = -1    # current qid
     crop: typing.List[int] = field(default_factory = lambda: [-1,-1,-1,-1])
     img_dir: str = ""
     video_name: str = ""
     # run_imgs : typing.List[str] = field(default_factory = lambda: []) # maybe put a separate lock over this
-
+    # run_frames : typing.List[id] = field(default_factory = lambda: []) # maybe put a separate lock over this
 
 # todo: combine it to queryinfo
 @dataclass 
 class QueryStat():
     qid : int = -1    # current qid
     video_name : str = ""
-#    op_name : str = ""
+    op_name : str = ""
     crop : typing.List[int] = field(default_factory = lambda: [-1,-1,-1,-1])
     status : str = "UNKNOWN"
     n_frames_processed : int = 0
@@ -140,7 +144,7 @@ class QueryStat():
 # for the current query: all frames (metadata such as fullpaths etc) to be processed. 
 # workers will pull from here
 the_query_lock = threading.Lock()
-the_query = None # QueryInfo()
+the_query = QueryInfo() 
 
 # queries ever executed
 the_stats: typing.Dict[int, QueryStat] = {}
@@ -151,30 +155,15 @@ the_uploader_stop_req = 0
 # TODO: use Python3's PriorityQueue
 # buf for outgoing frames. only holding image metadata (path, score, etc.)
 # out of which msgs for outgoing frames (including metadata) will be assembled 
+
+'''
 the_send_buf: typing.List[FrameInfo] = []
 the_buf_lock = threading.Lock()
 the_cv = threading.Condition(the_buf_lock)
-
-'''
-ev_uploader_stop_req = threading.`Event`()
-ev_uploader_stop_req.clear()
-ev_uploader_stop_done = threading.Event()
-ev_uploader_stop_done.clear()
-ev_uploader_resume_req = threading.Event()
-
-ev_worker_stop_req = threading.Event()
-ev_worker_stop_req.clear()
-ev_worker_stop_done = threading.Event()
 '''
 
-#PQueue = PriorityQueue()
-
-'''
-# caller must hold the query lock
-def frameid_to_abspath(fid: int) -> str:
-    assert(the_query.imgdir != "")
-    return os
-'''
+# this points to the current query's send_buf
+the_send_queue = None
 
 def FrameMapToFrameStates(fm:cam_cloud_pb2.FrameMap) -> typing.Dict[int,str]:
     fids = fm.frame_ids
@@ -218,7 +207,7 @@ class OP_WORKER(threading.Thread):
         self.batch_size = 16
         self.kill = False   # notify the worker thread to terminate. not to be set externally. call stop() instead
         self.op = None # the actual op
-        
+
     '''
     def isRunning(self):
         return self.is_run
@@ -231,15 +220,16 @@ class OP_WORKER(threading.Thread):
     # load the *next* the_query.op_fname.
     # return: op_index, in_h, in_w,
     # op_index == -1 if no more op to load, otherwise index of the loaded op
-    def loadNextOp(self, op_index:int) -> typing.Tuple[int, int, int]:
+    def loadNextOp(self) -> typing.Tuple[int, int, int]:
         with the_query_lock:
-            if op_index >= len(the_query.op_fnames):
-                return -1, 0, 0
-            the_query.op_index = op_index
-            op_fname = the_query.op_fnames[op_index]
-            assert (op_fname != "")
-
-        logger.info("op worker: loading op: %s" % op_fname)
+            the_query.op_index += 1
+            if the_query.op_index == len(the_query.op_fnames):
+                return -1
+            op_index = the_query.op_index
+            op_fname = the_query.op_fname
+            assert(op_fname != "")
+            
+        logger.info("op worker: loading op: %s" %op_fname)
 
         if op_index == 0:
             # xzl: tf1 only
@@ -247,20 +237,20 @@ class OP_WORKER(threading.Thread):
             config.gpu_options.per_process_gpu_memory_fraction = 0.3
             # global tf session XXX TODO: only once
             keras.backend.set_session(tf.Session(config=config))
-
+        
         # xzl: workaround in tf2. however, Keras=2.2.4 + TF 2
-        # will cause the following issue.
+        # will cause the following issue. 
         # https://github.com/keras-team/keras/issues/13336
-        # workaround: using tf1 as of now...
+        # workaround: using tf1 as of now... 
         '''
         config = tf.compat.v1.ConfigProto() 
         tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
         '''
-
+        
         self.op = keras.models.load_model(op_fname)
         in_h, in_w = self.op.layers[0].input_shape[1:3]
-        logger.info("op worker: loading op done.")
-
+        logger.info("op worker: loading op done.")      
+        
         return op_index, in_h, in_w
     
     def run(self):        
@@ -270,98 +260,136 @@ class OP_WORKER(threading.Thread):
         with the_query_lock:
             qid = the_query.qid
             print (f'{the_query.qid}  {[on for on in the_query.op_names]}')
+            #print(f'{the_query.qid}')
             assert(qid >= 0)
-            # op_index = the_query.op_index
-        op_index, in_h, in_w = self.loadNextOp(op_index=0)
+            
+        op_index, in_h, in_w = self.loadNextOp()
         assert(op_index != -1)
 
         while True:
             if self.kill:
                 logger.info("worker: got a stop notice. bye!")
-                return
+                return 
 
-            # pull work from global buf
+            # pull work from global buf 
+            
             # the worker won't lost a batch of images, as it won't terminate here
             # imgs = random.sample(self.run_imgs, OP_BATCH_SZ)
             # sample & remove, w/o changing the order of run_imgs
             # https://stackoverflow.com/questions/16477158/random-sample-with-remove-from-list
 
+
+            '''            
+            with the_query_lock: 
+                if len(the_query.run_frames) < OP_BATCH_SZ:
+                    batch = len(the_query.run_frames)
+                fids = [the_query.run_frames.pop(random.randrange(len(the_query.run_frames))) for _ in range(batch)]
+                crop = the_query.crop
+                sz_run_frames = len(the_query.run_frames)
+                vn = the_query.video_name
+                vs = the_video_stores[vn]
+                
+                
+                    while len(frames) < OP_BATCH_SZ:
+                    try:
+                        frames.append(the_query.send_queue.get_nowait())
+                    except queue.Empty:
+                        break
+            '''
+
             # op is the ONLY producer.
             with the_query_lock:
                 frames = []
                 while len(frames) < OP_BATCH_SZ:
-                    # len(the_query.work_queue) if len(the_query.work_queue) < OP_BATCH_SZ else OP_BATCH_SZ
-                    try:
-                        frames.append(the_query.workqueue.pop(0))  # from the beginning
-                    except IndexError:
-                        break
+                    #len(the_query.work_queue) if len(the_query.work_queue) < OP_BATCH_SZ else OP_BATCH_SZ
+                    frames.append(the_query.work_queue.pop(0)) # from the beginning
                 crop = the_query.crop
                 vn = the_query.video_name
                 vs = the_video_stores[vn]
-                op_index = the_query.op_index
 
-            if len(frames) == 0:  # we got nothing
-                op_index, x, y = self.loadNextOp(op_index + 1)
-                if op_index == -1:
-                    # with the_query_lock: # can't do this, as uploading may be ongoing
+            if len(frames) == 0: # we got nothing
+                if self.loadNextOp() == -1:
+                    #with the_query_lock: # can't do this, as uploading may be ongoing
                     #    the_query.qid = -1
                     with the_query_lock:
-                        if len(the_query.backqueue) == 0:  # no work left
-                            with the_stats_lock:  # will deadlock??
-                                if the_stats[qid].status != 'COMPLETED':  # there may be other op workers
+                        if len(the_query.back_buf) == 0: # no work left
+                            with the_stats_lock: # deadlock??
+                                if the_stats[qid].status != 'COMPLETED': # there may be other op workers
                                     the_stats[qid].status = 'COMPLETED'
                                     # seconds since epoch. protobuf's timestamp types seem too complicated...
-                                    the_stats[qid].ts_comp = time.time()  # float
+                                    the_stats[qid].ts_comp = time.time() # float
                             logger.info("opworker: nothing in run_frames. bye!")
                             return
-                        else:  # some work in backbuf. time to work on them
+                        else: # some work in backbuf. time to work on them
                             while True:
                                 try:
-                                    the_query.workqueue.append(the_query.backqueue.pop())
+                                    the_query.work_queue.append(the_query.back_buf.pop())
                                 except IndexError:
                                     break
-                            logger.warning(f"opworker: move {len(the_query.workqueue)} items from backbuf.")
+                            logger.info("opworker: move {len(the_query.work_queue)} items from backbuf.")
                             continue
-                else:  # new op loaded. pull all frames from sendqueue back to workqueue
-                    with the_buf_lock:
-                        assert (len(the_query.workqueue) == 0) #XXX query lock?
+                else: # new op loaded. pull all frames from sendqueue back to workqueue
+                    with the_query_lock:
+                        assert(len(the_query.work_queue) == 0)
                         # NB: high score goes to the front of workqueue
-                        while len(the_send_buf) > 0:
-                            the_query.workqueue.append(heapq.heappop(the_send_buf)[1])
-                    logger.info(f"opworker: load a new op. move {len(the_query.workqueue)} back to workqueue")
+                        while True:
+                            try:
+                                the_query.work_queue.append(the_query.send_queue.get_nowait())
+                            except queue.Empty:
+                                break
+                    logger.info("opworker: load a new op. move {len(the_query.work_queue)} back to workqueue")
                     continue
 
             # we got a batch of frames to work on
             fids = [f.frame_id for f in frames]
             frame_paths = [vs.GetFramePath(fid) for fid in fids]
 
-            # TODO: IO shall be seperated thread
+            #TODO: IO shall be seperated thread
             # xzl: fixing this by having multiple op workers
-            images = self.read_images(frame_paths, in_h, in_w, crop)
-            scores = self.op.predict(images)
+            frames = self.read_images(frame_paths, in_h, in_w, crop)
+            scores = self.op.predict(frames)
             # print ('Predict scores: ', scores)
 
             for x in fids:
-                the_query.framestates[x] = 'p' # XXX refine this
+                the_query.framestates[x] = 'p'
 
-            # push scored frames (metadata) to send buf
-            with the_cv: # auto grab send buf lock
+            # push the frames to send buf
+            with the_query_lock:
                 for i in range(len(frames)):
-                    frames[i].cam_score = scores[i, 1]
-                    heapq.heappush(the_send_buf, 
-                        (-scores[i, 1] + random.uniform(0.00001, 0.00002), 
+                    frames[i].cam_score = scores[i,1]
+                    the_send_queue.put(
+                        (   -scores[i, 1] + random.uniform(0.00001, 0.00002),
                             frames[i]
                         )
                     )
+
+            '''
+            # push a scored frame (metadata) to send buf            
+            with the_cv: # auto grab send buf lock
+                for i in range(batch):
+                    heapq.heappush(the_send_buf, 
+                        (-scores[i, 1] + random.uniform(0.00001, 0.00002), 
+                         #imgs[i].split('/')[-1],    # tie breaker to prevent heapq from comparing the following dict 
+                            FrameInfo(
+                                video_name=vn,
+                                frame_id=fids[i],
+                                cam_score=-scores[i, 1],
+                                #local_path=imgs[i],
+                                qid=qid
+                            ) 
+                        )
+                    )
+                    sz_send_buf = len(the_send_buf)
                 the_cv.notify()
-                
+            '''
+
+            # self.n_frames_processed += OP_BATCH_SZ
             with the_stats_lock:
                 the_stats[qid].n_frames_processed += len(frames)
-
-            # XXX locking
-            clog.print(f'''Op worker: send_buf {len(the_send_buf)}''' 
-                        + f'''      work_queue {len(the_query.workqueue)}'''
-                        + f'''       back_buf {len(the_query.backqueue)}''')
+                            
+            clog.print(f'''Op worker: send_queue {the_send_queue.qsize()} 
+                        work_queue {the_query.work_queue.size()} 
+                        back_buf {the_query.back_buf.size()}''')
 
 # a thread keep uploading images from the_send_buf to the server
 def thread_uploader():    
@@ -429,7 +457,7 @@ def thread_uploader():
                 server_channel = grpc.insecure_channel(DIVA_CHANNEL_ADDRESS)
                 server_stub = server_diva_pb2_grpc.server_divaStub(server_channel)
             else:
-                # logger.info("cloud accepts frame saying:" + resp.msg)
+                logger.info("cloud accepts frame saying:" + resp.msg)
                 total_frames += 1
                 with the_query_lock:
                     qid = the_query.qid
@@ -587,8 +615,8 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         global the_uploader 
         global the_query
         
-        logger.info(f"got a query ops: {request.op_names} video {request.video_name} qid {request.qid}")
-
+        logger.info("got a query op %s video %s qid %d" %(request.op_name, request.video_name, request.qid))
+        
         with the_stats_lock:
             if request.qid in the_stats:
                 qids = the_stats.keys()
@@ -600,21 +628,33 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         _GraceKillOpWorkers()
         logger.info("op workers stopped")
 
+        '''
         with the_buf_lock:  # no need to upload anything
             the_send_buf.clear()
+        '''
 
         ### gen the list of frame ids to process ###
         try:
             vs = the_video_stores[request.video_name]
             #with vs.lock:
-            frame_ids = [img for img in vs.GetFrameIds()
-                         if img % request.frameskip == 0]  # downsample.. 1/X
+            frame_ids = [img for img in vs.GetFrameIds() if img % 10 == 0]  # downsample.. 1/10??
         except Exception as err:
             random.shuffle(frame_ids) # shuffle all ids.
             logger.error(err)
 
         ll = len(frame_ids)
         #frame_states = '.' * ll
+
+        '''
+        # xzl: sample down to 1FPS. listdir can be very slow
+        all_imgs = os.listdir(the_query.img_dir) # relative, not full paths, with extension
+        selected_imgs = [img for img in all_imgs if int(img[:-4]) % 10 == 0] # 1 FPS
+
+        ll = len(selected_imgs)
+
+        frame_ids = [int(x[:-4]) for x in selected_imgs]
+        frame_states = '.' * ll
+        '''
 
         # set up the new query info
         with the_query_lock:
@@ -624,7 +664,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
             the_query.crop = [int(x) for x in request.crop.split(',')]
             the_query.op_names = request.op_names
             the_query.op_fnames = [os.path.join(the_op_dir, on) for on in the_query.op_names]
-            the_query.op_index = 0
+            the_query.op_index = -1 # next index will be 0
             the_query.video_name = request.video_name
             the_query.img_dir = os.path.join(the_img_dirprefix, the_query.video_name) 
             '''
@@ -633,12 +673,11 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                 qid = request.qid,
                 crop = [int(x) for x in request.crop.split(',')],
                 op_names = request.op_names,
-                op_fnames = [os.path.join(the_op_dir, on) for on in request.op_names],
-                op_index = 0,  # next index will be 0
+                op_fnames = [os.path.join(the_op_dir, on) for on in the_query.op_names],
+                op_index = -1,  # next index will be 0
                 video_name = request.video_name,
-                img_dir = os.path.join(the_img_dirprefix, request.video_name),
-                backqueue = [],
-                workqueue = [],
+                img_dir = os.path.join(the_img_dirprefix, the_query.video_name),
+                back_frames = [],
                 framestates = {}
             )
 
@@ -646,7 +685,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
             # put them to send queue
             for fi in frame_ids:
                 the_query.framestates[fi] = '.'
-                the_query.workqueue.append(
+                the_query.work_queue.append(
                     # NB: frame ids already shuffled
                     FrameInfo(
                         video_name=request.video_name,
@@ -655,13 +694,31 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                         qid=request.qid
                     )
                 )
+                '''
+                init_score = random.uniform(0, 1)
+                the_query.send_queue.put(
+                    # assemble a (key, data) tuple for pqueue
+                    # cf https://stackoverflow.com/questions/54027861/using-queue-priorityqueue-not-caring-about-comparisons
+                    (
+                        # the key. note: fi as tie breaker
+                        init_score + fi * 0.000001,
+                        # the data
+                        FrameInfo(
+                            video_name=request.video_name,
+                            frame_id=fi,
+                            cam_score=init_score,
+                            qid=request.qid
+                        )
+                    )
+                )
+                '''
 
         # init stats 
         with the_stats_lock:
             the_stats[request.qid] = QueryStat(
                     qid=request.qid,
                     video_name=request.video_name,
-                    #op_name=request.op_name,
+                    op_name=request.op_name,
                     crop=request.crop,
                     status='STARTED', 
                     n_frames_processed=0,
@@ -673,188 +730,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         _StartUploaderIfDead()
             
         return cam_cloud_pb2.StrMsg(msg='OK: recvd query')
-
-    # move all frames in the given range to backqueue
-    def DemoteFrames(self, request, context):
-        global the_send_buf, the_query
-
-        frame_ids = {}
-        unchanged = 0
-
-        for id in request.frame_ids:
-            frame_ids[id] = ''
-
-        frames = [] # all frames to demote
-
-        # demote workqueue->{tmp}
-        workqueue = []
-        with the_query_lock:
-            for f in the_query.workqueue:
-                if f.frame_id in frame_ids:
-                    frames.append(f)
-                else:
-                    workqueue.append(f)
-                    unchanged += 1
-            the_query.workqueue = workqueue
-
-        down = len(frames)
-        logger.info(f"demote workqueue->tmp down {down} unchanged {unchanged}")
-
-        # demote upload queue->tmp
-        unchanged = 0
-        send_buf = []
-        with the_buf_lock:
-            for (score, f) in the_send_buf:
-                if f.frame_id in frame_ids:
-                    frames.append(f)
-                else:
-                    send_buf.append((score, f))
-                    unchanged += 1
-            the_send_buf = send_buf
-            heapq.heapify(the_send_buf)
-
-            # nothing to promo from backqueue
-
-            the_query.backqueue += frames
-
-        logger.info(f"demote sendbuf --> tmp down {len(frames)-down} unchanged {unchanged}")
-
-        return cam_cloud_pb2.StrMsg(msg=f'OK: {len(frames)} down')
-
-    # moves all frames NOT in the framemap to backqueue
-    def PromoteFrames0(self, request, context):
-        frame_ids = {}
-        up = 0
-        unchanged = 0
-
-        for id in request.frame_ids:
-            frame_ids[id] = ''
-
-        #print(frame_ids)
-
-        frames = []
-
-        # 1. backqueue-->workqueue.
-        with the_query_lock:
-            for idx, f in enumerate(the_query.backqueue):
-                if f.frame_id in frame_ids:
-                    the_query.workqueue = [f] + the_query.workqueue # front
-                    up += 1
-                else:
-                    unchanged += 1
-        #if up == 0:
-        #    return cam_cloud_pb2.StrMsg(msg=f'OK down:{len(frames)} up:{up} unchanged:{unchanged}')
-        logger.info(f"workqueue<--backqueue up {up} unchanged {unchanged}")
-        unchanged = 0
-
-        # 2. upload buf --> {tmp}
-        with the_buf_lock:
-            for idx, (score,f) in enumerate(the_send_buf):
-                #print(f.frame_id)
-                if not f.frame_id in frame_ids:
-                    frames.append(the_send_buf.pop(idx)[1]) # XXX move score over as well ??
-                else:
-                    unchanged += 1
-            heapq.heapify(the_send_buf)
-
-        logger.info(f"upload buf --> tmp down {len(frames)} unchanged {unchanged}. the_send_buf {len(the_send_buf)}")
-
-        #print('frames', frames)
-
-        # 3. workqueue-->{tmp}
-        with the_query_lock:
-            for idx, f in enumerate(the_query.workqueue):
-                if not f.frame_id in frame_ids:
-                    frames.append(the_query.workqueue.pop(idx))
-                else:
-                    unchanged += 1
-
-        #logger.info("workqueue--> tmp down {len(frames)} unchanged {unchanged}")
-
-        # 4. {tmp} --> backqueue
-            the_query.backqueue += frames
-
-        return cam_cloud_pb2.StrMsg(msg=f'OK down:{len(frames)} up:{up} unchanged:{unchanged}')
-
-    # moves all frames NOT in the framemap to backqueue
-    def PromoteFrames(self, request, context):
-        global the_send_buf, the_query
-
-        frame_ids = {}
-        up = 0
-        unchanged = 0
-
-        for id in request.frame_ids:
-            frame_ids[id] = ''
-
-        #print(frame_ids)
-
-        frames = []
-
-        # _GraceKillOpWorkers()
-
-        # 3. demote workqueue-->{tmp}
-        workqueue = []
-        with the_query_lock:
-            #logger.info(f"before the_query.workqueue {len(the_query.workqueue)}")
-            for f in the_query.workqueue:
-                if not f.frame_id in frame_ids:
-                    #frames.append(the_query.workqueue.pop(idx))
-                    frames.append(f)
-                    #down += 1
-                else:
-                    workqueue.append(f)
-                    unchanged += 1
-                #print(idx, end=' ')
-            the_query.workqueue = workqueue
-            #logger.info(f"after the_query.workqueue {len(the_query.workqueue)}")
-
-        down = len(frames)
-        logger.info(f"demote workqueue->tmp down {down} unchanged {unchanged}")
-
-        # 2. demote upload buf --> {tmp}
-        unchanged = 0
-        send_buf = []
-        with the_buf_lock:
-            #for idx, (score,f) in enumerate(the_send_buf):
-            for (score, f) in the_send_buf:
-                if not f.frame_id in frame_ids:
-                    #frames.append(the_send_buf.pop(idx)[1]) # XXX move score over as well ??
-                    frames.append(f)  # drop the scores
-                else:
-                    send_buf.append((score, f))
-                    unchanged += 1
-            the_send_buf = send_buf
-            heapq.heapify(the_send_buf)
-        logger.info(f"demote sendbuf --> tmp down {len(frames)-down} unchanged {unchanged}")
-
-        #print('frames', frames)
-
-        # 1. promote backqueue-->workqueue.
-        unchanged = 0
-        backqueue = []
-        with the_query_lock:
-            #for idx, f in enumerate(the_query.backqueue):
-            for f in the_query.backqueue:
-                if f.frame_id in frame_ids:
-                    the_query.workqueue = [f] + the_query.workqueue # front
-                    up += 1
-                else:
-                    backqueue.append(f)
-                    unchanged += 1
-            the_query.backqueue = backqueue
-        #if up == 0:
-        #    return cam_cloud_pb2.StrMsg(msg=f'OK down:{len(frames)} up:{up} unchanged:{unchanged}')
-        # 4. {tmp} --> backqueue
-            the_query.backqueue += frames
-
-        logger.info(f"promo backqueue->workqueue up {up} unchanged {unchanged}")
-        # logger.info(f"workqueue<--backqueue up {up} unchanged {unchanged}")
-
-        # _StartOpWorkerIfDead()
-
-        return cam_cloud_pb2.StrMsg(msg=f'OK down:{len(frames)} up:{up} unchanged:{unchanged}')
-
+                                    
     # got a cmd for controlling the CURRENT query
     def ControlQuery(self, request, context):
         global the_query
@@ -875,14 +751,16 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
             _GraceKillOpWorkers()
             
             with the_query_lock:
-                the_query = QueryInfo()
+                the_query = QueryInfo() # this also erased the send queue
                 
             with the_stats_lock:
                 the_stats.clear()
 
+            '''
             with the_buf_lock:  # no need to upload anything
                 the_send_buf.clear()
-                                
+            '''
+
             # do not resume uploader/opworkers
             return cam_cloud_pb2.StrMsg(msg='OK cam reset')  
             
@@ -1151,6 +1029,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
 
         return cam_cloud_pb2.VideoList(videos=video_list)
 
+
     # deprecated
     def GetVideoFrame_0(self, request, context):
         # try various heuristics to locate frames...
@@ -1235,6 +1114,7 @@ def build_video_stores():
     except Exception as err:
         logger.error(err)
 
+# only allow one instance of this program to run
 # https://raspberrypi.stackexchange.com/questions/22005/how-to-prevent-python-script-from-running-more-than-once
 the_instance_lock = None
 

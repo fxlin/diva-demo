@@ -15,7 +15,10 @@ service DivaCamera {
     
     rpc SubmitQuery (QueryRequest) returns (StrMsg) {}
     rpc ControlQuery (ControlQueryRequest) returns (StrMsg) {}
-    
+
+    rpc PromoteFrames (FrameMap) returns (StrMsg) {}
+    rpc DemoteFrames (FrameMap) returns (StrMsg) {}
+
     // xzl: only ControlQueryRequest.qid is used
     rpc GetQueryProgress (ControlQueryRequest) returns (QueryProgress) {}
     rpc GetQueryFrameStates (ControlQueryRequest) returns (FrameMap) {}
@@ -54,7 +57,8 @@ message QueryRequest {
     repeated string op_names = 2; // cam uses this to locate op path
     string crop = 3;  // in the format of '-1, -1, -1, -1'. used by cam to pass in cv2.imread()
     int32 qid = 4; // used by cam to track query task
-    string target_class = 5; 
+    string target_class = 5;
+    int32 frameskip = 6; // get one frame every X frames. =1 means no skip.
 }
 
 message ControlQueryRequest {
