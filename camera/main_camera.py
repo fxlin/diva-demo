@@ -190,7 +190,8 @@ def FrameStatesToFrameMap(fs:typing.Dict[int,str]) ->cam_cloud_pb2.FrameMap:
     # fs = {5: 'a', 3: 'b', 4: 'c'}
     # s = [(5, 'a'), (3, 'b'), (4, 'c')]
     s = [(fid, st) for fid, st in fs.items()]
-    sorted(s, key=lambda x: x[0])
+    #sorted(s, key=lambda x: x[0])
+    s.sort(key=lambda x: x[0])
     fids = [x[0] for x in s]
     states = [x[1] for x in s]
     return cam_cloud_pb2.FrameMap(frame_ids = fids, frame_states = ''.join(states))

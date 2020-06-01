@@ -214,7 +214,7 @@ def update_camsrc(t):
 
 @gen.coroutine
 def cb_update_camsrc(prog):
-    logger.info("update doc...")
+    #logger.info("update doc...")
 
     new_data = dict(
         ts=[prog.ts],
@@ -275,7 +275,7 @@ def cb_newquery():
     global the_poll_cb, the_started, the_qid
 
     the_qid = control.query_submit(video_name=the_video_name,
-                 op_name='random', crop='-1,-1,-1,-1', target_class=the_class)
+                 op_names=['random'], crop='-1,-1,-1,-1', target_class=the_class)
     # print('qid:', resp)
     console_append(f"new query started. qid {the_qid}")
     the_poll_cb = doc.add_periodic_callback(update_camsrc_request, 500)
@@ -624,7 +624,8 @@ pspan = figure(x_range=timespans, plot_height=250, plot_width=PLOT_IMG_WIDTH>>1,
                # title="Fruit Counts by Year", toolbar_location=None,
                tools="hover,box_select,tap", tooltips="$name @timespans: @$name")
 pspan.vbar_stack(states, x='timespans', width=0.9, color=colors, source=source_span,
-             legend_label=states)
+             #legend_label=states
+                 )
 
 pspan.y_range.start = 0
 #pspan.x_range.range_padding = 0.1
@@ -634,18 +635,22 @@ pspan.outline_line_color = None
 pspan.legend.location = "top_left"
 pspan.legend.orientation = "horizontal"
 
+the_spans = None
+
 ###########
 # callbacks, etc
 def cb_update_span(framestates:typing.Dict[int, str]):
+    global the_spans
     fs_list = [(frame_id, state) for frame_id, state in framestates.items()]
-    sorted(fs_list, key=lambda x: x[0])
-    spans = np.array_split(fs_list, NSPANS)    # slice into N spans
+    #sorted(fs_list, key=lambda x: x[0])
+    fs_list.sort(key= lambda x: x[0])
+    the_spans = np.array_split(fs_list, NSPANS)    # slice into N spans
     new_data = copy.deepcopy(data_span)
 
     # new_data['timespans'] = [f'winXXX{d}' for d in range(NSPANS)]
 
     # f is a (frame_id, state) tuple
-    for idx, sp in enumerate(spans):
+    for idx, sp in enumerate(the_spans):
         new_data['.'][idx] = sum(1 for f in sp if f[1] == '.')
         new_data['p'][idx] = sum(1 for f in sp if f[1] == 'p')
         new_data['s'][idx] = sum(1 for f in sp if f[1] == 's')
@@ -657,15 +662,46 @@ def cb_update_span(framestates:typing.Dict[int, str]):
         # todo: later...
         #new_data['avg_confidence'][idx] = mean(sp, key=lambda x: float(x[1]) if x[1][0] == '0' or x[1][0] == '1' else 0)
 
-    print(new_data)
+    #print(new_data)
 
     source_span.data = new_data
 
 def cb_span(attr, old, new):
-    i = source_videos.selected.indices[0]
-    print(f"selected! {attr} {old} {new} {i}")
+    global the_spans
+    nsel = len(source_span.selected.indices)
+    if nsel == 0:
+        return
+    i = source_span.selected.indices[0]
+    minid = min(the_spans[i], key=lambda x: x[0])[0]
+    maxid = max(the_spans[i], key=lambda x: x[0])[0]
+
+    print(f"selected! {attr} {old} {new} {i} minid {minid} maxid {maxid}")
 
 source_span.selected.on_change('indices', cb_span)
+
+def cb_promo(is_promote:bool):
+    global the_spans
+    nsel = len(source_span.selected.indices)
+    print(f'{nsel} total selected')
+
+    if is_promote:
+        action = "promote"
+    else:
+        action = "demote"
+
+    i = source_span.selected.indices[0]
+    minid = min(the_spans[i], key=lambda x: x[0])[0]
+    maxid = max(the_spans[i], key=lambda x: x[0])[0]
+
+    console_write(f"{action} frames {minid} -- {maxid}")
+    msg = control.promote_frames(-1, int(minid), int(maxid), is_promote=is_promote)
+    console_append("cam replied:" + msg)
+
+b_promo = Button(label="Promo", button_type="success", width=BUTTON_WIDTH)
+b_promo.on_click(partial(cb_promo, is_promote=True))
+
+b_demo = Button(label="Demote", button_type="success", width=BUTTON_WIDTH)
+b_demo.on_click(partial(cb_promo, is_promote=False))
 
 ###########
 # bar graph with only "results"
@@ -780,7 +816,7 @@ doc.add_root(column(
     row(table_listvideos, table_listqueries),
     row(b_pause, b_resume, b_lv, b_lq, b_query),
     row(pcam, table_results),
-    pspan,
+    row(pspan, b_promo, b_demo),
     pspan0,
     presults,
     psingle,
