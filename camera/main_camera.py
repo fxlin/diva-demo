@@ -316,9 +316,12 @@ class OP_WORKER(threading.Thread):
                             logger.info("opworker: nothing in run_frames. bye!")
                             return
                         else:  # some work in backbuf. time to work on them
+                            random.shuffle(the_query.backqueue) # shuffle so we evenly process all windows
                             while True:
                                 try:
-                                    the_query.workqueue.append(the_query.backqueue.pop())
+                                    f = the_query.backqueue.pop()
+                                    the_query.workqueue.append(f)
+                                    the_query.framestates[f.frame_id] = '.'
                                 except IndexError:
                                     break
                             logger.warning(f"opworker: move {len(the_query.workqueue)} items from backbuf.")
@@ -342,8 +345,10 @@ class OP_WORKER(threading.Thread):
             scores = self.op.predict(images)
             # print ('Predict scores: ', scores)
 
-            for x in fids:
-                the_query.framestates[x] = 'p' # XXX refine this
+            with the_query_lock:
+                for x in fids:
+                    # op0-'1', op1-'2', op2-'3'...  op10? '1'
+                    the_query.framestates[x] = str(the_query.op_index+1)[0]
 
             # push scored frames (metadata) to send buf
             with the_cv: # auto grab send buf lock
@@ -717,6 +722,8 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
             # nothing to promo from backqueue
 
             the_query.backqueue += frames
+            for f in frames:
+                the_query.framestates[f.frame_id] = '-'
 
         logger.info(f"demote sendbuf --> tmp down {len(frames)-down} unchanged {unchanged}")
 
@@ -848,6 +855,8 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         #    return cam_cloud_pb2.StrMsg(msg=f'OK down:{len(frames)} up:{up} unchanged:{unchanged}')
         # 4. {tmp} --> backqueue
             the_query.backqueue += frames
+            for f in frames:
+                the_query.framestates[f.frame_id] = '-'
 
         logger.info(f"promo backqueue->workqueue up {up} unchanged {unchanged}")
         # logger.info(f"workqueue<--backqueue up {up} unchanged {unchanged}")

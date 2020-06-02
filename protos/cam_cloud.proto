@@ -135,9 +135,9 @@ message FrameMap {
     repeated int64 frame_ids = 1;
     // repeated int32 frame_states = 2;
     string frame_states = 2;
-    //     . init
-    //    p processed (on cam)
-    //    s sent
-    //    e excluded (by user)
+    //      . init (in workqueue, never processed or just brought back from backqueue)
+    //      1, 2, ... 9 processed (on cam, op0..op8)
+    //      - in backqueue
+    //    s sent (done on cam)
     //    r result (pos frame as returned by yolo)
 }

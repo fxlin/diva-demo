@@ -275,7 +275,7 @@ def cb_newquery():
     global the_poll_cb, the_started, the_qid
 
     the_qid = control.query_submit(video_name=the_video_name,
-                 op_names=['random'], crop='-1,-1,-1,-1', target_class=the_class)
+                 op_names=['random', 'random', 'random'], crop='-1,-1,-1,-1', target_class=the_class)
     # print('qid:', resp)
     console_append(f"new query started. qid {the_qid}")
     the_poll_cb = doc.add_periodic_callback(update_camsrc_request, 500)
@@ -421,7 +421,7 @@ sourceimg = ColumnDataSource(dict(
     y1  = [100, 200, 500],
     w1  = [10, 10, 10],
     h1  = [10, 10, 10],
-    frame_ids = ['base', '-5', '100000']
+    frame_ids = ['preview', '-5', '100000']
 ))
 
 #xdr = Range1d(start=-100, end=200)
@@ -535,10 +535,11 @@ presults = Plot(
 image_results = ImageURL(url="url", x="x1", y="y1", h="h1", w="w1", anchor="top_left")
 txt_results = Text(text="frame_desc", x="x1", y="y1", x_offset=0, y_offset=PER_IMG_720P_HEIGHT+30)
 
-view = CDSView(source=source_results, filters=[IndexFilter([x for x in range(N_RESULTS_IMG)])])
+# only show a small subset of result images
+view_res = CDSView(source=source_results, filters=[IndexFilter([x for x in range(N_RESULTS_IMG)])])
 
-presults.add_glyph(source_results, image_results, view=view)
-presults.add_glyph(source_results, txt_results, view=view)
+presults.add_glyph(source_results, image_results, view=view_res)
+presults.add_glyph(source_results, txt_results, view=view_res)
 
 table_results = DataTable(
     source=source_results,
@@ -554,8 +555,15 @@ table_results = DataTable(
 # cb for main thread
 # @count
 def cb_update_results(t):
-    global the_qid, the_videolib_results
+    global the_qid, the_videolib_results, the_current_span
     res = control.query_results(the_qid)
+
+    # filter res based on currently selected timespan
+    # filtering using CDSviwe is not working: filters there can only accept simple logic (based on prescribed JS)
+    # cannot handle custom data + logic like this
+    if the_current_span != (-1,-1): # a span selected
+        newres = [f for f in res if the_current_span[0] <= f.frame_id < the_current_span[1]]
+        res = newres
 
     if res and len(res) > 0:
         # top frames
@@ -584,6 +592,8 @@ def cb_results_table(attr, old, new):
     url = source_results.data['url'][i]
     console_write(f"selected frame {url} to display")
     single_img_load(url)
+    # global view_res
+    # view_res.filters = [IndexFilter([x for x in range(1)])] # must update filter like this
 
 source_results.selected.on_change('indices', cb_results_table)
 
@@ -607,12 +617,16 @@ class_sel.on_change('active', cb_class)
 ##############################
 NSPANS = 10
 timespans = [f'win{d}' for d in range(NSPANS)]
-states = ['.','p','s', 'r']
-colors = ["#c9d9d3", "#718dbf", "#e84d60", "#000000"]
+states = ['.', '-', '1', '2', '3', 's', 'r']
+#states = ".-123sr"
+colors = ["darkgrey", "black", "lightpink", "hotpink", "deeppink", "cyan", "lime"]
 data_span = {
     'timespans' : timespans,
-    '.' : [10] * NSPANS,   # number of '.' frames
-    'p' : [20] * NSPANS,    # ditto
+    '.' : [10] * NSPANS,
+    '-' : [10] * NSPANS,
+    '1' : [20] * NSPANS,    # ditto
+    '2' : [20] * NSPANS,    # ditto
+    '3' : [20] * NSPANS,    # ditto
     's' : [30] * NSPANS,
     'r' : [30] * NSPANS,
     'max_confidence' : [0.0] * NSPANS,  # max of confidence in all 'r' frames
@@ -636,6 +650,7 @@ pspan.legend.location = "top_left"
 pspan.legend.orientation = "horizontal"
 
 the_spans = None
+the_current_span = (-1, -1) # min, max
 
 ###########
 # callbacks, etc
@@ -652,13 +667,16 @@ def cb_update_span(framestates:typing.Dict[int, str]):
     # f is a (frame_id, state) tuple
     for idx, sp in enumerate(the_spans):
         new_data['.'][idx] = sum(1 for f in sp if f[1] == '.')
-        new_data['p'][idx] = sum(1 for f in sp if f[1] == 'p')
+        new_data['-'][idx] = sum(1 for f in sp if f[1] == '-')
+        new_data['1'][idx] = sum(1 for f in sp if f[1] == '1')
+        new_data['2'][idx] = sum(1 for f in sp if f[1] == '2')
+        new_data['3'][idx] = sum(1 for f in sp if f[1] == '3')
         new_data['s'][idx] = sum(1 for f in sp if f[1] == 's')
         #new_data['r'][idx] = sum(1 for f in sp if f[1] == 'r')
         # a bit hack. for 'r' frames, we store the confidence as its framestate
-        new_data['r'][idx] = sum(1 for f in sp if f[1][0] == '0' or f[1][0] == '1')
+        new_data['r'][idx] = sum(1 for f in sp if f[1][0] == '0')
 
-        max_conf_frame, new_data['max_confidence'][idx] = max(sp, key=lambda x: float(x[1]) if x[1][0] == '0' or x[1][0] == '1' else 0)
+        max_conf_frame, new_data['max_confidence'][idx] = max(sp, key=lambda x: float(x[1]) if x[1][0] == '0' else 0)
         # todo: later...
         #new_data['avg_confidence'][idx] = mean(sp, key=lambda x: float(x[1]) if x[1][0] == '0' or x[1][0] == '1' else 0)
 
@@ -667,17 +685,22 @@ def cb_update_span(framestates:typing.Dict[int, str]):
     source_span.data = new_data
 
 def cb_span(attr, old, new):
-    global the_spans
+    global the_spans, the_current_span
     nsel = len(source_span.selected.indices)
     if nsel == 0:
+        the_current_span = (-1, -1)
         return
     i = source_span.selected.indices[0]
-    minid = min(the_spans[i], key=lambda x: x[0])[0]
-    maxid = max(the_spans[i], key=lambda x: x[0])[0]
+    the_current_span = (int(min(the_spans[i], key=lambda x: x[0])[0]),
+                        int(max(the_spans[i], key=lambda x: x[0])[0]))
 
-    print(f"selected! {attr} {old} {new} {i} minid {minid} maxid {maxid}")
+    print(f"selected! {attr} {old} {new} {i} the_current_span {the_current_span}")
 
 source_span.selected.on_change('indices', cb_span)
+
+####
+# "promote" "demote" buttons
+####
 
 def cb_promo(is_promote:bool):
     global the_spans

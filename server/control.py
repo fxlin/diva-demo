@@ -143,7 +143,7 @@ class VideoInfo():
 the_queries: typing.Dict[int, QueryInfoCloud] = {}
 the_queries_lock = threading.Lock()
 logger.info('----------------the queries init-----------------')
-traceback.print_stack()  # dbg
+#traceback.print_stack()  # dbg
 
 
 # a query's results -- as a collection (simple) in the_queries[qid]?
@@ -381,7 +381,9 @@ def create_query_progress_snapshot(qid: int) -> QueryProgressSnapshot:
         n_frames_processed_yolo = q.n_frames_processed_yolo
         for f in q.results:
             #fs[f.frame_id] = 'r'
-            fs[f.frame_id] = f"{f.high_confidence}"  # a bit hack. storing confidence as string. wont break others
+            # a bit hack. storing confidence as string. should not break other states
+            assert(f.high_confidence < 1.0)
+            fs[f.frame_id] = f"{f.high_confidence}"
 
     ps = QueryProgressSnapshot(
         ts = time.time(), # the server's ts
