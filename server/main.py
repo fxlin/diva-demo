@@ -26,7 +26,7 @@ import numpy as np
 
 from bokeh.driving import count
 from bokeh.layouts import column, gridplot, row
-from bokeh.models import Select, Slider, Button, ImageURL, Plot, LinearAxis, Paragraph, Div, Range1d, Text
+from bokeh.models import Select, Slider, Button, ImageURL, Plot, LinearAxis, Paragraph, Div, Range1d, Text, LabelSet, Title
 from bokeh.models import CDSView, IndexFilter, RadioButtonGroup
 
 # palettes https://docs.bokeh.org/en/latest/docs/reference/palettes.html
@@ -83,7 +83,8 @@ doc = curdoc()
 
 PLOT_IMG_WIDTH = 1000
 PLOT_IMG_HEIGHT = 200
-PER_IMG_WIDTH = 200 # for image spacing
+#PER_IMG_WIDTH = 200 # for image spacing
+PER_IMG_WIDTH = 300 # for image spacing
 PER_IMG_HEIGHT = 100 # only for determining label offset
 PER_IMG_720P_HEIGHT = int(720/(1280/PER_IMG_WIDTH)) # 720p image scaled height
 
@@ -133,8 +134,11 @@ the_paused = False
 
 the_qid = -1
 the_video_name = "chaweng-1_10FPS"
+the_video_info = None
 the_all_classes = ['car','motorbike','person','bicycle','bus','truck']
 the_class = the_all_classes[0]
+the_frameskip = 1
+the_videos:typing.List[VideoInfo] = None
 
 def cb_resume():
     global the_paused, the_poll_cb
@@ -176,12 +180,12 @@ src_cam = ColumnDataSource(dict(
     ts=[], n_frames_processed_cam=[], n_frames_recv_yolo=[]
 ))
 
-pcam = figure(plot_height=300, plot_width=500, tools="xpan,xwheel_zoom,xbox_zoom,reset", x_axis_type=None, y_axis_location="right")
+pcam = figure(plot_height=100, plot_width=500, tools="xpan,xwheel_zoom,xbox_zoom,reset", x_axis_type=None, y_axis_location="right")
 pcam.x_range.follow = "end"
 pcam.x_range.follow_interval = 100
 pcam.x_range.range_padding = 0
 
-pcam.line(x='ts', y='n_frames_processed_cam', alpha=0.8, line_width=2, color='red', source=src_cam)
+# pcam.line(x='ts', y='n_frames_processed_cam', alpha=0.8, line_width=2, color='red', source=src_cam)
 pcam.line(x='ts', y='n_frames_recv_yolo', alpha=0.8, line_width=2, color='blue', source=src_cam)
 
 xaxis = LinearAxis()
@@ -272,10 +276,20 @@ def console_write(msg:str):
 ######
 
 def cb_newquery():
-    global the_poll_cb, the_started, the_qid
+    global the_poll_cb, the_started, the_qid, the_video_info, the_videos
+
+    the_videos = control.list_videos()
+    for v in the_videos:
+        if v.video_name == the_video_name:
+            the_video_info = v
+            break
+    else:
+        logger.error(f"cannot find video {the_video_name}")
+        raise
 
     the_qid = control.query_submit(video_name=the_video_name,
-                 op_names=['random', 'random', 'random'], crop='-1,-1,-1,-1', target_class=the_class)
+                 op_names=['random0', 'random1', 'random2', 'random3', 'random4', 'random5'],
+                                   crop='-1,-1,-1,-1', target_class=the_class, frameskip=the_frameskip)
     # print('qid:', resp)
     console_append(f"new query started. qid {the_qid}")
     the_poll_cb = doc.add_periodic_callback(update_camsrc_request, 500)
@@ -306,8 +320,6 @@ columns = [
     ]
 table_listvideos = DataTable(source=source_videos, columns=columns,
                              width=400, height=100)
-
-the_videos:typing.List[VideoInfo] = None
 
 def cb_listvideos():
     global cds_videos
@@ -574,7 +586,7 @@ def cb_update_results(t):
 
         new_data = dict(
             url = [the_videolib_results.GetVideoStore(f'{the_qid}').GetFramePath(id) for id in ids],
-            frame_desc = [f'{ids[x]}/{scores[x]:.2f}/{n_bboxes[x]}' for x in range(n)],
+            frame_desc = [f'{ids[x]} score:{scores[x]:.2f} boxes:{n_bboxes[x]}' for x in range(n)],
             frame_ids = ids,
             scores = scores,
             n_bboxes = n_bboxes,
@@ -614,12 +626,14 @@ class_sel.on_change('active', cb_class)
 
 ##############################
 # vbar progress tracker
+# colors: https://docs.bokeh.org/en/latest/docs/reference/colors.html
 ##############################
 NSPANS = 10
 timespans = [f'win{d}' for d in range(NSPANS)]
-states = ['.', '-', '1', '2', '3', 's', 'r']
+#timespans = [f'{d:4d}min' for d in range(NSPANS)]
+states = ['.', '-', '1', '2', '3', '4', '5', 's', 'r']
 #states = ".-123sr"
-colors = ["darkgrey", "black", "lightpink", "hotpink", "deeppink", "cyan", "lime"]
+colors = ["white", "lightsteelblue", "gainsboro", "lightgray", "silver", "darkgray", "gray", "cyan", "lime"]
 data_span = {
     'timespans' : timespans,
     '.' : [10] * NSPANS,
@@ -640,6 +654,10 @@ pspan = figure(x_range=timespans, plot_height=250, plot_width=PLOT_IMG_WIDTH>>1,
 pspan.vbar_stack(states, x='timespans', width=0.9, color=colors, source=source_span,
              #legend_label=states
                  )
+label_span = LabelSet(text="max_confidence", x="timespans", y="r",
+                      x_offset=0, y_offset=-50, source=source_span)
+
+pspan.add_layout(label_span)
 
 pspan.y_range.start = 0
 #pspan.x_range.range_padding = 0.1
@@ -654,16 +672,24 @@ the_current_span = (-1, -1) # min, max
 
 ###########
 # callbacks, etc
+
+# https://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
 def cb_update_span(framestates:typing.Dict[int, str]):
     global the_spans
     fs_list = [(frame_id, state) for frame_id, state in framestates.items()]
-    #sorted(fs_list, key=lambda x: x[0])
     fs_list.sort(key= lambda x: x[0])
     the_spans = np.array_split(fs_list, NSPANS)    # slice into N spans
+    # the_spans = list(chunks(fs_list, NSPANS))
     new_data = copy.deepcopy(data_span)
 
     # new_data['timespans'] = [f'winXXX{d}' for d in range(NSPANS)]
 
+    # sp = [ (frame_id, state) ... ]
     # f is a (frame_id, state) tuple
     for idx, sp in enumerate(the_spans):
         new_data['.'][idx] = sum(1 for f in sp if f[1] == '.')
@@ -681,6 +707,47 @@ def cb_update_span(framestates:typing.Dict[int, str]):
         #new_data['avg_confidence'][idx] = mean(sp, key=lambda x: float(x[1]) if x[1][0] == '0' or x[1][0] == '1' else 0)
 
     #print(new_data)
+    #pspan.x_range.factors = [f'winXXX{d}' for d in range(NSPANS)] # works
+
+    #factors = [f'winXXX{d}' for d in range(NSPANS)]  # working
+
+    # factors = [f'winXXX{len(sp)}' for sp in the_spans] # not working?
+    #factors = [f'winXXX{idx}' for idx, sp in enumerate(the_spans)]  # working
+    # factors = [f'winXXX{len(sp)/10000}' for idx, sp in enumerate(the_spans)]  # not working
+
+    #factors = [f'{d+1}min' for d in range(NSPANS)]  #  working
+    #factors = [f'3min' for d in range(NSPANS)]  # working
+    #factors = [f"{int(len(sp) * the_frameskip/10/60)}min" for sp in the_spans] # not working?
+
+
+    # update pspan -- XXX inefficeint. should do it only once when query starts
+    '''
+    factors = []
+    offset = 0
+    if the_video_info and the_video_info.fps > 0:
+        fps = the_video_info.fps
+        for sp in the_spans:
+            #factors.append(f"{int(len(sp) * the_frameskip/fps/60)}min")
+            factors.append(f"{offset}-{offset+int(len(sp) * the_frameskip / fps / 60)}min")
+            offset+=int(len(sp) * the_frameskip / fps / 60)
+    else: # we have no fps info
+        for sp in the_spans:
+            factors.append(f"{int(len(sp)/1000)}k")
+
+
+    pspan.x_range.factors = factors
+    '''
+
+    title = f"Each Window: {int(len(sp))} frames "
+    if the_video_info and the_video_info.fps > 0:
+        fps = the_video_info.fps
+        title += f"{int(len(sp) * the_frameskip / fps / 60)} mins"
+
+    pspan.title.text= title
+
+    print(len(sp), the_frameskip, fps)
+
+    #print(factors)
 
     source_span.data = new_data
 
@@ -728,6 +795,7 @@ b_demo.on_click(partial(cb_promo, is_promote=False))
 
 ###########
 # bar graph with only "results"
+
 pspan0 = figure(x_range=timespans, plot_height=250, plot_width=PLOT_IMG_WIDTH>>1,
                # title="Fruit Counts by Year", toolbar_location=None,
                tools="hover,box_select,tap", tooltips="pos: @r; max_confidence: @max_confidence")

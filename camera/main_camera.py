@@ -229,7 +229,7 @@ class OP_WORKER(threading.Thread):
         K.clear_session() # xzl: will there be race condition?
         self.kill = True
 
-    # load the *next* the_query.op_fname.
+    # load the_query.op_fname. will set the_query.op_index == op_index if okay
     # return: op_index, in_h, in_w,
     # op_index == -1 if no more op to load, otherwise index of the loaded op
     def loadNextOp(self, op_index:int) -> typing.Tuple[int, int, int]:
@@ -260,7 +260,7 @@ class OP_WORKER(threading.Thread):
 
         self.op = keras.models.load_model(op_fname)
         in_h, in_w = self.op.layers[0].input_shape[1:3]
-        logger.info("op worker: loading op done.")
+        logger.critical(f"op worker: loaded op {op_index} {op_fname}. {in_h} x {in_w}")
 
         return op_index, in_h, in_w
     
@@ -302,12 +302,12 @@ class OP_WORKER(threading.Thread):
                 op_index = the_query.op_index
 
             if len(frames) == 0:  # we got nothing
-                op_index, x, y = self.loadNextOp(op_index + 1)
+                op_index, in_h, in_w = self.loadNextOp(op_index + 1)
                 if op_index == -1:
                     # with the_query_lock: # can't do this, as uploading may be ongoing
                     #    the_query.qid = -1
                     with the_query_lock:
-                        if len(the_query.backqueue) == 0:  # no work left
+                        if len(the_query.backqueue) == 0:  # no work left even in backqueue
                             with the_stats_lock:  # will deadlock??
                                 if the_stats[qid].status != 'COMPLETED':  # there may be other op workers
                                     the_stats[qid].status = 'COMPLETED'
@@ -325,7 +325,9 @@ class OP_WORKER(threading.Thread):
                                 except IndexError:
                                     break
                             logger.warning(f"opworker: move {len(the_query.workqueue)} items from backbuf.")
-                            continue
+                            #continue
+                    op_index, in_h, in_w = self.loadNextOp(0)  # backbuf: start from op0. must call this w/o lock
+                    continue
                 else:  # new op loaded. pull all frames from sendqueue back to workqueue
                     with the_buf_lock:
                         assert (len(the_query.workqueue) == 0) #XXX query lock?
@@ -390,7 +392,7 @@ def thread_uploader():
                 the_cv.wait()
             if (the_uploader_stop_req):
                 server_channel.close()
-                logger.warning('uploader: got a stop req. bye!')
+                logger.critical('uploader: got a stop req. bye!')
                 return 
             
             send_frame = heapq.heappop(the_send_buf)[1]
