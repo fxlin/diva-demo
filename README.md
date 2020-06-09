@@ -12,8 +12,17 @@ git clone ${this_repo}
 # grab tf-yolov3 as a submodule
 git submodule update --init --recursive
 
-# prep
+# prep... last digit means priority 
 sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 10
+
+sudo apt install python3.7
+sudo apt install python3-pip
+sudo apt install libatlas-base-dev #numpy
+
+# cv2 deps...
+sudo apt install libqtgui4/stable
+sudo apt install libatlas-base-dev libjasper-dev libqtgui4 python3-pyqt5 libqt4-test \
+libgstreamer1.0-0/stable
 
 
 # per tf's official instructions: virtual env for tf in order to  
@@ -23,21 +32,36 @@ virtualenv --system-site-packages -p python3 ./venv
 source ./venv/bin/activate
 pip3 list
 
+#### 
+# cam ... tf
+###
+# NB:this works on rapsbian9. on debian/rpi64 - pip has no tf package
 # ``cam'' has compat issue with latest tf2. see comments in main_camera there  
-pip3 install tensorflow==1.13.1 
+ 
+# to check available versions, 
+#  pip3 install tensorflow==
+  
+pip3 install tensorflow==1.13.1
+
 pip3 install pandas
-pip3 install opencv-python 
+# pip3 install opencv-python # no longer needed ... introduced too much dep. bad. 
 pip3 install numpy \
-pandas keras sklearn \
-opencv-python flask 
+pandas keras sklearn 
+
+# https://github.com/EdjeElectronics/TensorFlow-Object-Detection-on-the-Raspberry-Pi/issues/67
+pip3 install opencv-python==3.4.6.27
+  
 pip3 install pillow  # python image library
-pip install flask_table # for webserver to gen table
-pip install WTForms # for webserver to render forms
+#pip install flask flask_table # for webserver to gen table
+#pip install WTForms # for webserver to render forms
 pip install coloredlogs # easy tracing
 pip3 install grpcio-tools
 pip install zc.lockfile # to avoid multiple running instances
 
-# the YOLO env...
+#####
+# server only: the YOLO env...
+#####
+
 pip3 install tensorflow
 
 ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3_backbone.py
@@ -47,9 +71,7 @@ ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflo
 ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3.py
 ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3_utils.py
 
-
-
-# NB: v2.2 has CPU/GPU unified
+# NB: tf v2.2 has CPU/GPU branches unified
 # python-yolov3 depends on resize() func absent in tf-1
 # in a separate virtualenv
 # tf.image.resize(input_layer...
@@ -238,6 +260,13 @@ sudo apt install python3.7
 
 # https://unix.stackexchange.com/questions/410579/change-the-python3-default-version-in-ubuntu
 
+# complains because no python alternatives are  installed
+debian@debian-rpi64:~$ 
+update-alternatives --list python
+update-alternatives: error: no alternatives for python
+
+# "install" alternatives
+# the integer number at the end of each command denotes a priority. Higher number means higher priority
 #sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.4 1
 sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.6 1
 sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.7 2

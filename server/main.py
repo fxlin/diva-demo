@@ -94,6 +94,8 @@ N_RESULTS_IMG = 5
 
 BUTTON_WIDTH = 100
 
+UPDATE_INTERVAL_MS = 5000   # short interval like 500ms will cause unresponsive UI. XXX opt parsing framemaps
+
 #######################################
 
 MA12, MA26, EMA12, EMA26 = '12-tick Moving Avg', '26-tick Moving Avg', '12-tick EMA', '26-tick EMA'
@@ -183,19 +185,20 @@ src_cam = ColumnDataSource(dict(
     ts=[],
     n_frames_processed_cam=[],
     n_frames_processed_cam_rate =[],
-    n_frames_recv_yolo=[] # means positive results
+    n_frames_processed_yolo_rate=[],
+    n_frames_recv_yolo_rate=[] # means positive results
 ))
 
 # tools="xpan,xwheel_zoom,xbox_zoom,reset",
 #  y_axis_location="right"
-pcam = figure(plot_height=100, plot_width=PLOT_IMG_WIDTH>>2, toolbar_location=None,
+pcam = figure(plot_height=100, plot_width=PLOT_IMG_WIDTH>>3, toolbar_location=None,
               x_axis_type=None, y_axis_type=None, title="Pos/sec")
 pcam.x_range.follow = "end"
 pcam.x_range.follow_interval = 100
 pcam.x_range.range_padding = 0
 
 # pcam.line(x='ts', y='n_frames_processed_cam', alpha=0.8, line_width=2, color='red', source=src_cam)
-pcam.line(x='ts', y='n_frames_recv_yolo', alpha=0.8, line_width=2, color='blue', source=src_cam)
+pcam.line(x='ts', y='n_frames_recv_yolo_rate', alpha=0.8, line_width=2, color='blue', source=src_cam)
 
 xaxis = LinearAxis()
 xaxis.minor_tick_line_color = None
@@ -208,7 +211,7 @@ pcam.add_layout(yaxis,'left')
 ## showing cam processing rate
 #  y_axis_location="right"
 # x_axis_type=None
-pcam1 = figure(plot_height=100, plot_width=PLOT_IMG_WIDTH>>2, toolbar_location=None,
+pcam1 = figure(plot_height=100, plot_width=PLOT_IMG_WIDTH>>3, toolbar_location=None,
                x_axis_type=None, y_axis_type=None, title="CamProc/sec")
 pcam1.x_range.follow = "end"
 pcam1.x_range.follow_interval = 100
@@ -224,6 +227,23 @@ pcam1.add_layout(yaxis,'left')
 
 pcam1.line(x='ts', y='n_frames_processed_cam_rate', alpha=0.8, line_width=2, color='red', source=src_cam)
 
+## show yolo processing rate
+pcam2 = figure(plot_height=100, plot_width=PLOT_IMG_WIDTH>>3, toolbar_location=None,
+               x_axis_type=None, y_axis_type=None, title="CloudProc/sec")
+pcam2.x_range.follow = "end"
+pcam2.x_range.follow_interval = 100
+pcam2.x_range.range_padding = 0
+
+xaxis = LinearAxis()
+xaxis.minor_tick_line_color = None
+pcam2.add_layout(xaxis, 'below')
+
+yaxis = LinearAxis()
+yaxis.minor_tick_line_color = None
+pcam2.add_layout(yaxis,'left')
+
+pcam2.line(x='ts', y='n_frames_processed_yolo_rate', alpha=0.8, line_width=2, color='red', source=src_cam)
+
 # not in use. periodic callback. perhaps simpler
 @count()
 def update_camsrc(t):
@@ -234,7 +254,8 @@ def update_camsrc(t):
     new_data = dict(
         ts = [prog.ts],
         n_frames_processed_cam = [prog.n_frames_processed_cam],
-        n_frames_recv_yolo = [prog.n_frames_recv_yolo]
+        #n_frames_recv_yolo = [prog.n_frames_recv_yolo]
+        n_frames_recv_yolo=[0]
     )
 
     print(new_data)
@@ -251,27 +272,39 @@ def update_camsrc(t):
 the_last_n_frames_processed_cam = -1
 the_last_ts = -1
 
+# update the aggregated stats (not framemap)
 @gen.coroutine
 def cb_update_camsrc(prog, stats):  # stats: QueryInfoCloud
     #logger.info("update doc...")
-    global the_last_n_frames_processed_cam, the_last_ts, the_start_ts
+    global the_last_n_frames_processed_cam, the_last_n_frames_recv_yolo, the_last_n_frames_processed_yolo, the_last_ts, the_start_ts
     if the_last_ts < 0: # once
         n_frames_processed_cam_rate = 0
+        n_frames_processed_yolo_rate = 0
+        n_frames_recv_yolo_rate = 0
         the_start_ts = prog.ts
     else:
         #n_frames_processed_cam_rate = (prog.n_frames_processed_cam - the_last_n_frames_processed_cam) / (prog.ts - the_last_ts)
         n_frames_processed_cam_rate = (stats.n_frames_processed_cam - the_last_n_frames_processed_cam) / (
                     prog.ts - the_last_ts)
+        n_frames_processed_yolo_rate = (stats.n_frames_processed_yolo - the_last_n_frames_processed_yolo) / (
+                prog.ts - the_last_ts)
+        n_frames_recv_yolo_rate = (stats.n_frames_recv_yolo - the_last_n_frames_recv_yolo) / (
+            prog.ts - the_last_ts)
+
     the_last_n_frames_processed_cam = stats.n_frames_processed_cam
+    the_last_n_frames_processed_yolo = stats.n_frames_processed_yolo
+    the_last_n_frames_recv_yolo = stats.n_frames_recv_yolo
     the_last_ts = prog.ts
 
     new_data = dict(
         ts=[prog.ts - the_start_ts],
         n_frames_processed_cam=[stats.n_frames_processed_cam],
         n_frames_processed_cam_rate=[n_frames_processed_cam_rate],
-        n_frames_recv_yolo=[prog.n_frames_recv_yolo]
+        n_frames_processed_yolo_rate=[n_frames_processed_yolo_rate],
+        #n_frames_recv_yolo=[prog.n_frames_recv_yolo]
+        n_frames_recv_yolo_rate=[n_frames_recv_yolo_rate]
     )
-    print(new_data)
+    #print(new_data)
     src_cam.stream(new_data, rollover=300)
     cb_update_span(prog.framestates)
 
@@ -296,8 +329,7 @@ thread_progress.start()
 # will be called periodically once query in progress
 @count()
 def update_camsrc_request(t):
-    #logger.info("check....")
-    ev_progress.set()
+    ev_progress.set() # notify the worker thread to pull the query progress.
     cb_update_results(t)
 
 the_poll_cb = None
@@ -325,7 +357,8 @@ def console_write(msg:str):
 def cb_newquery():
     global the_poll_cb, the_started, the_qid, the_video_info, the_videos
 
-    the_videos = control.list_videos()
+    '''
+    the_videos = control.list_videos()    
     for v in the_videos:
         if v.video_name == the_video_name:
             the_video_info = v
@@ -333,13 +366,19 @@ def cb_newquery():
     else:
         logger.error(f"cannot find video {the_video_name}")
         raise
+    '''
+
+    if not the_video_name or not the_video_info:
+        logger.error(f"cannot find video {the_video_name}")
+        console_write("cannot run query: no video selected")
+        return
 
     the_qid = control.query_submit(video_name=the_video_name,
                  op_names=['random0', 'random1', 'random2', 'random3', 'random4', 'random5'],
                                    crop='-1,-1,-1,-1', target_class=the_class, frameskip=the_frameskip)
     # print('qid:', resp)
     console_append(f"new query started. qid {the_qid}")
-    the_poll_cb = doc.add_periodic_callback(update_camsrc_request, 500)
+    the_poll_cb = doc.add_periodic_callback(update_camsrc_request, UPDATE_INTERVAL_MS)
 
     the_started = True
     b_query.label="Abort"
@@ -348,6 +387,21 @@ def cb_newquery():
 
 b_query = Button(label="Query", button_type="danger", width=BUTTON_WIDTH*2)
 b_query.on_click(cb_newquery)
+
+def update_b_query_label():
+    v = the_video_name if the_video_name else '??'
+    fs = the_frameskip if the_frameskip > 0 else '??'
+    c = the_class
+
+    nf = the_video_info.frame_id_max - the_video_info.frame_id_min + 1 - the_video_info.n_missing_frames
+    if the_video_info.fps > 0:
+        d = int(nf/the_video_info.fps)
+        dstr = f'{int(d/3600)}:{int((d%3600)/60)}:{int(d%60)}'
+    else:
+        dstr = '??:??'
+    nf /= fs
+
+    b_query.label=f'Query:{v}/{c}/skip={fs} frames={int(nf)} dur={dstr}'
 
 ######
 # list videos
@@ -398,14 +452,15 @@ b_lv = Button(label="ListVideos", button_type="success", width=BUTTON_WIDTH)
 b_lv.on_click(cb_listvideos)
 
 def cb_listvideo_table(attraname, old, new):
-    global the_video_name
+    global the_video_name, the_video_info
     # print(f"selected! {attraname} {old} {new}")
     i = source_videos.selected.indices[0]
     the_video_name = the_videos[i].video_name
+    the_video_info = the_videos[i]
     console_write(f'selected video {i} {the_video_name}')
     if len(the_videos) >= i + 1:
         load_preview_frames(the_videos[i], 3)
-        b_query.label=f'Query:{the_video_name}'
+        update_b_query_label()
 
 source_videos.selected.on_change('indices', cb_listvideo_table)
 
@@ -612,7 +667,7 @@ table_results = DataTable(
     height=400
 )
 
-# cb for main thread
+# cb for main thread. parse framemap, rendering as table, spans, etc.
 # @count
 def cb_update_results(t):
     global the_qid, the_videolib_results, the_current_span
@@ -651,6 +706,7 @@ def cb_results_table(attr, old, new):
     i = source_results.selected.indices[0]
     url = source_results.data['url'][i]
     console_write(f"selected frame {url} to display")
+    logger.warning(f"selected frame {url} to display")
     single_img_load(url)
     # global view_res
     # view_res.filters = [IndexFilter([x for x in range(1)])] # must update filter like this
@@ -667,6 +723,7 @@ def cb_class(attr, old, new):
     the_class = the_all_classes[class_sel.active]
     #print(the_class)
     console_write(f'chose class = {the_class}')
+    update_b_query_label()
 
 #class_sel.on_change('active', lambda  attr, old, new: cb_class())
 class_sel.on_change('active', cb_class)
@@ -682,6 +739,7 @@ def cb_frameskip(attr, old, new):
     #print(frameskip_sel.value)
     the_frameskip = int(frameskip_sel.value)
     console_write(f'set frameskip = {the_frameskip}')
+    update_b_query_label()
 
 frameskip_sel.on_change('value', cb_frameskip)
 
@@ -715,10 +773,12 @@ pspan = figure(x_range=timespans, plot_height=250, plot_width=PLOT_IMG_WIDTH>>1,
 pspan.vbar_stack(states, x='timespans', width=0.9, color=colors, source=source_span,
              #legend_label=states
                  )
+
+''' # this adds labeles to the top of bars. not what we need
 label_span = LabelSet(text="max_confidence", x="timespans", y="r",
                       x_offset=0, y_offset=-50, source=source_span)
-
 pspan.add_layout(label_span)
+'''
 
 pspan.y_range.start = 0
 #pspan.x_range.range_padding = 0.1
@@ -799,7 +859,7 @@ def cb_update_span(framestates:typing.Dict[int, str]):
     pspan.x_range.factors = factors
     '''
 
-    title = f"Each window: {int(len(sp))} frames "
+    title = f"Progress per window (each win: {int(len(sp))} frames "
     if the_video_info and the_video_info.fps > 0:
         fps = the_video_info.fps
         title += f"{int(len(sp) * the_frameskip / fps / 60)} mins"
@@ -832,7 +892,7 @@ source_span.selected.on_change('indices', cb_span)
 def cb_promo(is_promote:bool):
     global the_spans
     nsel = len(source_span.selected.indices)
-    print(f'{nsel} total selected')
+    #print(f'{nsel} total selected')
 
     if is_promote:
         action = "promote"
@@ -844,6 +904,7 @@ def cb_promo(is_promote:bool):
     maxid = max(the_spans[i], key=lambda x: x[0])[0]
 
     console_write(f"{action} frames {minid} -- {maxid}")
+    logger.warning(f"{action} frames {minid} -- {maxid}")
     msg = control.promote_frames(-1, int(minid), int(maxid), is_promote=is_promote)
     console_append("cam replied:" + msg)
 
@@ -858,6 +919,7 @@ b_demo.on_click(partial(cb_promo, is_promote=False))
 
 pspan0 = figure(x_range=timespans, plot_height=250, plot_width=PLOT_IMG_WIDTH>>1,
                # title="Fruit Counts by Year", toolbar_location=None,
+                title="Pos by windows",
                tools="hover,box_select,tap", tooltips="pos: @r; max_confidence: @max_confidence")
 
 mapper = linear_cmap(field_name='max_confidence', palette=RdYlGn10, low=1, high=0) # reverse a palaette
@@ -964,7 +1026,7 @@ doc.add_root(column(row(b, b_lv, b_query),
 
 doc.add_root(column(
     row(para_log, frameskip_sel, class_sel),
-    row(table_listvideos, pcam, pcam1, table_listqueries),
+    row(table_listvideos, pcam, pcam1, pcam2, table_listqueries),
     row(b_pause, b_resume, b_lv, b_lq, b_query),
     #row(pcam, table_results),
     row(column(pspan, pspan0, b_promo, b_demo), table_results),
@@ -979,3 +1041,5 @@ doc.add_root(column(
 doc.title = "📷⚙️"
 
 logger.info("main execed!")
+
+# cb_listvideos()   # can do it here.

@@ -14,7 +14,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # not working?
 
 import sys
 import json
-import cv2
+#import cv2
 import threading
 import heapq
 import copy
