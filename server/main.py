@@ -137,7 +137,10 @@ the_video_name = "chaweng-1_10FPS"
 the_video_info = None
 the_all_classes = ['car','motorbike','person','bicycle','bus','truck']
 the_class = the_all_classes[0]
-the_frameskip = 1
+
+the_frameskip_choices = [1, 5, 10, 20, 100]
+the_frameskip = the_frameskip_choices[0]
+
 the_videos:typing.List[VideoInfo] = None
 
 def cb_resume():
@@ -173,14 +176,20 @@ b_pause.on_click(cb_pause)
 b_resume.on_click(cb_resume)
 
 ######
-# plot for n_frames_processed_cam
+# the plot showing progress. eg  n_frames_processed_cam
 ######
 
 src_cam = ColumnDataSource(dict(
-    ts=[], n_frames_processed_cam=[], n_frames_recv_yolo=[]
+    ts=[],
+    n_frames_processed_cam=[],
+    n_frames_processed_cam_rate =[],
+    n_frames_recv_yolo=[] # means positive results
 ))
 
-pcam = figure(plot_height=100, plot_width=500, tools="xpan,xwheel_zoom,xbox_zoom,reset", x_axis_type=None, y_axis_location="right")
+# tools="xpan,xwheel_zoom,xbox_zoom,reset",
+#  y_axis_location="right"
+pcam = figure(plot_height=100, plot_width=PLOT_IMG_WIDTH>>2, toolbar_location=None,
+              x_axis_type=None, y_axis_type=None, title="Pos/sec")
 pcam.x_range.follow = "end"
 pcam.x_range.follow_interval = 100
 pcam.x_range.range_padding = 0
@@ -189,11 +198,33 @@ pcam.x_range.range_padding = 0
 pcam.line(x='ts', y='n_frames_recv_yolo', alpha=0.8, line_width=2, color='blue', source=src_cam)
 
 xaxis = LinearAxis()
+xaxis.minor_tick_line_color = None
 pcam.add_layout(xaxis, 'below')
 
 yaxis = LinearAxis()
+yaxis.minor_tick_line_color = None
 pcam.add_layout(yaxis,'left')
 
+## showing cam processing rate
+#  y_axis_location="right"
+# x_axis_type=None
+pcam1 = figure(plot_height=100, plot_width=PLOT_IMG_WIDTH>>2, toolbar_location=None,
+               x_axis_type=None, y_axis_type=None, title="CamProc/sec")
+pcam1.x_range.follow = "end"
+pcam1.x_range.follow_interval = 100
+pcam1.x_range.range_padding = 0
+
+xaxis = LinearAxis()
+xaxis.minor_tick_line_color = None
+pcam1.add_layout(xaxis, 'below')
+
+yaxis = LinearAxis()
+yaxis.minor_tick_line_color = None
+pcam1.add_layout(yaxis,'left')
+
+pcam1.line(x='ts', y='n_frames_processed_cam_rate', alpha=0.8, line_width=2, color='red', source=src_cam)
+
+# not in use. periodic callback. perhaps simpler
 @count()
 def update_camsrc(t):
     logger.info(f"update_camsrc checkgin....{t}")
@@ -216,16 +247,31 @@ def update_camsrc(t):
 # todo: call all progress update from here
 ##############################
 
+# dirty
+the_last_n_frames_processed_cam = -1
+the_last_ts = -1
+
 @gen.coroutine
-def cb_update_camsrc(prog):
+def cb_update_camsrc(prog, stats):  # stats: QueryInfoCloud
     #logger.info("update doc...")
+    global the_last_n_frames_processed_cam, the_last_ts, the_start_ts
+    if the_last_ts < 0: # once
+        n_frames_processed_cam_rate = 0
+        the_start_ts = prog.ts
+    else:
+        #n_frames_processed_cam_rate = (prog.n_frames_processed_cam - the_last_n_frames_processed_cam) / (prog.ts - the_last_ts)
+        n_frames_processed_cam_rate = (stats.n_frames_processed_cam - the_last_n_frames_processed_cam) / (
+                    prog.ts - the_last_ts)
+    the_last_n_frames_processed_cam = stats.n_frames_processed_cam
+    the_last_ts = prog.ts
 
     new_data = dict(
-        ts=[prog.ts],
-        n_frames_processed_cam=[prog.n_frames_processed_cam],
+        ts=[prog.ts - the_start_ts],
+        n_frames_processed_cam=[stats.n_frames_processed_cam],
+        n_frames_processed_cam_rate=[n_frames_processed_cam_rate],
         n_frames_recv_yolo=[prog.n_frames_recv_yolo]
     )
-    # print(new_data)
+    print(new_data)
     src_cam.stream(new_data, rollover=300)
     cb_update_span(prog.framestates)
 
@@ -236,9 +282,10 @@ def thread_progress():
     while True:
         ev_progress.wait()
         ev_progress.clear()
-        prog = control.create_query_progress_snapshot(qid=the_qid) # test
+        prog = control.create_query_progress_snapshot(qid=the_qid)
+        stat = control.query_progress(qid=the_qid) # stats
         if prog:
-            doc.add_next_tick_callback(partial(cb_update_camsrc, prog))
+            doc.add_next_tick_callback(partial(cb_update_camsrc, prog, stat))
             # logger.info("poll progress.. ok")
         else:
             logger.info("poll progress... failed")
@@ -351,6 +398,7 @@ b_lv = Button(label="ListVideos", button_type="success", width=BUTTON_WIDTH)
 b_lv.on_click(cb_listvideos)
 
 def cb_listvideo_table(attraname, old, new):
+    global the_video_name
     # print(f"selected! {attraname} {old} {new}")
     i = source_videos.selected.indices[0]
     the_video_name = the_videos[i].video_name
@@ -623,6 +671,19 @@ def cb_class(attr, old, new):
 #class_sel.on_change('active', lambda  attr, old, new: cb_class())
 class_sel.on_change('active', cb_class)
 
+##############################
+# frameskip selector
+# https://www.programcreek.com/python/example/106842/bokeh.models.Select
+##############################
+frameskip_sel = Select(title="Frameskip", value=f"{the_frameskip}", options=[f"{k}" for k in the_frameskip_choices])
+
+def cb_frameskip(attr, old, new):
+    global the_frameskip
+    #print(frameskip_sel.value)
+    the_frameskip = int(frameskip_sel.value)
+    console_write(f'set frameskip = {the_frameskip}')
+
+frameskip_sel.on_change('value', cb_frameskip)
 
 ##############################
 # vbar progress tracker
@@ -738,15 +799,14 @@ def cb_update_span(framestates:typing.Dict[int, str]):
     pspan.x_range.factors = factors
     '''
 
-    title = f"Each Window: {int(len(sp))} frames "
+    title = f"Each window: {int(len(sp))} frames "
     if the_video_info and the_video_info.fps > 0:
         fps = the_video_info.fps
         title += f"{int(len(sp) * the_frameskip / fps / 60)} mins"
 
     pspan.title.text= title
 
-    print(len(sp), the_frameskip, fps)
-
+    #print(len(sp), the_frameskip, fps)
     #print(factors)
 
     source_span.data = new_data
@@ -754,7 +814,7 @@ def cb_update_span(framestates:typing.Dict[int, str]):
 def cb_span(attr, old, new):
     global the_spans, the_current_span
     nsel = len(source_span.selected.indices)
-    if nsel == 0:
+    if nsel == 0 or not the_spans:
         the_current_span = (-1, -1)
         return
     i = source_span.selected.indices[0]
@@ -903,12 +963,13 @@ doc.add_root(column(row(b, b_lv, b_query),
 '''
 
 doc.add_root(column(
-    row(para_log, class_sel),
-    row(table_listvideos, table_listqueries),
+    row(para_log, frameskip_sel, class_sel),
+    row(table_listvideos, pcam, pcam1, table_listqueries),
     row(b_pause, b_resume, b_lv, b_lq, b_query),
-    row(pcam, table_results),
-    row(pspan, b_promo, b_demo),
-    pspan0,
+    #row(pcam, table_results),
+    row(column(pspan, pspan0, b_promo, b_demo), table_results),
+    #row(pspan, b_promo, b_demo),
+    #pspan0,
     presults,
     psingle,
     pimg

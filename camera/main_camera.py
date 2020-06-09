@@ -680,7 +680,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         _StartOpWorkerIfDead()                            
         _StartUploaderIfDead()
             
-        return cam_cloud_pb2.StrMsg(msg='OK: recvd query')
+        return cam_cloud_pb2.StrMsg(msg=f'OK: recvd query {len(frame_ids)} frames')
 
     # move all frames in the given range to backqueue
     def DemoteFrames(self, request, context):
@@ -917,8 +917,8 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
             logger.error("unknown cmd")
             return cam_cloud_pb2.StrMsg(msg='FAIL')
 
-    def GetQueryProgress(self, request, context):
-        logger.info("GetQueryProgress qid %d" %(request.qid))
+    def GetStats(self, request, context):
+        logger.info("GetStats qid %d" %(request.qid))
 
         n_frames_processed = 0
         n_frames_total = 0

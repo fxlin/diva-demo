@@ -20,8 +20,8 @@ service DivaCamera {
     rpc DemoteFrames (FrameMap) returns (StrMsg) {}
 
     // xzl: only ControlQueryRequest.qid is used
-    rpc GetQueryProgress (ControlQueryRequest) returns (QueryProgress) {}
-    rpc GetQueryFrameStates (ControlQueryRequest) returns (FrameMap) {}
+    rpc GetStats (ControlQueryRequest) returns (QueryProgress) {} // get camera runtime stats
+    rpc GetQueryFrameStates (ControlQueryRequest) returns (FrameMap) {}   // get camera frame states
 
     rpc ListVideos(google.protobuf.Empty) returns (VideoList) {};
     // rpc ListQueries(google.protobuf.Empty) returns (QueryList) {};

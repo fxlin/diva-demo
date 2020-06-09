@@ -60,8 +60,8 @@ class DivaCameraStub(object):
                 request_serializer=cam__cloud__pb2.FrameMap.SerializeToString,
                 response_deserializer=cam__cloud__pb2.StrMsg.FromString,
                 )
-        self.GetQueryProgress = channel.unary_unary(
-                '/camera.DivaCamera/GetQueryProgress',
+        self.GetStats = channel.unary_unary(
+                '/camera.DivaCamera/GetStats',
                 request_serializer=cam__cloud__pb2.ControlQueryRequest.SerializeToString,
                 response_deserializer=cam__cloud__pb2.QueryProgress.FromString,
                 )
@@ -154,7 +154,7 @@ class DivaCameraServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GetQueryProgress(self, request, context):
+    def GetStats(self, request, context):
         """xzl: only ControlQueryRequest.qid is used
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -247,8 +247,8 @@ def add_DivaCameraServicer_to_server(servicer, server):
                     request_deserializer=cam__cloud__pb2.FrameMap.FromString,
                     response_serializer=cam__cloud__pb2.StrMsg.SerializeToString,
             ),
-            'GetQueryProgress': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetQueryProgress,
+            'GetStats': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetStats,
                     request_deserializer=cam__cloud__pb2.ControlQueryRequest.FromString,
                     response_serializer=cam__cloud__pb2.QueryProgress.SerializeToString,
             ),
@@ -437,7 +437,7 @@ class DivaCamera(object):
             call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def GetQueryProgress(request,
+    def GetStats(request,
             target,
             options=(),
             channel_credentials=None,
@@ -446,7 +446,7 @@ class DivaCamera(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/camera.DivaCamera/GetQueryProgress',
+        return grpc.experimental.unary_unary(request, target, '/camera.DivaCamera/GetStats',
             cam__cloud__pb2.ControlQueryRequest.SerializeToString,
             cam__cloud__pb2.QueryProgress.FromString,
             options, channel_credentials,

@@ -119,7 +119,7 @@ class QueryInfoCloud():
     n_frames_recv_yolo: int = 0
     n_frames_processed_yolo: int = 0
 
-    # deprecated
+    # deprecated -- use progress_snapshots instead
     n_frames_sent_cam: int = 0
     n_frames_processed_cam: int = 0
     n_frames_total_cam: int = 0
@@ -306,11 +306,12 @@ def query_reset():
     msg = _query_control(-1, "RESET")
     return msg
 
+# only pull stats (but not framestates) from the cam.
 def query_progress(qid: int) -> QueryInfoCloud:
     try:
         camera_channel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
         camera_stub = cam_cloud_pb2_grpc.DivaCameraStub(camera_channel)
-        resp = camera_stub.GetQueryProgress(
+        resp = camera_stub.GetStats(
             cam_cloud_pb2.ControlQueryRequest(qid=qid)  # overloaded
         )
         camera_channel.close()
@@ -350,7 +351,8 @@ def query_progress(qid: int) -> QueryInfoCloud:
     '''
 
 
-# pull the current framestates from cam. gen a progress snapshot. append to the list of snapshots
+# pull the framestates from cam.
+# gen a progress snapshot. append to the list of snapshots
 # do NOT call with holding the_queries_lock
 # return a deepcopy of the snapshot created, or None if failed
 def create_query_progress_snapshot(qid: int) -> QueryProgressSnapshot:
@@ -482,7 +484,7 @@ def query_submit(video_name: str, op_names: typing.List[str], crop,
         logger.error('failed to submit a query', err)
         return -1
 
-    logger.info("submitted a query, len(the_queries) %d qid %d. camera says %s" % (len(the_queries), qid, resp.msg))
+    logger.info("submitted a query, video_name %s qid %d. camera says %s" % (video_name, qid, resp.msg))
     logger.info(f"the_queries {id(the_queries)}")
 
     if not resp.msg.startswith('OK'):
