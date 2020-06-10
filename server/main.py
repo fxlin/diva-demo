@@ -87,6 +87,12 @@ PLOT_IMG_HEIGHT = 200
 #PER_IMG_WIDTH = 200 # for image spacing
 PER_IMG_WIDTH = 300 # for image spacing
 PER_IMG_HEIGHT = 100 # only for determining label offset
+
+PER_PREVIEW_IMG_WIDTH = 128
+PER_PREVIEW_IMG_HEIGHT = 72
+PER_PREVIEW_IMG_SPACING = int(PER_PREVIEW_IMG_WIDTH * 1.1)
+PLOT_PREVIEW_HEIGHT = PER_PREVIEW_IMG_HEIGHT + 20 # some margin for frame info
+
 PER_IMG_720P_HEIGHT = int(720/(1280/PER_IMG_WIDTH)) # 720p image scaled height
 
 N_PREVIEWS = 5
@@ -423,17 +429,28 @@ def cb_newquery():
 b_query = Button(label="Query", button_type="danger", width=BUTTON_WIDTH*2)
 b_query.on_click(cb_newquery)
 
+# will return ??:?? if incomplete info
+def frameid_to_vtime(id:int) -> str:
+    if the_video_info and the_video_info.fps > 0:
+        d = int(id/the_video_info.fps)
+        return f'{int(d/3600)}:{int((d%3600)/60)}:{int(d%60)}'
+    else:
+        return '??:??'
+
 def update_b_query_label():
     v = the_video_name if the_video_name else '??'
     fs = the_frameskip if the_frameskip > 0 else '??'
     c = the_class
 
     nf = the_video_info.frame_id_max - the_video_info.frame_id_min + 1 - the_video_info.n_missing_frames
+    '''
     if the_video_info.fps > 0:
         d = int(nf/the_video_info.fps)
         dstr = f'{int(d/3600)}:{int((d%3600)/60)}:{int(d%60)}'
     else:
         dstr = '??:??'
+    '''
+    dstr = frameid_to_vtime(nf)
     nf /= fs
 
     b_query.label=f'Query:{v}/{c}/skip={fs} frames={int(nf)} dur={dstr}'
@@ -494,7 +511,7 @@ def cb_listvideo_table(attraname, old, new):
     the_video_info = the_videos[i]
     console_write(f'selected video {i} {the_video_name}')
     if len(the_videos) >= i + 1:
-        load_preview_frames(the_videos[i], 3)
+        load_preview_frames(the_videos[i], N_PREVIEWS)
         update_b_query_label()
 
 source_videos.selected.on_change('indices', cb_listvideo_table)
@@ -564,56 +581,60 @@ b_lq.on_click(cb_listqueries)
 url_logo = "https://static.bokeh.org/logos/logo.png"  # for testing
 
 sourceimg = ColumnDataSource(dict(
-    url = [url_logo, url_logo, url_logo],
-    #x1  = [10, 20, 30],
-    x1  = [0, 200, 400],
-    #y1  = [10, 20, 30],
-    y1  = [100, 200, 500],
-    w1  = [10, 10, 10],
-    h1  = [10, 10, 10],
-    frame_ids = ['preview', '-5', '100000']
+    url = [url_logo] * N_PREVIEWS,
+    x1  = [i * PER_PREVIEW_IMG_SPACING for i in range(N_PREVIEWS)],
+    y1  = [PER_PREVIEW_IMG_HEIGHT] * N_PREVIEWS,
+    w1  = [10] * N_PREVIEWS,
+    h1  = [10] * N_PREVIEWS,
+    frame_ids = ['preview', '-5', '100000', 'id3', 'id4', 'id5']
 ))
 
 #xdr = Range1d(start=-100, end=200)
 #ydr = Range1d(start=-100, end=200)
 
 # format of the plot
-pimg = Plot(
+ppreview = Plot(
 #    title=None, x_range=xdr, y_range=ydr, plot_width=300, plot_height=300,
-    x_range=Range1d(start=0, end=PLOT_IMG_WIDTH), y_range=Range1d(start=0, end=PLOT_IMG_HEIGHT),
-    title=None, plot_width=PLOT_IMG_WIDTH, plot_height=PLOT_IMG_HEIGHT,
-    min_border=0, toolbar_location=None)
-
-#image1 = ImageURL(url="url", x="x1", y="y1", w="w1", h="h1", anchor="center")
-image1 = ImageURL(url="url", x="x1", y="y1", anchor="top_left")
+    x_range=Range1d(start=0, end=PER_PREVIEW_IMG_SPACING * N_PREVIEWS),
+        y_range=Range1d(start=0, end=PLOT_PREVIEW_HEIGHT),
+        title=Title(text="Preview"),
+        plot_width=PER_PREVIEW_IMG_SPACING * N_PREVIEWS,
+        plot_height=PLOT_PREVIEW_HEIGHT,
+        min_border=0, toolbar_location=None
+    )
 
 '''
-sourcetext = ColumnDataSource(dict(
-    text = [],
-    x1 = [],
-    y1 = []
-))
+# for layout debugging
+yaxis = LinearAxis()
+ppreview.add_layout(yaxis, 'left')
+xaxis = LinearAxis()
+ppreview.add_layout(xaxis, 'above')
 '''
+
+image1 = ImageURL(url="url", x="x1", y="y1", w = 'w1', h='h1', anchor="top_left")
+#image1 = ImageURL(url="url", x="x1", y="y1", anchor="bottom_left")
+
 # text1 = LabelSet(text="frame_ids", x="x1", y="y1", x_offset=0, y_offset=-50, level='glyph', source=sourceimg)
-text1 = Text(text="frame_ids", x="x1", y="y1", x_offset=0, y_offset=PER_IMG_HEIGHT, text_color="#96deb3")
+text1 = Text(text="frame_ids", x="x1", y="y1", x_offset=0, y_offset=0, text_color="blue", text_font='helvetica', text_font_size='10px')
 
-pimg.add_glyph(sourceimg, image1) # feed the data
-pimg.add_glyph(sourceimg, text1) # feed the data
-#pimg.add_layout(text1) # feed the data -- nothing shown, why??
+ppreview.add_glyph(sourceimg, image1) # feed the data
+ppreview.add_glyph(sourceimg, text1) # feed the data
+#ppreview.add_layout(text1) # feed the data -- nothing shown, why??
 
 def load_preview_frames(v:VideoInfo, n_max:int):
     global the_videolib_preview
     the_videolib_preview.AddVideoStore(v.video_name).CleanStoredFrames()
-    ids = control.download_video_preview_frames(v, n_max)
+    ids = control.download_video_preview_frames(v, n_max, res=[PER_PREVIEW_IMG_WIDTH, PER_PREVIEW_IMG_HEIGHT])
     console_write(f'{len(ids)} preview fetched')
 
     cds_previews = dict(
         url = [the_videolib_preview.GetVideoStore(v.video_name).GetFramePath(id) for id in ids],
-        frame_ids = [f'{id}' for id in ids],
+        frame_ids = [f'{id} {frameid_to_vtime(id)}' for id in ids],
         #url = [],
-        x1 = [i * PER_IMG_WIDTH for i in range(n_max)],
-        y1 = [PLOT_IMG_HEIGHT] * n_max,
-        #w1 = None,
+        x1 = [i * PER_PREVIEW_IMG_SPACING for i in range(n_max)],
+        y1 = [PER_PREVIEW_IMG_HEIGHT] * n_max,
+        w1 = [PER_PREVIEW_IMG_WIDTH] * n_max,
+        h1 = [PER_PREVIEW_IMG_HEIGHT] * n_max
         #h1 = None,
         #h1 = [100] * n_max
     )
@@ -820,7 +841,7 @@ data_span = {
 }
 source_span = ColumnDataSource(data=data_span)
 
-pspan = figure(x_range=timespans, plot_height=250, plot_width=PLOT_IMG_WIDTH>>1,
+pspan = figure(x_range=timespans, plot_height=200, plot_width=int(PLOT_IMG_WIDTH/2.5),
                # title="Fruit Counts by Year", toolbar_location=None,
                tools="hover,box_select,tap",
                #tooltips="$name @timespans: @$name")
@@ -937,7 +958,7 @@ def cb_update_span(framestates:typing.Dict[int, str]):
     pspan.x_range.factors = factors
     '''
 
-    title = f"Progress per win (each {int(len(sp))} frames & "
+    title = f"Each win: {int(len(sp))} frames & "
     if the_video_info and the_video_info.fps > 0:
         fps = the_video_info.fps
         title += f"{int(len(sp) * the_frameskip / fps / 60)} mins"
@@ -995,7 +1016,7 @@ b_demo.on_click(partial(cb_promo, is_promote=False))
 ###########
 # bar graph with only "results"
 
-pspan0 = figure(x_range=timespans, plot_height=250, plot_width=PLOT_IMG_WIDTH>>1,
+pspan0 = figure(x_range=timespans, plot_height=200, plot_width=int(PLOT_IMG_WIDTH/2.5),
                # title="Fruit Counts by Year", toolbar_location=None,
                 title="Pos per win",
                tools="hover,box_select,tap", tooltips="pos: @r; max_confidence: @max_confidence")
@@ -1098,7 +1119,7 @@ curdoc().add_root(column(row(mean, stddev, mavg, b, b_lv),
 
 '''
 doc.add_root(column(row(b, b_lv, b_query),
-    gridplot([[pcam, pimg]], toolbar_location="left", plot_width=1000), table_listvideos)
+    gridplot([[pcam, ppreview]], toolbar_location="left", plot_width=1000), table_listvideos)
     )
 '''
 
@@ -1107,12 +1128,12 @@ doc.add_root(column(
     row(table_listvideos, pcam, pcam1, pcam2, table_listqueries),
     row(b_pause, b_resume, b_lv, b_lq, b_query),
     #row(pcam, table_results),
-    row(column(pspan, pspan0, b_promo, b_demo), table_results),
+    row(column(pspan, pspan0, row(b_promo, b_demo)), table_results),
     #row(pspan, b_promo, b_demo),
     #pspan0,
     presults,
     psingle,
-    pimg
+    ppreview
 ))
 
 # curdoc().add_periodic_callback(update, 500)

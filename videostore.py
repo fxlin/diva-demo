@@ -130,7 +130,7 @@ class VideoStore():
 
     # the video dir must exist
     # return: saved abs path
-    # res [x,y] crop (left, upper, right, and lower pixel coordinate)
+    # res [x,y] crop (left, upper, right, and lower pixel coordinate). resize preserves the aspect of the image
     # cf: https://pillow.readthedocs.io/en/3.1.x/reference/Image.html
     def StoreFrame(self, frame_id:int, img:common_pb2.Image, res = None, crop = None) -> str:
         with self.lock:
@@ -142,7 +142,7 @@ class VideoStore():
                 if res or crop:
                     im = PIL.Image.open(frame_path)
                 if res:
-                    im.thumbnail(res)  # 128x128 thumbnail
+                    im.thumbnail(res)  # will preserve the aspect of the image
                 if crop:
                     im.crop(crop)
                 im.save(frame_path)
