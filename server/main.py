@@ -88,6 +88,9 @@ PLOT_IMG_HEIGHT = 200
 PER_IMG_WIDTH = 300 # for image spacing
 PER_IMG_HEIGHT = 100 # only for determining label offset
 
+FULL_IMG_WIDTH = 1280 >> 1
+FULL_IMG_HEIGHT = 720 >> 1
+
 PER_PREVIEW_IMG_WIDTH = 128
 PER_PREVIEW_IMG_HEIGHT = 72
 PER_PREVIEW_IMG_SPACING = int(PER_PREVIEW_IMG_WIDTH * 1.1)
@@ -659,14 +662,14 @@ def load_preview_frames(v:VideoInfo, n_max:int):
 source_single_res = ColumnDataSource(dict(
     url = [url_logo],
     x1 = [0],
-    y1 = [720],
+    y1 = [FULL_IMG_HEIGHT],
  #   h1 = [100, 100],
   #  w1 = [100, 100],
 ))
 
 psingle = Plot(
-    x_range=Range1d(start=0, end=1280), y_range=Range1d(start=0, end=720),
-    title=None, plot_width=1280, plot_height=720,
+    x_range=Range1d(start=0, end=FULL_IMG_WIDTH), y_range=Range1d(start=0, end=FULL_IMG_HEIGHT),
+    title=None, plot_width=FULL_IMG_WIDTH, plot_height=FULL_IMG_HEIGHT,
     min_border=0, toolbar_location=None)
 
 #image_single = ImageURL(url="url", x="x1", y="y1", h="h1", w="w1", anchor="top_left")
@@ -677,7 +680,7 @@ def single_img_load(url:str):
     new_data = dict (
         url = [url],
         x1 = [0],
-        y1 = [720]
+        y1 = [FULL_IMG_HEIGHT]
     )
     source_single_res.data = new_data
 
@@ -720,7 +723,7 @@ table_results = DataTable(
         TableColumn(field="n_bboxes", title="BBoxes"),
     ],
     width=400,
-    height=400
+    height=200
 )
 
 # get updated query res from cloud.
@@ -804,7 +807,9 @@ class_sel.on_change('active', cb_class)
 # frameskip selector
 # https://www.programcreek.com/python/example/106842/bokeh.models.Select
 ##############################
-frameskip_sel = Select(title="Frameskip", value=f"{the_frameskip}", options=[f"{k}" for k in the_frameskip_choices])
+frameskip_sel = Select(value=f"{the_frameskip}", options=[f"{k}" for k in the_frameskip_choices], width=25
+                       #title = "frameskip"
+                       )
 
 def cb_frameskip(attr, old, new):
     global the_frameskip
@@ -1010,7 +1015,7 @@ def cb_promo(is_promote:bool):
 b_promo = Button(label="Promo", button_type="success", width=BUTTON_WIDTH)
 b_promo.on_click(partial(cb_promo, is_promote=True))
 
-b_demo = Button(label="Demote", button_type="success", width=BUTTON_WIDTH)
+b_demo = Button(label="Demote", button_type="danger", width=BUTTON_WIDTH)
 b_demo.on_click(partial(cb_promo, is_promote=False))
 
 ###########
@@ -1123,6 +1128,7 @@ doc.add_root(column(row(b, b_lv, b_query),
     )
 '''
 
+'''
 doc.add_root(column(
     row(para_log, frameskip_sel, class_sel),
     row(table_listvideos, pcam, pcam1, pcam2, table_listqueries),
@@ -1135,6 +1141,19 @@ doc.add_root(column(
     psingle,
     ppreview
 ))
+'''
+
+doc.add_root(column(
+    row(table_listvideos, ppreview),
+    row(frameskip_sel, class_sel),
+    row(b_pause, b_resume, b_lv, b_lq, b_query),
+    #row(pcam, table_results),
+    row(column(pspan, pspan0, row(b_promo, b_demo)), column(table_results, row(pcam, pcam1, pcam2), para_log), psingle, table_listqueries),
+    #row(pspan, b_promo, b_demo),
+    #pspan0,
+    presults
+))
+
 
 # curdoc().add_periodic_callback(update, 500)
 doc.title = "📷⚙️"
