@@ -95,7 +95,7 @@ N_RESULTS_IMG = 5
 
 BUTTON_WIDTH = 100
 
-UPDATE_INTERVAL_MS = 1000   # short interval like 500ms will cause unresponsive UI. XXX opt parsing framemaps
+UPDATE_INTERVAL_MS = 2000   # short interval like 500ms will cause unresponsive UI. XXX opt parsing framemaps
 the_interval_ms = UPDATE_INTERVAL_MS
 #######################################
 
@@ -276,8 +276,13 @@ the_last_ts = -1
 # update the aggregated stats & framemap
 # scheduled by worker thread, executed in the main thread
 @gen.coroutine
-def cb_update_camsrc(prog, stats):  # stats: QueryInfoCloud
-    #logger.info("update doc...")
+def cb_update_datasrc(prog, stats, res):  # stats: QueryInfoCloud
+    global UPDATE_INTERVAL_MS, the_interval_ms
+
+    logger.info(f">>>>>>>>>>>>> cb_update_datasrc started")
+
+    t0 = time.time()
+
     global the_last_n_frames_processed_cam, the_last_n_frames_recv_yolo, the_last_n_frames_processed_yolo, the_last_ts, the_start_ts
     if the_last_ts < 0: # once
         n_frames_processed_cam_rate = 0
@@ -308,7 +313,24 @@ def cb_update_camsrc(prog, stats):  # stats: QueryInfoCloud
     )
     #print(new_data)
     src_cam.stream(new_data, rollover=300)
-    cb_update_span(prog.framestates)
+
+    cb_update_span(prog.framestates) # ... expensive
+
+    t1 = time.time()
+
+    cb_update_res(res)
+
+    t2 = time.time()
+
+    logger.info(f"<<<<<< cb_update_datasrc ended {(t1-t0)*1000:.2f} {(t2-t1)*1000:.2f} ms")
+
+    # control the rate of update
+    '''
+    if t2-t0 > 0.1: # too high
+        the_interval_ms *= 1.5
+    else:
+        the_interval_ms = max(the_interval_ms - 100, UPDATE_INTERVAL_MS)
+    '''
 
 ev_progress = threading.Event()
 
@@ -317,11 +339,18 @@ def thread_progress():
     while True:
         ev_progress.wait()
         ev_progress.clear()
+
+        # pull updates from control bkend...
+        t0 = time.time()
         prog = control.create_query_progress_snapshot(qid=the_qid)
         stat = control.query_progress(qid=the_qid) # stats
+        res = control.query_results(the_qid)
+        t1 = time.time()
+
+        # update/render on demand
         if prog:
-            doc.add_next_tick_callback(partial(cb_update_camsrc, prog, stat))
-            # logger.info("poll progress.. ok")
+            doc.add_next_tick_callback(partial(cb_update_datasrc, prog, stat, res))
+            logger.info(f"pull backend update... {1000*(t1-t0)} ms")
         else:
             logger.info("poll progress... failed")
 
@@ -335,7 +364,7 @@ the_poll_cb = None
 def periodic_callback(t):
     global the_poll_cb, the_interval_ms
     ev_progress.set() # async. kick the worker thread, which will pull the query progress from cam
-    update_cloud_res(t) # sync. pull & update query res from cloud (not cam). sync
+    #cb_update_res(t) # sync. pull & update query res from cloud (not cam). sync
     the_poll_cb = doc.add_timeout_callback(periodic_callback, int(the_interval_ms))
     logger.info(f"schedule next update in {the_interval_ms} ms")
 
@@ -676,16 +705,15 @@ table_results = DataTable(
 # get updated query res from cloud.
 # to be called in ticks of the main thread. rendering as table, spans, etc.
 # sync, as it wont talk to the cam
-def update_cloud_res(t):
+def cb_update_res(res):
     global the_qid, the_videolib_results, the_current_span
-    global UPDATE_INTERVAL_MS, the_interval_ms
 
-    logger.info(f">>>>>>>>>>>>> update_cloud_res started {t}")
-    t0 = time.time()
+    #logger.info(f">>>>>>>>>>>>> cb_update_res started")
+    #t0 = time.time()
 
-    res = control.query_results(the_qid) # won't contact the cam
+    #res = control.query_results(the_qid) # won't contact the cam
 
-    t1 = time.time()
+    #t1 = time.time()
 
     # filter res based on currently selected timespan
     # filtering using CDSviwe is not working: filters there can only accept simple logic (based on prescribed JS)
@@ -716,13 +744,14 @@ def update_cloud_res(t):
         #print('---------> update results:', new_data)
         source_results.data = new_data # commit
 
+    '''
     t2 = time.time()
-    logger.info(f"<<<<<< update_cloud_res ended {t} {(t1-t0)*1000:.2f} {(t2-t1)*1000:.2f} ms")
+    logger.info(f"<<<<<< cb_update_res ended {t} {(t1-t0)*1000:.2f} {(t2-t1)*1000:.2f} ms")
     if t2-t0 > 0.1: # too high
         the_interval_ms *= 1.5
     else:
         the_interval_ms = max(the_interval_ms - 100, UPDATE_INTERVAL_MS)
-
+    '''
 
 def cb_results_table(attr, old, new):
     i = source_results.selected.indices[0]
@@ -773,12 +802,12 @@ NSPANS = 10
 timespans = [f'win{d}' for d in range(NSPANS)]
 #timespans = [f'{d:4d}min' for d in range(NSPANS)]
 #states = ['.', '-', '1', '2', '3', '4', '5', 's', 'r']
-states = ['queued', 'held', 'pass1', 'pass2', 'pass3', 'pass4', 'pass5', 'uploaded', 'positive']
-colors = ["white", "lightsteelblue", "gainsboro", "lightgray", "silver", "darkgray", "gray", "cyan", "lime"]
+states = ['held', 'queued', 'pass1', 'pass2', 'pass3', 'pass4', 'pass5', 'uploaded', 'positive']
+colors = ["lightsteelblue", "white", "gainsboro", "lightgray", "silver", "darkgray", "gray", "cyan", "lime"]
 data_span = {
     'timespans' : timespans,
+    'held': [10] * NSPANS,  # backqueue
     'queued' : [10] * NSPANS,    # .
-    'held' : [10] * NSPANS,    # backqueue
     'pass1' : [20] * NSPANS,    # ditto
     'pass2' : [20] * NSPANS,    # ditto
     'pass3' : [20] * NSPANS,    # ditto
@@ -828,17 +857,38 @@ def cb_update_span(framestates:typing.Dict[int, str]):
     global the_spans
     fs_list = [(frame_id, state) for frame_id, state in framestates.items()]
     fs_list.sort(key= lambda x: x[0])
-    the_spans = np.array_split(fs_list, NSPANS)    # slice into N spans
-    # the_spans = list(chunks(fs_list, NSPANS))
+    #print(fs_list[0:10])
+
+    '''
+    I do not fully understand how npo.array_split() works, but i) the 0th span seems incorrect (e.g. 20k frs, minid 0, maxid 9999)
+    and ii) the split arrays are in sophisticated types. i) causes a bug. bad.           
+    '''
+    #the_spans = np.array_split(fs_list, NSPANS)    # slice into N spans
+    the_spans = list(chunks(fs_list, int(len(fs_list)/NSPANS)+1))
+    assert(len(the_spans) == NSPANS)
+
     new_data = copy.deepcopy(data_span)
+
+    '''
+    ss = [id for id, st in the_spans[0]]
+    print(ss[0:10], the_spans[0][0:10], len(the_spans[0]), max(the_spans[0], key=lambda x: x[0]))    
+    for x in range(1,9999):
+        c = ss.count(x)
+        if c>0:
+            print(x, c)
+    '''
+
+    #for x in the_spans[0][0:10]:
+    #    print(x[0], sep=' ')
 
     # new_data['timespans'] = [f'winXXX{d}' for d in range(NSPANS)]
 
     # sp = [ (frame_id, state) ... ]
     # f is a (frame_id, state) tuple
+
     for idx, sp in enumerate(the_spans):
-        new_data['queued'][idx] = sum(1 for f in sp if f[1] == '.')
         new_data['held'][idx] = sum(1 for f in sp if f[1] == '-')
+        new_data['queued'][idx] = sum(1 for f in sp if f[1] == '.')
         new_data['pass1'][idx] = sum(1 for f in sp if f[1] == '1')
         new_data['pass2'][idx] = sum(1 for f in sp if f[1] == '2')
         new_data['pass3'][idx] = sum(1 for f in sp if f[1] == '3')
@@ -905,7 +955,7 @@ def cb_span(attr, old, new):
     the_current_span = (int(min(the_spans[i], key=lambda x: x[0])[0]),
                         int(max(the_spans[i], key=lambda x: x[0])[0]))
 
-    logger.warning(f"selected span. {attr} {old} {new} {i} the_current_span {the_current_span}")
+    logger.warning(f"selected span {i}. fr {the_current_span} frs {len(the_spans[i])}")
 
 source_span.selected.on_change('indices', cb_span)
 
@@ -928,7 +978,7 @@ def cb_promo(is_promote:bool):
     maxid = max(the_spans[i], key=lambda x: x[0])[0]
 
     console_write(f"{action} frames {minid} -- {maxid}")
-    logger.warning(f"{action} frames {minid} -- {maxid}")
+    logger.warning(f"{action} span {i} frs {len(the_spans[i])} {minid} -- {maxid}")
     msg = control.promote_frames(-1, int(minid), int(maxid), is_promote=is_promote)
     console_append("cam replied:" + msg)
 

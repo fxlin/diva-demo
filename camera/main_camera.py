@@ -48,7 +48,7 @@ from google.protobuf import empty_pb2
 # cf https://realpython.com/python-data-classes/#basic-data-classes
 # https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html#built-in-types
 from dataclasses import dataclass, field
-import typing 
+import typing
 
 import zc.lockfile # detect& avoid multiple instances
 
@@ -107,7 +107,7 @@ class FrameInfo():
     #local_path: str
     qid: int
 
-# for tracking the current query 
+# for tracking the current query
 @dataclass
 class QueryInfo():
     # each frame_id: . init, r ranked s sent
@@ -126,7 +126,7 @@ class QueryInfo():
 
 
 # todo: combine it to queryinfo
-@dataclass 
+@dataclass
 class QueryStat():
     qid : int = -1    # current qid
     video_name : str = ""
@@ -136,7 +136,7 @@ class QueryStat():
     n_frames_processed : int = 0
     n_frames_sent : int = 0
     n_frames_total : int = 0
-        
+
 # for the current query: all frames (metadata such as fullpaths etc) to be processed. 
 # workers will pull from here
 the_query_lock = threading.Lock()
@@ -219,12 +219,12 @@ class OP_WORKER(threading.Thread):
         self.batch_size = 16
         self.kill = False   # notify the worker thread to terminate. not to be set externally. call stop() instead
         self.op = None # the actual op
-        
+
     '''
     def isRunning(self):
         return self.is_run
     '''
-        
+
     def stop(self):
         K.clear_session() # xzl: will there be race condition?
         self.kill = True
@@ -263,11 +263,11 @@ class OP_WORKER(threading.Thread):
         logger.critical(f"op worker: loaded op {op_index} {op_fname}. {in_h} x {in_w}")
 
         return op_index, in_h, in_w
-    
-    def run(self):        
+
+    def run(self):
         logger.warning(f"op worker start running id = {threading.get_ident()}")
         clog = ClockLog(5)  # xzl: in Mengwei's util
-        
+
         with the_query_lock:
             qid = the_query.qid
             print (f'{the_query.qid}  {[on for on in the_query.op_names]}')
@@ -356,45 +356,45 @@ class OP_WORKER(threading.Thread):
             with the_cv: # auto grab send buf lock
                 for i in range(len(frames)):
                     frames[i].cam_score = scores[i, 1]
-                    heapq.heappush(the_send_buf, 
-                        (-scores[i, 1] + random.uniform(0.00001, 0.00002), 
+                    heapq.heappush(the_send_buf,
+                        (-scores[i, 1] + random.uniform(0.00001, 0.00002),
                             frames[i]
                         )
                     )
                 the_cv.notify()
-                
+
             with the_stats_lock:
                 the_stats[qid].n_frames_processed += len(frames)
 
             # XXX locking
-            clog.print(f'''Op worker: send_buf {len(the_send_buf)}''' 
+            clog.print(f'''Op worker: send_buf {len(the_send_buf)}'''
                         + f'''      work_queue {len(the_query.workqueue)}'''
                         + f'''       back_buf {len(the_query.backqueue)}''')
 
 # a thread keep uploading images from the_send_buf to the server
-def thread_uploader():    
+def thread_uploader():
     logger.warning(f"------------ uploader start running id = {threading.get_ident()}")
 
     total_frames = 0
-    
+
     #try:
     server_channel = grpc.insecure_channel(DIVA_CHANNEL_ADDRESS)
-    server_stub = server_diva_pb2_grpc.server_divaStub(server_channel)    
-    
+    server_stub = server_diva_pb2_grpc.server_divaStub(server_channel)
+
     logger.warning('uploader: channel connected')
     clog = ClockLog(5)  # xzl: in Mengwei's util
-    
-    while True: 
+
+    while True:
         # logger.info("uploader: wait for op workers to produce a frame...")
-                    
+
         with the_cv: # auto grab lock
             while (len(the_send_buf) == 0 and not the_uploader_stop_req):
                 the_cv.wait()
             if (the_uploader_stop_req):
                 server_channel.close()
                 logger.critical('uploader: got a stop req. bye!')
-                return 
-            
+                return
+
             send_frame = heapq.heappop(the_send_buf)[1]
             # print ('uploader: Buf size: ', len(the_send_buf))
         #f = open(os.path.join(the_img_dirprefix, send_frame['name']), 'rb')
@@ -421,14 +421,14 @@ def thread_uploader():
             cls = 'XXX', # TODO
             qid = send_frame.qid
         )
-        
+
         # logger.warning("uploader:about to submit one frame")
-        
+
         # https://stackoverflow.com/a/7663441
-        for attempt in range (5): 
-            try: 
+        for attempt in range (5):
+            try:
                 resp = server_stub.SubmitFrame(req)
-                #total_frames += 1                          
+                #total_frames += 1
             except Exception as e:
                 logger.error(e)
                 # reconnect 
@@ -444,16 +444,16 @@ def thread_uploader():
                     assert (qid >= 0)
                     the_query.framestates[send_frame.frame_id] = 's'
                 with the_stats_lock:
-                    the_stats[qid].n_frames_sent += 1 
+                    the_stats[qid].n_frames_sent += 1
                 if attempt > 0:
                     logger.warning("------------- we've reconnected!--------")
                 break
-        else: 
-            logger.warning("we failed all attempts") 
+        else:
+            logger.warning("we failed all attempts")
         # logger.warning("uploader:submitted one frame. server says " + resp.msg)
-                              
+
         clog.print("uploader: sent %d frames since born" %(total_frames))
-    
+
     #except Exception as err:
     #    print("exception is ", err)
     #    logger.error("uploader: channel seems broken. bye!")
@@ -461,81 +461,81 @@ def thread_uploader():
 
 the_uploader = None # threading.Thread(target=thread_uploader)
 the_op_worker = None # XXX can be multiple workers
- 
+
 # make reentrant with locks?   
 def _GraceKillOpWorkers():
     global the_op_worker
-    
+
     if not the_op_worker:
-        return 
-    
+        return
+
     if (not the_op_worker.is_alive()):
         the_op_worker = None
-        return 
-    
+        return
+
     logger.info("_GraceKillOpWorkers: request op worker to stop...")
-    
+
     the_op_worker.stop()
     # XXX signal cv? 
     the_op_worker.join(3)
     assert(not the_op_worker.is_alive())
-     
+
     the_op_worker = None
-    
+
     logger.info("_GraceKillOpWorkers: op worker stopped")
-     
+
 def _StartOpWorkerIfDead():
     global the_op_worker
 
     logger.info("_StartOpWorkerIfDead: request op worker start...")
-    
+
     '''
     if (the_op_worker.is_alive()):
         logger.info("_StartOpWorkerIfDead: already started??")
         return 
-    '''    
+    '''
     the_op_worker = OP_WORKER()
     the_op_worker.start()
     assert(the_op_worker.is_alive())
-    
+
     logger.info("_StartOpWorkerIfDead: started")
-        
-                        
+
+
 def _GraceKillUploader():
     global the_uploader
     global the_uploader_stop_req
-            
+
     if not the_uploader:
-        return 
-    
+        return
+
     if not the_uploader.is_alive():
         the_uploader = None
         return
-        
+
     assert(the_uploader_stop_req == 0)
     the_uploader_stop_req = 1
     with the_cv:
         the_cv.notify()
     logger.info("_GraceKillUploader: request uplaoder to stop...")
-    
+
     the_uploader.join(3)
     assert(not the_uploader.is_alive())
     the_uploader_stop_req = 0
     logger.info("_GraceKillUploader: uploader stopped...")
-    
+
     the_uploader = None
 
 def _StartUploaderIfDead():
     global the_uploader
-    
+
     logger.info("_StartUploaderIfDead")
-    
+
     the_uploader = threading.Thread(target=thread_uploader)
     the_uploader.start()
     assert(the_uploader.is_alive())
-    
+
     logger.info("_StartUploaderIfDead: started")
-    
+
     '''
     if not the_uploader:
         the_uploader = threading.Thread(target=thread_uploader)
@@ -546,16 +546,16 @@ def _StartUploaderIfDead():
         logger.info("_StartUploaderIfDead")
     '''
 
-                            
+
 class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
-    
+
     cur_op_data = bytearray(b'') # xzl: the buffer for receiving op
 
     def __init__(self):
         cam_cloud_pb2_grpc.DivaCameraServicer.__init__(self)
-        
+
         #self.op_worker = OP_WORKER()  # xzl: only one worker??
-        #self.op_worker.start()  # xzl: they will sleep 
+        #self.op_worker.start()  # xzl: they will sleep
 
         # self.op_worker = OP_WORKER()
         # self.op_worker.setDaemon(True)
@@ -570,13 +570,13 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
     # xzl: cloud told us - all data chunks of an op has been sent. 
     def DeployOpNotify(self, request, context):
         _GraceKillOpWorkers()
-        
+
         with the_query_lock:
             the_query.op_name = request.name
             the_query.op_fname = os.path.join(the_op_dir, the_query.op_name)
             the_query.crop = request.crop
             of = the_query.op_fname
-        
+
         with open(of, 'wb') as f:
             f.write(self.cur_op_data)
         self.cur_op_data = bytearray(b'')
@@ -589,12 +589,12 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         self.cur_op_data += request.data
         # print ('XXX', len(request.data))
         return cam_cloud_pb2.StrMsg(msg='OK DeployOp')
-        
+
     # got a query from the cloud. run it
     def SubmitQuery(self, request, context):
-        global the_uploader 
+        global the_uploader
         global the_query
-        
+
         logger.info(f"got a query ops: {request.op_names} video {request.video_name} qid {request.qid}")
 
         with the_stats_lock:
@@ -671,15 +671,15 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                     video_name=request.video_name,
                     #op_name=request.op_name,
                     crop=request.crop,
-                    status='STARTED', 
+                    status='STARTED',
                     n_frames_processed=0,
                     n_frames_sent=0,
-                    n_frames_total=ll                
+                    n_frames_total=ll
                 )
 
-        _StartOpWorkerIfDead()                            
+        _StartOpWorkerIfDead()
         _StartUploaderIfDead()
-            
+
         return cam_cloud_pb2.StrMsg(msg=f'OK: recvd query {len(frame_ids)} frames')
 
     # move all frames in the given range to backqueue
@@ -797,6 +797,8 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         for id in request.frame_ids:
             frame_ids[id] = ''
 
+        logger.warning(f"to promote {len(request.frame_ids)} frs")
+
         #print(frame_ids)
 
         frames = []
@@ -855,12 +857,15 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
             the_query.backqueue = backqueue
         #if up == 0:
         #    return cam_cloud_pb2.StrMsg(msg=f'OK down:{len(frames)} up:{up} unchanged:{unchanged}')
+
         # 4. {tmp} --> backqueue
             the_query.backqueue += frames
             for f in frames:
                 the_query.framestates[f.frame_id] = '-'
 
         logger.info(f"promo backqueue->workqueue up {up} unchanged {unchanged}")
+        logger.warning(f"after: send_buf {len(send_buf)} workqueue {len(workqueue)} total {len(send_buf)+len(workqueue)}")
+
         # logger.info(f"workqueue<--backqueue up {up} unchanged {unchanged}")
 
         # _StartOpWorkerIfDead()
@@ -870,46 +875,46 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
     # got a cmd for controlling the CURRENT query
     def ControlQuery(self, request, context):
         global the_query
-        
-        logger.info("got a query cmd qid %d cmd %s" 
+
+        logger.info("got a query cmd qid %d cmd %s"
                     %(request.qid, request.command))
-                 
-               
-        with the_query_lock: 
+
+
+        with the_query_lock:
             '''
             if (request.qid != the_query.qid):
                 return cam_cloud_pb2.StrMsg(msg=f'FAIL req qid {request.qid} != query qid {the_query.qid}')
             '''
             qid = the_query.qid
-                             
+
         if request.command == "RESET": # meaning clean up all query stats, etc.
             _GraceKillUploader()
             _GraceKillOpWorkers()
-            
+
             with the_query_lock:
                 the_query = QueryInfo()
-                
+
             with the_stats_lock:
                 the_stats.clear()
 
             with the_buf_lock:  # no need to upload anything
                 the_send_buf.clear()
-                                
+
             # do not resume uploader/opworkers
-            return cam_cloud_pb2.StrMsg(msg='OK cam reset')  
-            
+            return cam_cloud_pb2.StrMsg(msg='OK cam reset')
+
         if qid == -1:
             return cam_cloud_pb2.StrMsg(msg='FAIL: current qid == -1')
-                                                    
+
         if request.command == "PAUSE":
             # kill uploader/opworkers but retain query state & states
-            _GraceKillUploader() 
-            _GraceKillOpWorkers()        
+            _GraceKillUploader()
+            _GraceKillOpWorkers()
             return cam_cloud_pb2.StrMsg(msg=f'OK query {qid} paused')
         elif request.command == "RESUME":
             _StartUploaderIfDead()
             _StartOpWorkerIfDead()
-            return cam_cloud_pb2.StrMsg(msg=f'OK query {qid} resumed') 
+            return cam_cloud_pb2.StrMsg(msg=f'OK query {qid} resumed')
         elif request.command == "STOP":
             # TODO: implement
             return cam_cloud_pb2.StrMsg(msg='FAIL')
@@ -1091,51 +1096,51 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
 
         return common_pb2.get_videos_resp(videos=video_list)
     '''
-                        
+
     # assumption: videos are stored as images in subdir, i.e. 
     # ${the_img_dirprefix}/${video_name}/{images}
     # $video_name may contain fps info, e.g. XX-10FPS_XXX
     # individual image files are numbered, number is img_fname[:-4]  
-    
+
     # cf: 
     # https://developers.google.com/protocol-buffers/docs/reference/python-generated#wkt
     # https://developers.google.com/protocol-buffers/docs/reference/cpp/google.protobuf.util.time_util
 
     # deprecated
     def ListVideos_0(self, request, context):
-        video_name_list = [o for o in os.listdir(the_img_dirprefix) 
-                         if os.path.isdir(os.path.join(the_img_dirprefix, o))] 
-        
+        video_name_list = [o for o in os.listdir(the_img_dirprefix)
+                         if os.path.isdir(os.path.join(the_img_dirprefix, o))]
+
         video_list = []
-        
-        for f in video_name_list: 
+
+        for f in video_name_list:
             video_path = os.path.join(the_img_dirprefix, f)
-            
+
             # use hint to find FPS from video name. best effort
             m=re.search(r'''\D*(\d+)(FPS|fps)''', f)
             if m:
                 fps = int(m.group(1))
             else:
                 fps = -1
-                            
+
             # a list of frame nums without file extensions
             frame_name_list = [int(img[:-4]) for img in os.listdir(video_path)]
             minid = min(frame_name_list)
-            maxid = max(frame_name_list)            
-            diff = maxid - minid + 1        
+            maxid = max(frame_name_list)
+            diff = maxid - minid + 1
             n_missing_frames = diff - len(frame_name_list)
             assert(n_missing_frames >= 0)
-            
+
             #duration = Duration()
             #duration.seconds = 0
             #duration = 0
             #if fps > 0:
             #    duration.seconds = int((diff) / fps)
-                                        
+
             video_list.append(cam_cloud_pb2.VideoMetadata(
-                    video_name = f, 
-                    n_frames = len(frame_name_list), 
-                    fps = fps,  
+                    video_name = f,
+                    n_frames = len(frame_name_list),
+                    fps = fps,
                     n_missing_frames = n_missing_frames,
                     #start = Timestamp(), # fake one, or Timestamp(),
                     #end = Timestamp(),
@@ -1178,7 +1183,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         frame_id = request.frame_id
         frame_path = ""
         found = False
-        
+
         for ext in ['.JPG', '.jpg']:
             for frame_fname in [f'{frame_id:d}', f'{frame_id:06d}', f'{frame_id:07d}', f'{frame_id:08d}']:
                 frame_path = os.path.join(video_path, frame_fname + ext)
@@ -1193,18 +1198,18 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
                 continue
             break
         if not found:
-            return common_pb2.Image()   # nothing            
-        
-        try:                         
-            f = open(frame_path, 'rb')            
+            return common_pb2.Image()   # nothing
+
+        try:
+            f = open(frame_path, 'rb')
             _height, _width, _chan = 0, 0, 0
             return common_pb2.Image(data=f.read(),
                                     height=_height,
                                     width=_width,
-                                    channel=_chan) 
+                                    channel=_chan)
         except Exception as e:
             logger.error(e)
-            return common_pb2.Image()   # nothing            
+            return common_pb2.Image()   # nothing
 
     def GetVideoFrame(self, request, context):
         logger.info(f'GetVideoFrame {request.video_name} {request.frame_id}')
@@ -1276,9 +1281,9 @@ def serve():
         diva_cam_servicer, server)
     server.add_insecure_port(f'[::]:{CAMERA_CHANNEL_PORT}')
     server.start()
-     
+
     # _StartUploaderIfDead()
-    
+
     try:
         while True:
             time.sleep(60 * 60 * 24)
