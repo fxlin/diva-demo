@@ -811,6 +811,8 @@ data_span = {
     'pass1' : [20] * NSPANS,    # ditto
     'pass2' : [20] * NSPANS,    # ditto
     'pass3' : [20] * NSPANS,    # ditto
+    'pass4' : [20] * NSPANS,    # ditto
+    'pass5' : [20] * NSPANS,    # ditto
     'uploaded' : [30] * NSPANS,    # s
     'positive' : [30] * NSPANS,    # r
     'max_confidence' : [0.0] * NSPANS,  # max of confidence in all 'r' frames
@@ -892,6 +894,8 @@ def cb_update_span(framestates:typing.Dict[int, str]):
         new_data['pass1'][idx] = sum(1 for f in sp if f[1] == '1')
         new_data['pass2'][idx] = sum(1 for f in sp if f[1] == '2')
         new_data['pass3'][idx] = sum(1 for f in sp if f[1] == '3')
+        new_data['pass4'][idx] = sum(1 for f in sp if f[1] == '4')
+        new_data['pass5'][idx] = sum(1 for f in sp if f[1] == '5')
         new_data['uploaded'][idx] = sum(1 for f in sp if f[1] == 's')
         #new_data['r'][idx] = sum(1 for f in sp if f[1] == 'r')
         # a bit hack. for 'r' frames, we store the confidence as its framestate
