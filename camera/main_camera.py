@@ -918,32 +918,40 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
             return cam_cloud_pb2.StrMsg(msg='FAIL')
 
     def GetStats(self, request, context):
-        logger.info("GetStats qid %d" %(request.qid))
-
         n_frames_processed = 0
         n_frames_total = 0
         status = "UNKNOWN"
-                                
+        t0 = time.time()
+
         with the_stats_lock:
             if request.qid in the_stats:
-                return cam_cloud_pb2.QueryProgress(qid = request.qid, 
+                ret = cam_cloud_pb2.QueryProgress(qid = request.qid,
                             video_name = the_query.video_name, # XXX lock
                             n_frames_processed = the_stats[request.qid].n_frames_processed,
                             n_frames_sent = the_stats[request.qid].n_frames_sent,
                             n_frames_total = the_stats[request.qid].n_frames_total,
                             status = the_stats[request.qid].status)
             else:
-                return cam_cloud_pb2.QueryProgress(qid = request.qid, 
+                ret = cam_cloud_pb2.QueryProgress(qid = request.qid,
                                                    status = 'NONEXISTING')
+
+        #logger.info("GetStats qid %d" % (request.qid))
+        logger.info("GetStats qid %d %.2f ms" % (request.qid, 1000 * (time.time() - t0)))
+        return ret
 
     # XXX: only return the current query's state. can be extended
     def GetQueryFrameStates(self, request, context):
-        logger.info("GetQueryFrameStates qid %d" % (request.qid))
+        t0 = time.time()
 
+        # assumption: we want to respond to cloud asap. deepcopy may be too expensive.
         with the_query_lock:
             if (the_query.qid < 0):
                 return None # what to return?
-            fs = copy.deepcopy(the_query.framestates) # a snapshot
+            #fs = copy.deepcopy(the_query.framestates) # a snapshot
+            s = FrameStatesToFrameMap(the_query.framestates)
+
+        logger.info("GetQueryFrameStates qid %d %.2f ms" % (request.qid, 1000*(time.time()-t0)))
+        return s
 
         '''
         s = [(fid, st) for fid, st in fs.items()]
@@ -955,7 +963,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         '''
 
         # transfer as framemap
-        return FrameStatesToFrameMap(fs)
+        #return FrameStatesToFrameMap(fs)
 
     '''        
     # OLD 
@@ -1262,7 +1270,7 @@ def serve():
 
     build_video_stores()
 
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=8))
     diva_cam_servicer = DivaCameraServicer()
     cam_cloud_pb2_grpc.add_DivaCameraServicer_to_server(
         diva_cam_servicer, server)

@@ -21,6 +21,7 @@ https://discourse.bokeh.org/t/hovertool-displaying-image/1198/7
 from __future__ import print_function
 
 import copy
+import time
 
 import numpy as np
 
@@ -94,8 +95,8 @@ N_RESULTS_IMG = 5
 
 BUTTON_WIDTH = 100
 
-UPDATE_INTERVAL_MS = 5000   # short interval like 500ms will cause unresponsive UI. XXX opt parsing framemaps
-
+UPDATE_INTERVAL_MS = 1000   # short interval like 500ms will cause unresponsive UI. XXX opt parsing framemaps
+the_interval_ms = UPDATE_INTERVAL_MS
 #######################################
 
 MA12, MA26, EMA12, EMA26 = '12-tick Moving Avg', '26-tick Moving Avg', '12-tick EMA', '26-tick EMA'
@@ -153,7 +154,7 @@ def cb_resume():
         console_append("cam replied:" + msg)
         if msg.startswith("OK"):
             the_paused = False
-            the_poll_cb = doc.add_periodic_callback(update_camsrc_request, 500)
+            the_poll_cb = doc.add_periodic_callback(periodic_callback, 500)
             b_resume.disabled = True
             b_pause.disabled = False
     else:
@@ -272,7 +273,8 @@ def update_camsrc(t):
 the_last_n_frames_processed_cam = -1
 the_last_ts = -1
 
-# update the aggregated stats (not framemap)
+# update the aggregated stats & framemap
+# scheduled by worker thread, executed in the main thread
 @gen.coroutine
 def cb_update_camsrc(prog, stats):  # stats: QueryInfoCloud
     #logger.info("update doc...")
@@ -326,13 +328,16 @@ def thread_progress():
 thread_progress = threading.Thread(target=thread_progress)
 thread_progress.start()
 
-# will be called periodically once query in progress
-@count()
-def update_camsrc_request(t):
-    ev_progress.set() # notify the worker thread to pull the query progress.
-    cb_update_results(t)
-
 the_poll_cb = None
+
+# will be called periodically once query in progress.. from main thread
+@count()
+def periodic_callback(t):
+    global the_poll_cb, the_interval_ms
+    ev_progress.set() # async. kick the worker thread, which will pull the query progress from cam
+    update_cloud_res(t) # sync. pull & update query res from cloud (not cam). sync
+    the_poll_cb = doc.add_timeout_callback(periodic_callback, int(the_interval_ms))
+    logger.info(f"schedule next update in {the_interval_ms} ms")
 
 ######
 # text console
@@ -378,7 +383,8 @@ def cb_newquery():
                                    crop='-1,-1,-1,-1', target_class=the_class, frameskip=the_frameskip)
     # print('qid:', resp)
     console_append(f"new query started. qid {the_qid}")
-    the_poll_cb = doc.add_periodic_callback(update_camsrc_request, UPDATE_INTERVAL_MS)
+    #the_poll_cb = doc.add_periodic_callback(periodic_callback, UPDATE_INTERVAL_MS)
+    the_poll_cb = doc.add_timeout_callback(periodic_callback, the_interval_ms)
 
     the_started = True
     b_query.label="Abort"
@@ -667,11 +673,19 @@ table_results = DataTable(
     height=400
 )
 
-# cb for main thread. parse framemap, rendering as table, spans, etc.
-# @count
-def cb_update_results(t):
+# get updated query res from cloud.
+# to be called in ticks of the main thread. rendering as table, spans, etc.
+# sync, as it wont talk to the cam
+def update_cloud_res(t):
     global the_qid, the_videolib_results, the_current_span
-    res = control.query_results(the_qid)
+    global UPDATE_INTERVAL_MS, the_interval_ms
+
+    logger.info(f">>>>>>>>>>>>> update_cloud_res started {t}")
+    t0 = time.time()
+
+    res = control.query_results(the_qid) # won't contact the cam
+
+    t1 = time.time()
 
     # filter res based on currently selected timespan
     # filtering using CDSviwe is not working: filters there can only accept simple logic (based on prescribed JS)
@@ -701,6 +715,14 @@ def cb_update_results(t):
 
         #print('---------> update results:', new_data)
         source_results.data = new_data # commit
+
+    t2 = time.time()
+    logger.info(f"<<<<<< update_cloud_res ended {t} {(t1-t0)*1000:.2f} {(t2-t1)*1000:.2f} ms")
+    if t2-t0 > 0.1: # too high
+        the_interval_ms *= 1.5
+    else:
+        the_interval_ms = max(the_interval_ms - 100, UPDATE_INTERVAL_MS)
+
 
 def cb_results_table(attr, old, new):
     i = source_results.selected.indices[0]
@@ -750,18 +772,18 @@ frameskip_sel.on_change('value', cb_frameskip)
 NSPANS = 10
 timespans = [f'win{d}' for d in range(NSPANS)]
 #timespans = [f'{d:4d}min' for d in range(NSPANS)]
-states = ['.', '-', '1', '2', '3', '4', '5', 's', 'r']
-#states = ".-123sr"
+#states = ['.', '-', '1', '2', '3', '4', '5', 's', 'r']
+states = ['queued', 'held', 'pass1', 'pass2', 'pass3', 'pass4', 'pass5', 'uploaded', 'positive']
 colors = ["white", "lightsteelblue", "gainsboro", "lightgray", "silver", "darkgray", "gray", "cyan", "lime"]
 data_span = {
     'timespans' : timespans,
-    '.' : [10] * NSPANS,
-    '-' : [10] * NSPANS,
-    '1' : [20] * NSPANS,    # ditto
-    '2' : [20] * NSPANS,    # ditto
-    '3' : [20] * NSPANS,    # ditto
-    's' : [30] * NSPANS,
-    'r' : [30] * NSPANS,
+    'queued' : [10] * NSPANS,    # .
+    'held' : [10] * NSPANS,    # backqueue
+    'pass1' : [20] * NSPANS,    # ditto
+    'pass2' : [20] * NSPANS,    # ditto
+    'pass3' : [20] * NSPANS,    # ditto
+    'uploaded' : [30] * NSPANS,    # s
+    'positive' : [30] * NSPANS,    # r
     'max_confidence' : [0.0] * NSPANS,  # max of confidence in all 'r' frames
     'avg_confidence' : [0.0] * NSPANS,  # ditto
 }
@@ -769,7 +791,9 @@ source_span = ColumnDataSource(data=data_span)
 
 pspan = figure(x_range=timespans, plot_height=250, plot_width=PLOT_IMG_WIDTH>>1,
                # title="Fruit Counts by Year", toolbar_location=None,
-               tools="hover,box_select,tap", tooltips="$name @timespans: @$name")
+               tools="hover,box_select,tap",
+               #tooltips="$name @timespans: @$name")
+                tooltips="$name frames: @$name")
 pspan.vbar_stack(states, x='timespans', width=0.9, color=colors, source=source_span,
              #legend_label=states
                  )
@@ -813,15 +837,15 @@ def cb_update_span(framestates:typing.Dict[int, str]):
     # sp = [ (frame_id, state) ... ]
     # f is a (frame_id, state) tuple
     for idx, sp in enumerate(the_spans):
-        new_data['.'][idx] = sum(1 for f in sp if f[1] == '.')
-        new_data['-'][idx] = sum(1 for f in sp if f[1] == '-')
-        new_data['1'][idx] = sum(1 for f in sp if f[1] == '1')
-        new_data['2'][idx] = sum(1 for f in sp if f[1] == '2')
-        new_data['3'][idx] = sum(1 for f in sp if f[1] == '3')
-        new_data['s'][idx] = sum(1 for f in sp if f[1] == 's')
+        new_data['queued'][idx] = sum(1 for f in sp if f[1] == '.')
+        new_data['held'][idx] = sum(1 for f in sp if f[1] == '-')
+        new_data['pass1'][idx] = sum(1 for f in sp if f[1] == '1')
+        new_data['pass2'][idx] = sum(1 for f in sp if f[1] == '2')
+        new_data['pass3'][idx] = sum(1 for f in sp if f[1] == '3')
+        new_data['uploaded'][idx] = sum(1 for f in sp if f[1] == 's')
         #new_data['r'][idx] = sum(1 for f in sp if f[1] == 'r')
         # a bit hack. for 'r' frames, we store the confidence as its framestate
-        new_data['r'][idx] = sum(1 for f in sp if f[1][0] == '0')
+        new_data['positive'][idx] = sum(1 for f in sp if f[1][0] == '0')
 
         max_conf_frame, new_data['max_confidence'][idx] = max(sp, key=lambda x: float(x[1]) if x[1][0] == '0' else 0)
         # todo: later...
@@ -859,7 +883,7 @@ def cb_update_span(framestates:typing.Dict[int, str]):
     pspan.x_range.factors = factors
     '''
 
-    title = f"Progress per window (each win: {int(len(sp))} frames "
+    title = f"Progress per win (each {int(len(sp))} frames & "
     if the_video_info and the_video_info.fps > 0:
         fps = the_video_info.fps
         title += f"{int(len(sp) * the_frameskip / fps / 60)} mins"
@@ -881,7 +905,7 @@ def cb_span(attr, old, new):
     the_current_span = (int(min(the_spans[i], key=lambda x: x[0])[0]),
                         int(max(the_spans[i], key=lambda x: x[0])[0]))
 
-    print(f"selected! {attr} {old} {new} {i} the_current_span {the_current_span}")
+    logger.warning(f"selected span. {attr} {old} {new} {i} the_current_span {the_current_span}")
 
 source_span.selected.on_change('indices', cb_span)
 
@@ -919,11 +943,11 @@ b_demo.on_click(partial(cb_promo, is_promote=False))
 
 pspan0 = figure(x_range=timespans, plot_height=250, plot_width=PLOT_IMG_WIDTH>>1,
                # title="Fruit Counts by Year", toolbar_location=None,
-                title="Pos by windows",
+                title="Pos per win",
                tools="hover,box_select,tap", tooltips="pos: @r; max_confidence: @max_confidence")
 
 mapper = linear_cmap(field_name='max_confidence', palette=RdYlGn10, low=1, high=0) # reverse a palaette
-pspan0.vbar(x='timespans', top='r', width=0.9, color=mapper, source=source_span)
+pspan0.vbar(x='timespans', top='positive', width=0.9, color=mapper, source=source_span)
 
 ##############################
 

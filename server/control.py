@@ -110,6 +110,8 @@ class QueryInfoCloud():
     status_cam: str
     target_class: str
     results: typing.List[FrameResults]
+    # there seems little point of keeping the whole history...
+    # bound the len of the list
     progress_snapshots: typing.List[QueryProgressSnapshot] # higher idx == more recent snapshot of progress
 
     video_name: str = ""
@@ -400,6 +402,9 @@ def create_query_progress_snapshot(qid: int) -> QueryProgressSnapshot:
     ps1 = copy.deepcopy(ps)
     with the_queries_lock:
         the_queries[qid].progress_snapshots.append(ps)
+        # fix -- keep the snapshot queue bounded
+        if len(the_queries[qid].progress_snapshots) > 3:
+            the_queries[qid].progress_snapshots.pop(0)
 
     return ps1
 
@@ -418,6 +423,7 @@ def get_latest_query_progress(qid: int) -> QueryProgressSnapshot:
 
 # return: a *single* query's results. frames sorted by score in descending order
 # return deepcopy
+# will NOT contact camera
 # {name: XXX, n_bboxes: XXX, high_confidence: XXX, [elements...]}
 # see SubmitFrame()            
 def query_results(qid, to_sort=True) -> typing.List[FrameResults]:
