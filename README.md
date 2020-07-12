@@ -1,8 +1,16 @@
-# diva-fork
+# Quickstart
 
-## Quickstart
+## Overview
 
-Three services (some of which may run on the same machine)
+The whole system has three modules: 
+
+1. the web server. e.g. a server machine. GPU not needed.
+2. the YOLO service. A machine with GPU is preferred. 
+3. the cam module. e.g. Rpi3. An x86 server is okay. GPU not required. 
+
+1 & 2 can run on the same machine. 
+
+## How to run
 
 ### The web server + controller (on local prevision2)
 ```
@@ -28,7 +36,7 @@ Then point the browser to: http://10.10.10.3:5006/server
 
 ## How to build
 
-Grab source code 
+Grab the source code 
 
 ```{shell}
 git clone ${this_repo}
@@ -37,7 +45,7 @@ git clone ${this_repo}
 git submodule update --init --recursive
 ```
 
-Python. We need 3.7 which does not ship with older Ubuntu 
+Python. We need 3.7 which is not default in older Ubuntu (e.g. 18.04)
 
 ```
 # prep... last digit means priority 
@@ -56,7 +64,7 @@ sudo apt install libatlas-base-dev libjasper-dev libqtgui4 python3-pyqt5 libqt4-
 libgstreamer1.0-0/stable
 ```
 
-**Prep virtualenv for Tensorflow installation**
+**Prep virtualenv, which is needed for Tensorflow installation**
 
 ```
 # per tf's official instructions: virtual env for tf in order to  
@@ -71,7 +79,7 @@ pip3 list
 
 If using Rpi, use rapsbian 9. On debian/rpi64 - pip has no tf package
 
-The camera needs its own local **venv** (better not on NFS). Make one
+The camera needs its own **venv** (on local storage, better not on NFS). Make one. 
 
 As of now, our cam code works with tf1. It has some compat issue with the latest tf2. 
 See comments in main_camera.py and https://github.com/keras-team/keras/issues/13336
@@ -141,19 +149,29 @@ python3 -m grpc_tools.protoc -I protos --python_out=. --grpc_python_out=. protos
 
 ```
 
-## Paths
+## Important paths
 
 **Video frames** 
 
-hybridvs_data/YOLO-RES-720P/jpg
+hybridvs_data/YOLO-RES-720P/jpg/XXXX
+where XXX is the video name. 
+
+### assumption:
+
+video naming: video is named as `${scene}-${seg}_XXfps-AAxBB`
+${scene}, e.g.  "purdue", "chaweng", ...
+${seg}, optional, video segment id. 
+XXXfps is an optional hint, used to determine FPS
+AAxBB is an optional hint, used to determine resolution
 
 **Cam models (ops)**
 
 ./ops/
 
+opname: ops on the camera side are named as ${scene}-0, ${scene}-1, ${scene}-2...
+op num: 0, 1, 2. .. up to 5
+
 with symbolic links
-
-
 
 ## host env
 

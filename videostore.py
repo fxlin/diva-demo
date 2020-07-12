@@ -25,8 +25,13 @@ class VideoStore():
         self.prefix = prefix
         self.video_name = video_name
         self.video_abspath = os.path.join(prefix, video_name)
+        self.scene = video_name.split('-')[0] # e.g. "banff"
+        self.sceneseg = video_name.split('_')[0]  # e.g. "banff-1", or "banff" if no seg is given
         self.minid = -1
         self.maxid = -1
+        self.x = -1
+        self.y = -1
+
         self.n_missing_frames = 0
 
         if not os.path.isdir(self.prefix):
@@ -46,6 +51,18 @@ class VideoStore():
             self.fps = int(m.group(1))
         else:
             self.fps = -1
+
+        # use hint to find resolution from video name. best effort
+        m = re.search(r'''\D*(\d+)(FPS|fps)''', video_name)
+        if m:
+            self.fps = int(m.group(1))
+        else:
+            self.fps = -1
+
+        m = re.search(r'''(\d+)x(\d+)''', video_name)
+        if m:
+            self.x = int(m.group(1))
+            self.y = int(m.group(2))
 
         # NB: listdir can be very slow
         # a list of frame nums without file extensions. all leading 0s are removed
@@ -196,7 +213,50 @@ class VideoLib():
             else:
                 return None
 
-
     def RemoveVideo(self):
         pass
 
+# each scene-seg has multiple videos, each with res and fps.
+class VideoLib1():
+    def __init__(self, prefix:str):
+        self.lock = threading.Lock()
+        self.prefix = prefix
+        self.videos: typing.Dict[str, typing.List[VideoStore]] = {}
+        if not os.path.isdir(self.prefix):
+            raise
+
+    # @video_name: the raw directory name, e.g. ashland-1_10FPS-50x50
+    # return: ref to the video store
+    # if the video store exists, do nothing.
+    def AddVideoStore(self, video_name:str):
+        vs = VideoStore(video_name, self.prefix)
+        with self.lock:
+            if not vs.sceneseg in self.videos:
+                self.videos[vs.sceneseg] = []
+            self.videos[vs.sceneseg].append(vs)
+            return vs
+
+    # sceneseg: e.g. ashland-1
+    # x, y, fps: min constraints
+    def GetVideoStore(self, sceneseg:str, x=-1, y=-1, fps=-1):
+        viable = []
+        with self.lock:
+            if sceneseg in self.videos:
+                if x==-1 and y==-1 and fps==-1: # no hints, return the 1st video.
+                    return self.videos[sceneseg][0]
+                for v in self.videos[sceneseg]:
+                    if not (x==-1 and y==-1): # filter based on x/y res
+                        if v.x >= x and v.y >= y:
+                            viable.append(v)
+                    # Todo: filter based on res
+                if len(viable) == 0:
+                    return None
+                else:
+                    #logger.critical(f"viable len is  {len(viable)} {viable[0].x} {viable[0].y}")
+                    #return viable.sorted(key=lambda s:(s.x+s.y))[0] # return the video with min x+y
+                    return sorted(viable, key=lambda s: (s.x + s.y))[0]  # return the video with min x+y
+            else:
+                return None
+
+    def RemoveVideo(self):
+        pass

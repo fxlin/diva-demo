@@ -23,7 +23,6 @@ import random
 from google.protobuf.timestamp_pb2 import *
 from google.protobuf.duration_pb2 import *
 
-
 # from threading import Thread, Event, Lock
 from concurrent import futures
 import logging, coloredlogs
@@ -70,6 +69,7 @@ from .mengwei_util import *
 # the "video_name" in a query will be used to locate subdir
 # the_img_dirprefix = '/media/teddyxu/WD-4TB-NEW/hybridvs_data/YOLO-RES-720P/jpg/chaweng-1_10FPS/'
 the_img_dirprefix = 'hybridvs_data/YOLO-RES-720P/jpg'
+the_thumbnail_dirprefix = 'hybridvs_data/YOLO-RES-720P/thumbnails'
 the_csv_dir = '/media/teddyxu/WD-4TB-NEW/hybridvs_data/YOLO-RES-720P/out/chaweng-1_10FPS.csv'
 
 # the default op fname if not specified
@@ -126,7 +126,6 @@ class QueryInfo():
     img_dir: str = ""
     video_name: str = ""
     # run_imgs : typing.List[str] = field(default_factory = lambda: []) # maybe put a separate lock over this
-
 
 # todo: combine it to queryinfo
 @dataclass
@@ -200,6 +199,7 @@ def FrameStatesToFrameMap(fs:typing.Dict[int,str]) ->cam_cloud_pb2.FrameMap:
     return cam_cloud_pb2.FrameMap(frame_ids = fids, frame_states = ''.join(states))
 
 the_video_stores: typing.Dict[str, VideoStore] = {}
+the_thumbnail_lib = None # typing.VideoLib1
 
 # will terminate after finishing up the current query
 class OP_WORKER(threading.Thread):
@@ -291,15 +291,16 @@ class OP_WORKER(threading.Thread):
                 logger.info("worker: got a stop notice. bye!")
                 return
 
-            # pull work from global buf
+            # pull a batch of images from global buf to process
+            #
             # the worker won't lost a batch of images, as it won't terminate here
             # imgs = random.sample(self.run_imgs, OP_BATCH_SZ)
             # sample & remove, w/o changing the order of run_imgs
             # https://stackoverflow.com/questions/16477158/random-sample-with-remove-from-list
-
+            #
             # op is the ONLY producer.
             with the_query_lock:
-                frames = []
+                frames = []  # type: FrameInfo
                 while len(frames) < OP_BATCH_SZ:
                     # len(the_query.work_queue) if len(the_query.work_queue) < OP_BATCH_SZ else OP_BATCH_SZ
                     try:
@@ -308,10 +309,18 @@ class OP_WORKER(threading.Thread):
                         break
                 crop = the_query.crop
                 vn = the_query.video_name
-                vs = the_video_stores[vn]
+                # try to determine the actual video to process. could be thumbnail.
+                # XXX move the following out of this loop... do it only when we reload op
+                vs = the_thumbnail_lib.GetVideoStore(vn.split('_')[0], x=in_w, y=in_h) #scene-seg
+                if vs:
+                    logger.warning(f"op input {in_w}x{in_h} get video {vs.x}x{vs.y}")
+                else:
+                    vs = the_video_stores[vn]
+                    logger.warning(f"no thumbnail found. load from the original video")
+
                 op_index = the_query.op_index
 
-            if len(frames) == 0:  # we got nothing
+            if len(frames) == 0:  # we got no frame in the batch...
                 op_index, in_h, in_w = self.loadNextOp(op_index + 1)
                 if op_index == -1:
                     # with the_query_lock: # can't do this, as uploading may be ongoing
@@ -359,7 +368,7 @@ class OP_WORKER(threading.Thread):
             scores = self.op.predict(images)
             # print ('Predict scores: ', scores)
             t2 = time.time()
-            logger.critical(f'{len(images)} images. load in {t1-t0} sec, predict {t2-t1} secs')
+            logger.debug(f'{len(images)} images. load in {t1-t0} sec, predict {t2-t1} secs')
 
             with the_query_lock:
                 for x in fids:
@@ -1290,6 +1299,22 @@ def build_video_stores():
     except Exception as err:
         logger.error(err)
 
+def build_thumbnail_lib():
+    global the_thumbnail_lib
+
+    the_thumbnail_lib = videostore.VideoLib1(the_thumbnail_dirprefix)
+
+    video_name_list = [o for o in os.listdir(the_thumbnail_dirprefix)
+                       if os.path.isdir(os.path.join(the_thumbnail_dirprefix, o))]
+
+    #try:
+    for vn in video_name_list:
+        logger.critical(f"build thumbnail video store ... {vn}")
+        v = the_thumbnail_lib.AddVideoStore(vn)
+        logger.info(f"done. frames: {v.minid} -- {v.maxid}, {v.x}x{v.y} fps {v.fps}")
+    #except Exception as err:
+    #    logger.error(err)
+
 # https://raspberrypi.stackexchange.com/questions/22005/how-to-prevent-python-script-from-running-more-than-once
 the_instance_lock = None
 
@@ -1311,6 +1336,7 @@ def serve():
     logger.critical(f"the_img_dirprefix set to {the_img_dirprefix}")
 
     build_video_stores()
+    build_thumbnail_lib()
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=8))
     diva_cam_servicer = DivaCameraServicer()
@@ -1330,3 +1356,4 @@ def serve():
 
 if __name__ == '__main__':
     serve()
+
