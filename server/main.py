@@ -1,4 +1,7 @@
 '''
+
+our web server using bokeh
+
 display image:
 cf: https://docs.bokeh.org/en/latest/docs/reference/models/glyphs/image_url.html
 
@@ -84,9 +87,14 @@ doc = curdoc()
 
 PLOT_IMG_WIDTH = 1000
 PLOT_IMG_HEIGHT = 200
+
+# for results
 #PER_IMG_WIDTH = 200 # for image spacing
 PER_IMG_WIDTH = 300 # for image spacing
 PER_IMG_HEIGHT = 100 # only for determining label offset
+PER_IMG_SPACING = int(PER_IMG_WIDTH * 1.1)
+PLOT_IMG_HEIGHT = PER_IMG_HEIGHT + 20 # some margin for frame info
+
 
 FULL_IMG_WIDTH = 1280 >> 1
 FULL_IMG_HEIGHT = 720 >> 1
@@ -99,13 +107,16 @@ PLOT_PREVIEW_HEIGHT = PER_PREVIEW_IMG_HEIGHT + 20 # some margin for frame info
 PER_IMG_720P_HEIGHT = int(720/(1280/PER_IMG_WIDTH)) # 720p image scaled height
 
 N_PREVIEWS = 5
-N_RESULTS = 20
+N_RESULTS = 20 # show in table
 N_RESULTS_IMG = 5
 
 BUTTON_WIDTH = 100
 
 UPDATE_INTERVAL_MS = 2000   # short interval like 500ms will cause unresponsive UI. XXX opt parsing framemaps
 the_interval_ms = UPDATE_INTERVAL_MS
+
+PLACEHOLDER = ['test1', 'test2', 'test3', 'test4', 'test5']
+
 #######################################
 
 MA12, MA26, EMA12, EMA26 = '12-tick Moving Avg', '26-tick Moving Avg', '12-tick EMA', '26-tick EMA'
@@ -147,7 +158,7 @@ the_paused = False
 the_qid = -1
 the_video_name = "chaweng-1_10FPS"
 the_video_info = None
-the_all_classes = ['car','motorbike','person','bicycle','bus','truck']
+the_all_classes = ['car','bus','truck','train','person','bicycle']
 the_class = the_all_classes[0]
 
 the_frameskip_choices = [1, 5, 10, 20, 100]
@@ -191,24 +202,28 @@ b_resume.on_click(cb_resume)
 # the plot showing progress. eg  n_frames_processed_cam
 ######
 
-src_cam = ColumnDataSource(dict(
+src_cam_init = dict(
     ts=[],
     n_frames_processed_cam=[],
     n_frames_processed_cam_rate =[],
     n_frames_processed_yolo_rate=[],
-    n_frames_recv_yolo_rate=[] # means positive results
-))
+    n_frames_recv_yolo_rate=[], # means positive results
+    n_mbytes_cam_sent_rate=[],
+    cam_mem_usage_percent=[]
+)
+
+src_cam = ColumnDataSource(src_cam_init)
 
 # tools="xpan,xwheel_zoom,xbox_zoom,reset",
 #  y_axis_location="right"
 pcam = figure(plot_height=100, plot_width=PLOT_IMG_WIDTH>>3, toolbar_location=None,
-              x_axis_type=None, y_axis_type=None, title="Pos/sec")
+              x_axis_type=None, y_axis_type=None, title="PosFr/sec")
 pcam.x_range.follow = "end"
 pcam.x_range.follow_interval = 100
 pcam.x_range.range_padding = 0
 
 # pcam.line(x='ts', y='n_frames_processed_cam', alpha=0.8, line_width=2, color='red', source=src_cam)
-pcam.line(x='ts', y='n_frames_recv_yolo_rate', alpha=0.8, line_width=2, color='blue', source=src_cam)
+pcam.line(x='ts', y='n_frames_recv_yolo_rate', alpha=0.8, line_width=2, color='green', source=src_cam)
 
 xaxis = LinearAxis()
 xaxis.minor_tick_line_color = None
@@ -222,7 +237,7 @@ pcam.add_layout(yaxis,'left')
 #  y_axis_location="right"
 # x_axis_type=None
 pcam1 = figure(plot_height=100, plot_width=PLOT_IMG_WIDTH>>3, toolbar_location=None,
-               x_axis_type=None, y_axis_type=None, title="CamProc/sec")
+               x_axis_type=None, y_axis_type=None, title="CamProcFr/sec")
 pcam1.x_range.follow = "end"
 pcam1.x_range.follow_interval = 100
 pcam1.x_range.range_padding = 0
@@ -237,9 +252,10 @@ pcam1.add_layout(yaxis,'left')
 
 pcam1.line(x='ts', y='n_frames_processed_cam_rate', alpha=0.8, line_width=2, color='red', source=src_cam)
 
+#############
 ## show yolo processing rate
 pcam2 = figure(plot_height=100, plot_width=PLOT_IMG_WIDTH>>3, toolbar_location=None,
-               x_axis_type=None, y_axis_type=None, title="CloudProc/sec")
+               x_axis_type=None, y_axis_type=None, title="CloudProcFr/sec")
 pcam2.x_range.follow = "end"
 pcam2.x_range.follow_interval = 100
 pcam2.x_range.range_padding = 0
@@ -252,7 +268,45 @@ yaxis = LinearAxis()
 yaxis.minor_tick_line_color = None
 pcam2.add_layout(yaxis,'left')
 
-pcam2.line(x='ts', y='n_frames_processed_yolo_rate', alpha=0.8, line_width=2, color='red', source=src_cam)
+pcam2.line(x='ts', y='n_frames_processed_yolo_rate', alpha=0.8, line_width=2, color='blue', source=src_cam)
+
+#############
+## show cam upload data rate
+pcam3 = figure(plot_height=100, plot_width=PLOT_IMG_WIDTH>>3, toolbar_location=None,
+               x_axis_type=None, y_axis_type=None, title="CamUpMB/sec")
+pcam3.x_range.follow = "end"
+pcam3.x_range.follow_interval = 100
+pcam3.x_range.range_padding = 0
+
+xaxis = LinearAxis()
+xaxis.minor_tick_line_color = None
+pcam3.add_layout(xaxis, 'below')
+
+yaxis = LinearAxis()
+yaxis.minor_tick_line_color = None
+pcam3.add_layout(yaxis,'left')
+
+pcam3.line(x='ts', y='n_mbytes_cam_sent_rate', alpha=0.8, line_width=2, color='red', source=src_cam)
+
+#############
+## show cam mem usage
+pcam4 = figure(plot_height=100, plot_width=PLOT_IMG_WIDTH>>3, toolbar_location=None,
+               x_axis_type=None, y_axis_type=None, title="CamMemPercent")
+pcam4.x_range.follow = "end"
+pcam4.x_range.follow_interval = 100
+pcam4.x_range.range_padding = 0
+
+xaxis = LinearAxis()
+xaxis.minor_tick_line_color = None
+pcam4.add_layout(xaxis, 'below')
+
+yaxis = LinearAxis()
+yaxis.minor_tick_line_color = None
+pcam4.add_layout(yaxis,'left')
+
+pcam4.line(x='ts', y='cam_mem_usage_percent', alpha=0.8, line_width=2, color='red', source=src_cam)
+
+
 
 # not in use. periodic callback. perhaps simpler
 @count()
@@ -280,6 +334,7 @@ def update_camsrc(t):
 
 # dirty
 the_last_n_frames_processed_cam = -1
+the_last_n_bytes_sent_cam = -1
 the_last_ts = -1
 
 # update the aggregated stats & framemap
@@ -293,10 +348,13 @@ def cb_update_datasrc(prog, stats, res):  # stats: QueryInfoCloud
     t0 = time.time()
 
     global the_last_n_frames_processed_cam, the_last_n_frames_recv_yolo, the_last_n_frames_processed_yolo, the_last_ts, the_start_ts
+    global the_last_n_bytes_sent_cam
+
     if the_last_ts < 0: # once
         n_frames_processed_cam_rate = 0
         n_frames_processed_yolo_rate = 0
         n_frames_recv_yolo_rate = 0
+        n_mbytes_cam_sent_rate = 0
         the_start_ts = prog.ts
     else:
         #n_frames_processed_cam_rate = (prog.n_frames_processed_cam - the_last_n_frames_processed_cam) / (prog.ts - the_last_ts)
@@ -306,10 +364,13 @@ def cb_update_datasrc(prog, stats, res):  # stats: QueryInfoCloud
                 prog.ts - the_last_ts)
         n_frames_recv_yolo_rate = (stats.n_frames_recv_yolo - the_last_n_frames_recv_yolo) / (
             prog.ts - the_last_ts)
+        n_mbytes_cam_sent_rate = (stats.n_bytes_sent_cam - the_last_n_bytes_sent_cam) /  (
+            prog.ts - the_last_ts) / 1024 / 1024
 
     the_last_n_frames_processed_cam = stats.n_frames_processed_cam
     the_last_n_frames_processed_yolo = stats.n_frames_processed_yolo
     the_last_n_frames_recv_yolo = stats.n_frames_recv_yolo
+    the_last_n_bytes_sent_cam = stats.n_bytes_sent_cam
     the_last_ts = prog.ts
 
     new_data = dict(
@@ -318,7 +379,9 @@ def cb_update_datasrc(prog, stats, res):  # stats: QueryInfoCloud
         n_frames_processed_cam_rate=[n_frames_processed_cam_rate],
         n_frames_processed_yolo_rate=[n_frames_processed_yolo_rate],
         #n_frames_recv_yolo=[prog.n_frames_recv_yolo]
-        n_frames_recv_yolo_rate=[n_frames_recv_yolo_rate]
+        n_frames_recv_yolo_rate=[n_frames_recv_yolo_rate],
+        n_mbytes_cam_sent_rate=[n_mbytes_cam_sent_rate],
+        cam_mem_usage_percent=[stats.cam_mem_usage_percent]
     )
     #print(new_data)
     src_cam.stream(new_data, rollover=300)
@@ -356,6 +419,9 @@ def thread_progress():
         res = control.query_results(the_qid)
         t1 = time.time()
 
+        if not prog:
+            continue
+
         # update/render on demand
         if prog:
             doc.add_next_tick_callback(partial(cb_update_datasrc, prog, stat, res))
@@ -381,10 +447,11 @@ def periodic_callback(t):
 # text console
 ######
 #para_log = Paragraph(text="hello world", width=200, height=100)
-para_log = Div(text="[log messages]", width=200, height=50)
+para_log = Div(text="[log messages]", width=300, height=50, background='lightgrey')
 
 def console_append(msg:str):
-    para_log.text += '<ul>{}</ul>'.format(msg)
+    #para_log.text += '<ul>{}</ul>'.format(msg)
+    para_log.text += '{}<br>'.format(msg)
 
 def console_clear():
     para_log.text = ''
@@ -399,7 +466,7 @@ def console_write(msg:str):
 
 def cb_newquery():
     global the_poll_cb, the_started, the_qid, the_video_info, the_videos
-
+    global data_span, source_single_res, source_results, src_cam
     '''
     the_videos = control.list_videos()    
     for v in the_videos:
@@ -411,18 +478,46 @@ def cb_newquery():
         raise
     '''
 
+    # abort an ongoing query
+    if the_started:
+        msg = control.query_reset()
+        console_write(f"reset cam requested. cam said {msg}")
+        if msg.startswith('OK'):
+            the_started = False
+            #b_query.label="Query"
+            update_b_query_label()
+            b_pause.disabled = True
+        return
+
+    # new query...
     if not the_video_name or not the_video_info:
         logger.error(f"cannot find video {the_video_name}")
         console_write("cannot run query: no video selected")
         return
 
+    # assumption:
+    # video names: video is named as ${scene}-X_XXfps-...
+    #   where ${scene} is like "purdue", "chaweng", ...
+    # opname: ops on the camera side are named as ${scene}-0, ${scene}-1, ${scene}-2...
+    # op num: 0, 1, 2. .. up to 5
+
+    scene = the_video_name.split('-')[0]
+    assert(len(scene) > 0)
+
+    op_names = [f'{scene}-{x}' for x in range(0,6)]  # up to 6 ops
+
     the_qid = control.query_submit(video_name=the_video_name,
-                 op_names=['random0', 'random1', 'random2', 'random3', 'random4', 'random5'],
-                                   crop='-1,-1,-1,-1', target_class=the_class, frameskip=the_frameskip)
+                 op_names=op_names, crop='-1,-1,-1,-1', target_class=the_class, frameskip=the_frameskip)
     # print('qid:', resp)
     console_append(f"new query started. qid {the_qid}")
     #the_poll_cb = doc.add_periodic_callback(periodic_callback, UPDATE_INTERVAL_MS)
     the_poll_cb = doc.add_timeout_callback(periodic_callback, the_interval_ms)
+
+    # clear any res from prev query
+    data_span = data_span_init
+    source_single_res.data = source_single_res_init
+    source_results = source_results_init
+    src_cam.data = src_cam_init
 
     the_started = True
     b_query.label="Abort"
@@ -436,7 +531,7 @@ b_query.on_click(cb_newquery)
 def frameid_to_vtime(id:int) -> str:
     if the_video_info and the_video_info.fps > 0:
         d = int(id/the_video_info.fps)
-        return f'{int(d/3600)}:{int((d%3600)/60)}:{int(d%60)}'
+        return f'{int(d/3600):02d}:{int((d%3600)/60):02d}:{int(d%60):02d}'
     else:
         return '??:??'
 
@@ -476,6 +571,12 @@ columns = [
     ]
 table_listvideos = DataTable(source=source_videos, columns=columns,
                              width=400, height=100)
+
+def show_cam_specs():
+    console_clear()
+    console_append('requested to list videos')
+    msg = control.cam_specs()
+    console_append(msg)
 
 def cb_listvideos():
     global cds_videos
@@ -586,10 +687,12 @@ url_logo = "https://static.bokeh.org/logos/logo.png"  # for testing
 sourceimg = ColumnDataSource(dict(
     url = [url_logo] * N_PREVIEWS,
     x1  = [i * PER_PREVIEW_IMG_SPACING for i in range(N_PREVIEWS)],
-    y1  = [PER_PREVIEW_IMG_HEIGHT] * N_PREVIEWS,
+    #y1  = [PER_PREVIEW_IMG_HEIGHT] * N_PREVIEWS,
+    y1  = [0] * N_PREVIEWS,
     w1  = [10] * N_PREVIEWS,
     h1  = [10] * N_PREVIEWS,
-    frame_ids = ['preview', '-5', '100000', 'id3', 'id4', 'id5']
+    #frame_ids = ['preview', '-5', '100000', 'id3', 'id4', 'id5']
+    frame_ids = [''] * N_PREVIEWS
 ))
 
 #xdr = Range1d(start=-100, end=200)
@@ -602,9 +705,10 @@ ppreview = Plot(
         y_range=Range1d(start=0, end=PLOT_PREVIEW_HEIGHT),
         title=Title(text="Preview"),
         plot_width=PER_PREVIEW_IMG_SPACING * N_PREVIEWS,
-        plot_height=PLOT_PREVIEW_HEIGHT,
+        plot_height=int(PLOT_PREVIEW_HEIGHT * 1.5),
         min_border=0, toolbar_location=None
     )
+
 
 '''
 # for layout debugging
@@ -614,11 +718,12 @@ xaxis = LinearAxis()
 ppreview.add_layout(xaxis, 'above')
 '''
 
-image1 = ImageURL(url="url", x="x1", y="y1", w = 'w1', h='h1', anchor="top_left")
-#image1 = ImageURL(url="url", x="x1", y="y1", anchor="bottom_left")
+#image1 = ImageURL(url="url", x="x1", y="y1", w = 'w1', h='h1', anchor="top_left")
+image1 = ImageURL(url="url", x="x1", y="y1", w = 'w1', h='h1', anchor="bottom_left")
 
 # text1 = LabelSet(text="frame_ids", x="x1", y="y1", x_offset=0, y_offset=-50, level='glyph', source=sourceimg)
-text1 = Text(text="frame_ids", x="x1", y="y1", x_offset=0, y_offset=0, text_color="blue", text_font='helvetica', text_font_size='10px')
+text1 = Text(text="frame_ids", x="x1", y="y1", x_offset=0, y_offset=-PLOT_PREVIEW_HEIGHT,
+             text_color="magenta", text_font='helvetica', text_font_size='10px', text_baseline='bottom')
 
 ppreview.add_glyph(sourceimg, image1) # feed the data
 ppreview.add_glyph(sourceimg, text1) # feed the data
@@ -632,10 +737,11 @@ def load_preview_frames(v:VideoInfo, n_max:int):
 
     cds_previews = dict(
         url = [the_videolib_preview.GetVideoStore(v.video_name).GetFramePath(id) for id in ids],
-        frame_ids = [f'{id} {frameid_to_vtime(id)}' for id in ids],
+        frame_ids = [f'fr:{id} [ {frameid_to_vtime(id)} ]' for id in ids],
         #url = [],
         x1 = [i * PER_PREVIEW_IMG_SPACING for i in range(n_max)],
-        y1 = [PER_PREVIEW_IMG_HEIGHT] * n_max,
+        #y1 = [PER_PREVIEW_IMG_HEIGHT] * n_max,
+        y1=[0] * n_max,
         w1 = [PER_PREVIEW_IMG_WIDTH] * n_max,
         h1 = [PER_PREVIEW_IMG_HEIGHT] * n_max
         #h1 = None,
@@ -659,13 +765,15 @@ def load_preview_frames(v:VideoInfo, n_max:int):
 # show a single image selected
 ######
 
-source_single_res = ColumnDataSource(dict(
-    url = [url_logo],
+source_single_res_init = dict(
+    url = [""],
     x1 = [0],
     y1 = [FULL_IMG_HEIGHT],
- #   h1 = [100, 100],
-  #  w1 = [100, 100],
-))
+    w1 = [FULL_IMG_WIDTH],
+    h1 = [FULL_IMG_HEIGHT],
+)
+
+source_single_res = ColumnDataSource(source_single_res_init)
 
 psingle = Plot(
     x_range=Range1d(start=0, end=FULL_IMG_WIDTH), y_range=Range1d(start=0, end=FULL_IMG_HEIGHT),
@@ -673,14 +781,16 @@ psingle = Plot(
     min_border=0, toolbar_location=None)
 
 #image_single = ImageURL(url="url", x="x1", y="y1", h="h1", w="w1", anchor="top_left")
-image_single = ImageURL(url="url", x="x1", y="y1", anchor="top_left")
+image_single = ImageURL(url="url", x="x1", y="y1", w="w1", h="h1", anchor="top_left")
 psingle.add_glyph(source_single_res, image_single)
 
 def single_img_load(url:str):
     new_data = dict (
         url = [url],
         x1 = [0],
-        y1 = [FULL_IMG_HEIGHT]
+        y1 = [FULL_IMG_HEIGHT],
+        w1 = [FULL_IMG_WIDTH],
+        h1 = [FULL_IMG_HEIGHT],
     )
     source_single_res.data = new_data
 
@@ -688,26 +798,31 @@ def single_img_load(url:str):
 # result imgs & table
 ######
 
-source_results = ColumnDataSource(dict(
-    url = [url_logo, url_logo],
-    x1 = [0, 200],
-    y1 = [100, 200],
-    h1 = [100, 100],
-    w1 = [100, 100],
-    frame_desc = ['desc1', 'desc2'],
-    frame_ids = [1, 2],
-    scores = [0, 0],
-    n_bboxes = [0, 0]
+source_results_init = ColumnDataSource(dict(
+    url = [url_logo] * N_RESULTS_IMG,
+    x1 = [i * PER_IMG_SPACING for i in range(N_RESULTS_IMG)],
+    y1 = [PER_IMG_HEIGHT] * N_RESULTS_IMG,
+    w1  = [10] * N_RESULTS_IMG,
+    h1  = [10] * N_RESULTS_IMG,
+    #frame_desc = ['desc1'] * N_RESULTS_IMG,
+    frame_desc = [''] * N_RESULTS_IMG,
+    frame_ids = [0] * N_RESULTS_IMG,
+    scores = [0] * N_RESULTS_IMG,
+    n_bboxes = [0] * N_RESULTS_IMG
 ))
 
+source_results = source_results_init
+
 presults = Plot(
-    x_range=Range1d(start=0, end=PLOT_IMG_WIDTH), y_range=Range1d(start=0, end=PLOT_IMG_HEIGHT),
-    title=None, plot_width=PLOT_IMG_WIDTH, plot_height=PLOT_IMG_HEIGHT,
+    x_range=Range1d(start=0, end=PER_IMG_SPACING * N_RESULTS_IMG), y_range=Range1d(start=0, end=PLOT_IMG_HEIGHT),
+    title=None, plot_width=PER_IMG_SPACING * N_RESULTS_IMG,
+    plot_height=int(PLOT_IMG_HEIGHT*1.5),
     min_border=0, toolbar_location=None)
 
 #image_results = ImageURL(url="url", x="x1", y="y1", anchor="top_left")
 image_results = ImageURL(url="url", x="x1", y="y1", h="h1", w="w1", anchor="top_left")
-txt_results = Text(text="frame_desc", x="x1", y="y1", x_offset=0, y_offset=PER_IMG_720P_HEIGHT+30)
+txt_results = Text(text="frame_desc", x="x1", y="y1")
+                   #x_offset=0, y_offset=PER_IMG_720P_HEIGHT+30)
 
 # only show a small subset of result images
 view_res = CDSView(source=source_results, filters=[IndexFilter([x for x in range(N_RESULTS_IMG)])])
@@ -759,10 +874,10 @@ def cb_update_res(res):
             frame_ids = ids,
             scores = scores,
             n_bboxes = n_bboxes,
-            x1=[i * PER_IMG_WIDTH for i in range(n)],
-            y1=[PLOT_IMG_HEIGHT] * n,
+            x1=[i * PER_IMG_SPACING for i in range(n)],
+            y1=[PER_IMG_HEIGHT] * n,
             w1=[PER_IMG_WIDTH] * n,
-            h1=[PER_IMG_720P_HEIGHT] * n
+            h1=[PLOT_IMG_HEIGHT] * n
         )
 
         #print('---------> update results:', new_data)
@@ -807,7 +922,7 @@ class_sel.on_change('active', cb_class)
 # frameskip selector
 # https://www.programcreek.com/python/example/106842/bokeh.models.Select
 ##############################
-frameskip_sel = Select(value=f"{the_frameskip}", options=[f"{k}" for k in the_frameskip_choices], width=25
+frameskip_sel = Select(value=f"{the_frameskip}", options=[f"{k}" for k in the_frameskip_choices], width=40
                        #title = "frameskip"
                        )
 
@@ -830,24 +945,28 @@ timespans = [f'win{d}' for d in range(NSPANS)]
 #states = ['.', '-', '1', '2', '3', '4', '5', 's', 'r']
 states = ['held', 'queued', 'pass1', 'pass2', 'pass3', 'pass4', 'pass5', 'uploaded', 'positive']
 colors = ["lightsteelblue", "white", "gainsboro", "lightgray", "silver", "darkgray", "gray", "cyan", "lime"]
-data_span = {
+data_span_init = {
     'timespans' : timespans,
-    'held': [10] * NSPANS,  # backqueue
-    'queued' : [10] * NSPANS,    # .
-    'pass1' : [20] * NSPANS,    # ditto
-    'pass2' : [20] * NSPANS,    # ditto
-    'pass3' : [20] * NSPANS,    # ditto
-    'pass4' : [20] * NSPANS,    # ditto
-    'pass5' : [20] * NSPANS,    # ditto
-    'uploaded' : [30] * NSPANS,    # s
-    'positive' : [30] * NSPANS,    # r
+    'held': [0] * NSPANS,  # backqueue
+    'queued' : [0] * NSPANS,    # .
+    'pass1' : [0] * NSPANS,    # ditto
+    'pass2' : [0] * NSPANS,    # ditto
+    'pass3' : [0] * NSPANS,    # ditto
+    'pass4' : [0] * NSPANS,    # ditto
+    'pass5' : [0] * NSPANS,    # ditto
+    'uploaded' : [0] * NSPANS,    # s
+    'positive' : [0] * NSPANS,    # r
     'max_confidence' : [0.0] * NSPANS,  # max of confidence in all 'r' frames
     'avg_confidence' : [0.0] * NSPANS,  # ditto
 }
+
+data_span = data_span_init
+
 source_span = ColumnDataSource(data=data_span)
 
 pspan = figure(x_range=timespans, plot_height=200, plot_width=int(PLOT_IMG_WIDTH/2.5),
                # title="Fruit Counts by Year", toolbar_location=None,
+               title="Progress per win",
                tools="hover,box_select,tap",
                #tooltips="$name @timespans: @$name")
                 tooltips="$name frames: @$name")
@@ -862,6 +981,7 @@ pspan.add_layout(label_span)
 '''
 
 pspan.y_range.start = 0
+pspan.y_range.end = 10
 #pspan.x_range.range_padding = 0.1
 pspan.xgrid.grid_line_color = None
 pspan.axis.minor_tick_line_color = None
@@ -963,7 +1083,7 @@ def cb_update_span(framestates:typing.Dict[int, str]):
     pspan.x_range.factors = factors
     '''
 
-    title = f"Each win: {int(len(sp))} frames & "
+    title = f"Each win: {int(len(sp))} frames in "
     if the_video_info and the_video_info.fps > 0:
         fps = the_video_info.fps
         title += f"{int(len(sp) * the_frameskip / fps / 60)} mins"
@@ -1021,10 +1141,10 @@ b_demo.on_click(partial(cb_promo, is_promote=False))
 ###########
 # bar graph with only "results"
 
-pspan0 = figure(x_range=timespans, plot_height=200, plot_width=int(PLOT_IMG_WIDTH/2.5),
+pspan0 = figure(x_range=timespans, y_range=(0,10), plot_height=200, plot_width=int(PLOT_IMG_WIDTH/2.5),
                # title="Fruit Counts by Year", toolbar_location=None,
-                title="Pos per win",
-               tools="hover,box_select,tap", tooltips="pos: @r; max_confidence: @max_confidence")
+                title="Positives per win",
+               tools="hover,box_select,tap", tooltips="pos: @positive; max_confidence: @max_confidence")
 
 mapper = linear_cmap(field_name='max_confidence', palette=RdYlGn10, low=1, high=0) # reverse a palaette
 pspan0.vbar(x='timespans', top='positive', width=0.9, color=mapper, source=source_span)
@@ -1148,7 +1268,7 @@ doc.add_root(column(
     row(frameskip_sel, class_sel),
     row(b_pause, b_resume, b_lv, b_lq, b_query),
     #row(pcam, table_results),
-    row(column(pspan, pspan0, row(b_promo, b_demo)), column(table_results, row(pcam, pcam1, pcam2), para_log), psingle, table_listqueries),
+    row(column(pspan, pspan0, row(b_promo, b_demo)), column(table_results, row(pcam, pcam2), row(pcam1, pcam3, pcam4), para_log), psingle, table_listqueries),
     #row(pspan, b_promo, b_demo),
     #pspan0,
     presults
@@ -1161,3 +1281,4 @@ doc.title = "📷⚙️"
 logger.info("main execed!")
 
 # cb_listvideos()   # can do it here.
+show_cam_specs()

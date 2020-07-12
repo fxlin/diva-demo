@@ -1,7 +1,7 @@
 #!/usr/bin/env python3.7
 
 '''
-
+the main func of the cam service
 
 server example, callbacks, cf:
 https://docs.bokeh.org/en/latest/docs/user_guide/server.html
@@ -28,6 +28,9 @@ from google.protobuf.duration_pb2 import *
 from concurrent import futures
 import logging, coloredlogs
 #from queue import PriorityQueue
+
+import psutil
+import platform
 
 import grpc
 
@@ -236,18 +239,25 @@ class OP_WORKER(threading.Thread):
         with the_query_lock:
             if op_index >= len(the_query.op_fnames):
                 return -1, 0, 0
-            the_query.op_index = op_index
             op_fname = the_query.op_fnames[op_index]
             assert (op_fname != "")
+            # the server may give us some op names that do not exist. if so, we treat it
+            # as more ops to load
+            if not os.path.exists(op_fname) or not os.path.isfile(op_fname):
+                logger.critical(f"cannot load op {op_fname}")
+                return -1, 0, 0
 
-        logger.info("op worker: loading op: %s" % op_fname)
+            the_query.op_index = op_index
 
-        if op_index == 0:
+        logger.critical("op worker: loading op: %s" % op_fname)
+
+        if op_index == 0: # init keras once...
             # xzl: tf1 only
             config = tf.ConfigProto()
             config.gpu_options.per_process_gpu_memory_fraction = 0.3
             # global tf session XXX TODO: only once
             keras.backend.set_session(tf.Session(config=config))
+            logger.critical("op worker: keras init done")
 
         # xzl: workaround in tf2. however, Keras=2.2.4 + TF 2
         # will cause the following issue.
@@ -343,9 +353,13 @@ class OP_WORKER(threading.Thread):
 
             # TODO: IO shall be seperated thread
             # xzl: fixing this by having multiple op workers
+            t0 = time.time()
             images = self.read_images(frame_paths, in_h, in_w, crop)
+            t1 = time.time()
             scores = self.op.predict(images)
             # print ('Predict scores: ', scores)
+            t2 = time.time()
+            logger.critical(f'{len(images)} images. load in {t1-t0} sec, predict {t2-t1} secs')
 
             with the_query_lock:
                 for x in fids:
@@ -892,7 +906,7 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
             _GraceKillOpWorkers()
 
             with the_query_lock:
-                the_query = QueryInfo()
+                the_query = None
 
             with the_stats_lock:
                 the_stats.clear()
@@ -928,14 +942,21 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
         status = "UNKNOWN"
         t0 = time.time()
 
+        # network bw measurement, cf
+        # https://stackoverflow.com/questions/15616378/python-network-bandwidth-monitor
+
         with the_stats_lock:
             if request.qid in the_stats:
+                vm = psutil.virtual_memory()
+                #logger.critical(f"{vm.used} {vm.total}")
                 ret = cam_cloud_pb2.QueryProgress(qid = request.qid,
                             video_name = the_query.video_name, # XXX lock
                             n_frames_processed = the_stats[request.qid].n_frames_processed,
                             n_frames_sent = the_stats[request.qid].n_frames_sent,
                             n_frames_total = the_stats[request.qid].n_frames_total,
-                            status = the_stats[request.qid].status)
+                            status = the_stats[request.qid].status,
+                            n_bytes_sent = psutil.net_io_counters().bytes_sent,
+                            mem_usage_percent = vm.used / vm.total)
             else:
                 ret = cam_cloud_pb2.QueryProgress(qid = request.qid,
                                                    status = 'NONEXISTING')
@@ -950,8 +971,8 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
 
         # assumption: we want to respond to cloud asap. deepcopy may be too expensive.
         with the_query_lock:
-            if (the_query.qid < 0):
-                return None # what to return?
+            if not the_query or the_query.qid < 0:
+                return cam_cloud_pb2.FrameMap(frame_ids=[], frame_states="") # empty
             #fs = copy.deepcopy(the_query.framestates) # a snapshot
             s = FrameStatesToFrameMap(the_query.framestates)
 
@@ -1176,6 +1197,15 @@ class DivaCameraServicer(cam_cloud_pb2_grpc.DivaCameraServicer):
 
         return cam_cloud_pb2.VideoList(videos=video_list)
 
+    def GetCamSpecs(self, request, context):
+        uname = platform.uname()
+        stros = f"node:{uname.node}"
+        strcpu = f"cpu: {psutil.cpu_count()}x {uname.machine}"
+        mem = psutil.virtual_memory()
+        strmem = f"mem: {int(mem.available/1024/1024)}/{int(mem.total/1024/1024)} MB"
+        msg = stros + " " +  strcpu + " " + strmem
+        return cam_cloud_pb2.StrMsg(msg=msg)
+
     # deprecated
     def GetVideoFrame_0(self, request, context):
         # try various heuristics to locate frames...
@@ -1264,7 +1294,8 @@ def build_video_stores():
 the_instance_lock = None
 
 def serve():
-    global the_instance_lock
+    global the_instance_lock, the_img_dirprefix
+
     logger.info('Init camera service')
     try:
         the_instance_lock = zc.lockfile.LockFile('/tmp/diva-cam')
@@ -1272,6 +1303,12 @@ def serve():
     except zc.lockfile.LockError:
         logger.error("cannot lock file. are we running multiple instances?")
         sys.exit(1)
+
+    # guess the local img path
+    if platform.uname().machine.startswith('arm'):
+        the_img_dirprefix = '/local/jpg'
+
+    logger.critical(f"the_img_dirprefix set to {the_img_dirprefix}")
 
     build_video_stores()
 

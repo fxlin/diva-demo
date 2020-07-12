@@ -121,6 +121,9 @@ class QueryInfoCloud():
     n_frames_recv_yolo: int = 0
     n_frames_processed_yolo: int = 0
 
+    n_bytes_sent_cam: int = 0
+    cam_mem_usage_percent: float = 0
+
     # deprecated -- use progress_snapshots instead
     n_frames_sent_cam: int = 0
     n_frames_processed_cam: int = 0
@@ -325,7 +328,9 @@ def query_progress(qid: int) -> QueryInfoCloud:
     with the_queries_lock:
         the_queries[resp.qid].n_frames_processed_cam = resp.n_frames_processed
         the_queries[resp.qid].n_frames_sent_cam = resp.n_frames_sent
+        the_queries[resp.qid].n_bytes_sent_cam = resp.n_bytes_sent
         the_queries[resp.qid].n_frames_total_cam = resp.n_frames_total
+        the_queries[resp.qid].cam_mem_usage_percent = resp.mem_usage_percent
         the_queries[resp.qid].status_cam = resp.status
         the_queries[resp.qid].ts_comp_cam = resp.ts_comp
         return copy.deepcopy(the_queries[resp.qid])
@@ -370,13 +375,17 @@ def create_query_progress_snapshot(qid: int) -> QueryProgressSnapshot:
         )
         camera_channel.close()
     except Exception as err:
-        logger.warning("create_query_progress_snapshot", err)
+        logger.warning("create_query_progress_snapshot")
         sys.exit(1)
 
     if not resp:
         return None
 
     fm_states = resp.frame_states
+
+    if resp.frame_states == "": # nothing. query may have been reset
+        return None
+
     fs = FrameMapToFrameStates(resp)
 
     with the_queries_lock:
@@ -539,6 +548,13 @@ def list_videos() -> typing.List[VideoInfo]:
     the_videolib_preview.AddVideoStore(v.video_name)
 
     return vl
+
+def cam_specs() -> str:
+    camChannel = grpc.insecure_channel(CAMERA_CHANNEL_ADDRESS)
+    camStub = cam_cloud_pb2_grpc.DivaCameraStub(camChannel)
+    resp = camStub.GetCamSpecs(empty_pb2.Empty())
+
+    return resp.msg
 
 # promote a range of frames
 def promote_frames(qid: int, fid_start: int,

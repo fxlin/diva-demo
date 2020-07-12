@@ -1,67 +1,111 @@
 # diva-fork
 
-Quick Start
+## Quickstart
+
+Three services (some of which may run on the same machine)
+
+### The web server + controller (on local prevision2)
+```
+source venv3.7/bin/activate
+# launch the web + backend
+./run-web.py
+# or, launch the console mode, for debugging the backend only
+./run-console.py
+```
+
+### The camera service (on local precision2)
+```
+./run-cam.sh
+```
+
+### The YOLO service (on precision, TITAN V)
+```
+source venv-yolo/bin/activate
+python ./YOLOv3_grpc.py
+```
+
+Then point the browser to: http://10.10.10.3:5006/server
+
+## How to build
+
+Grab source code 
 
 ```{shell}
-# activate ssh-agent for github access
-eval "$(ssh-agent -s)"
-ssh-add <SSH_KEY_PATH> # add ssh key into ssh-agent
-
 git clone ${this_repo}
 
 # grab tf-yolov3 as a submodule
 git submodule update --init --recursive
+```
 
+Python. We need 3.7 which does not ship with older Ubuntu 
+
+```
 # prep... last digit means priority 
 sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 
 sudo apt install python3.7
 sudo apt install python3-pip
 sudo apt install libatlas-base-dev #numpy
+sudo apt install python3.7-dev # note the version. needed for pip to install/build some packages, e.g. psutil 
+```
 
-# cv2 deps...
+Opencv2 dependencies (probably should switch to PIL)
+```
 sudo apt install libqtgui4/stable
 sudo apt install libatlas-base-dev libjasper-dev libqtgui4 python3-pyqt5 libqt4-test \
 libgstreamer1.0-0/stable
+```
 
+**Prep virtualenv for Tensorflow installation**
 
+```
 # per tf's official instructions: virtual env for tf in order to  
 pip3 install -U pip virtualenv
 
 virtualenv --system-site-packages -p python3 ./venv
 source ./venv/bin/activate
 pip3 list
+```
 
-#### 
-# cam ... tf
-###
-# NB:this works on rapsbian9. on debian/rpi64 - pip has no tf package
-# ``cam'' has compat issue with latest tf2. see comments in main_camera there  
- 
-# to check available versions, 
+**Install Tensorflow1 etc on camera**
+
+If using Rpi, use rapsbian 9. On debian/rpi64 - pip has no tf package
+
+The camera needs its own local **venv** (better not on NFS). Make one
+
+As of now, our cam code works with tf1. It has some compat issue with the latest tf2. 
+See comments in main_camera.py and https://github.com/keras-team/keras/issues/13336
+
+```
+# to check available tf versions, 
 #  pip3 install tensorflow==
   
-pip3 install tensorflow==1.13.1
-
+pip3 install tensorflow==1.13.1df -
 pip3 install pandas
 # pip3 install opencv-python # no longer needed ... introduced too much dep. bad. 
 pip3 install numpy \
 pandas keras sklearn 
 
+# need a specific opencv version for rpi
 # https://github.com/EdjeElectronics/TensorFlow-Object-Detection-on-the-Raspberry-Pi/issues/67
 pip3 install opencv-python==3.4.6.27
-  
+
+# for getting camera realtime resource usage
+pip install psutil
+# for getting extra OS info
+# pip install py-cpuinfo
+
 pip3 install pillow  # python image library
 #pip install flask flask_table # for webserver to gen table
 #pip install WTForms # for webserver to render forms
 pip install coloredlogs # easy tracing
 pip3 install grpcio-tools
 pip install zc.lockfile # to avoid multiple running instances
+```
 
-#####
-# server only: the YOLO env...
-#####
+**On server**
 
+```
 pip3 install tensorflow
 
 ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3_backbone.py
@@ -72,66 +116,90 @@ ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflo
 ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3_utils.py
 
 # NB: tf v2.2 has CPU/GPU branches unified
-# python-yolov3 depends on resize() func absent in tf-1
-# in a separate virtualenv
-# tf.image.resize(input_layer...
+# need to create a separate env for python-yolov3, which depends on resize() func absent in tf-1
+# 		the func is tf.image.resize(input_layer...
 pip3 install easydict # needed by tf-yolov3
 pip3 install opencv-python 
 
 # gen grpc code
-# 
 python3 -m grpc_tools.protoc -I protos --python_out=. --grpc_python_out=. protos/*
 
 # Init DB
-docker stop mypgdb && docker rm mypgdb && make run-postgres && sleep 10 && make init-postgres && make fixture-postgres
+# docker stop mypgdb && docker rm mypgdb && make run-postgres && sleep 10 && make init-postgres && make fixture-postgres
 
 # xzl: on the camera side. 
-pip3 install flask
+# pip3 install flask
 
-a.	Go to project directory (keep the codebase up to date) && configure variables in camera/camera_constants.py
-b.	env FLASK_ENV=production python3 -m camera.app &
-c.	python3 -m camera.main_camera
+# a.	Go to project directory (keep the codebase up to date) && configure variables in camera/camera_constants.py
+# b.	env FLASK_ENV=production python3 -m camera.app &
+# c.	python3 -m camera.main_camera
 
 
-make setup-env
-make run-yolo
-make run-cloud
+#make setup-env
+#make run-yolo
+#make run-cloud
 
 ```
 
-## WEB
+## Paths
 
-```{shell}
-# Run web server: python -m web.web_server
-# Output directory: ./web/static/output
+**Video frames** 
+
+hybridvs_data/YOLO-RES-720P/jpg
+
+**Cam models (ops)**
+
+./ops/
+
+with symbolic links
+
+
+
+## host env
+
+https://unix.stackexchange.com/questions/410579/change-the-python3-default-version-in-ubuntu
+
+
+```
+sudo apt install python3.7
 ```
 
-## TODO
 
-* [ ] Landmakr video clip handling
-    * take snapshot --> process it --> collect information
-* [ ] Deploy operator
-* [ ] start querying --> train operator based on collected landmark frames --> Deploy operator --> ranked video frames --> sending imgs -> YOLO again --> ok --> ask camera send video clip (5 sec)
+# troubleshooting
 
-* Deploy operator & ranked video frames
+## complains because no python alternatives are  installed
 
-* yolo_service api: searching for certain object(s):
-    * search_objects(image, [object_names]) -> bbox
+debian@debian-rpi64:~$ 
+update-alternatives --list python
+update-alternatives: error: no alternatives for python
 
-* contraoller api: receive video and store video on disk
+### "install" alternatives
+```
+# the integer number at the end of each command denotes a priority. Higher number means higher priority
+#sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.4 1
+sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.6 1
+sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.7 2
 
-            # FIXME step 1. find camera information
-            # element exist
-            # step 2. creating video record, requesting video
-            # step 3. implementing new api interface to receive video
-            #  from camera
-            # step 4. process video
-            
+sudo update-alternatives --config python
+```
+
+```
+# create new 3.7 venv
+virtualenv --system-site-packages -p python3.7 ./venv3.7
+```
+
+```
+# or upgrade existing venv (not working??)
+sudo apt install python3.7-venv
+python -m venv --upgrade YOUR_VENV_DIRECTORY
+```
+
 ## tensorflow GPU config (for yolov3)
 
 libcudnn shall be 7.6.4 or 7.6.5
 are we using cuda9 or cuda10??
 
+```
 (venv) xzl@precision (demo+)[diva-fork]$ python -V
 Python 3.7.3
 
@@ -243,7 +311,7 @@ ii  cuda-nvjpeg-dev-10-1                                 10.1.243-1             
 ii  cuda-nvml-dev-10-1                                   10.1.243-1                                               amd64        NVML native dev links, headers
 ii  cuda-nvprof-10-1                                     10.1.243-1                                               amd64        CUDA Profiler tools
 ii  cuda-nvprune-10-1                                    10.1.243-1                                               amd64        CUDA nvprune
-ii  cuda-nvrtc-10-1                                      10.1.243-1                                               amd64        NVRTC native runtime libraries
+ii  cuda-nvrtc-10-1                                      10.1.143-1                                               amd64        NVRTC native runtime libraries
 ii  cuda-nvrtc-dev-10-1                                  10.1.243-1                                               amd64        NVRTC native dev links, headers
 ii  cuda-nvtx-10-1                                       10.1.243-1                                               amd64        NVIDIA Tools Extension
 ii  cuda-nvvp-10-1                                       10.1.243-1                                               amd64        CUDA nvvp
@@ -253,31 +321,4 @@ ii  cuda-sanitizer-api-10-1                              10.1.243-1             
 ii  cuda-toolkit-10-1                                    10.1.243-1                                               amd64        CUDA Toolkit 10.1 meta-package
 ii  cuda-tools-10-1                                      10.1.243-1                                               amd64        CUDA Tools meta-package
 ii  cuda-visual-tools-10-1                               10.1.243-1                                               amd64        CUDA visual tools
-
-
-# host env
-sudo apt install python3.7
-
-# https://unix.stackexchange.com/questions/410579/change-the-python3-default-version-in-ubuntu
-
-# complains because no python alternatives are  installed
-debian@debian-rpi64:~$ 
-update-alternatives --list python
-update-alternatives: error: no alternatives for python
-
-# "install" alternatives
-# the integer number at the end of each command denotes a priority. Higher number means higher priority
-#sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.4 1
-sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.6 1
-sudo update-alternatives --install /usr/bin/python python /usr/bin/python3.7 2
-
-sudo update-alternatives --config python
-
-# create new 3.7 venv
-virtualenv --system-site-packages -p python3.7 ./venv3.7
-
-# or upgrade existing venv (not working??)
-sudo apt install python3.7-venv
-python -m venv --upgrade YOUR_VENV_DIRECTORY
-
-
+```
