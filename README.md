@@ -21,8 +21,10 @@ source venv3.7/bin/activate
 ./run-console.py
 ```
 
-### The camera service (on local precision2)
+### The camera service 
 ```
+# on rpi3
+source ~/venv/bin/activate
 ./run-cam.sh
 ```
 

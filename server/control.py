@@ -678,6 +678,11 @@ class DivaGRPCServer(server_diva_pb2_grpc.server_divaServicer):
     # return a list of textual bb results. 
     # leaving rendering to web thread
     def InvokeYolo(self, img_msg, target_class, threshold=0.3):
+
+        if YOLO_CHANNEL_ADDRESS == "": # for testing
+            logger.critical(f'no YOLO_CHANNEL_ADDRESS set. return nothing')
+            return []
+
         channel = grpc.insecure_channel(YOLO_CHANNEL_ADDRESS)
         stub = det_yolov3_pb2_grpc.DetYOLOv3Stub(channel)
 

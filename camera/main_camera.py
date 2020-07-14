@@ -65,16 +65,18 @@ from camera.camera_constants import _NAME, _ADDRESS, YOLO_CHANNEL_ADDRESS
 # Mengwei's util
 from .mengwei_util import *
 
-# -- from Mengwei's cloud side --- #
 # the "video_name" in a query will be used to locate subdir
 # the_img_dirprefix = '/media/teddyxu/WD-4TB-NEW/hybridvs_data/YOLO-RES-720P/jpg/chaweng-1_10FPS/'
 the_img_dirprefix = 'hybridvs_data/YOLO-RES-720P/jpg'
 the_thumbnail_dirprefix = 'hybridvs_data/YOLO-RES-720P/thumbnails'
 the_csv_dir = '/media/teddyxu/WD-4TB-NEW/hybridvs_data/YOLO-RES-720P/out/chaweng-1_10FPS.csv'
 
+# rpi3 will use the following local dirs to overwrite the above
+the_img_dirprefix_rpi = '/local/jpg'
+the_thumbnail_dirprefix_rpi = '/local/thumbnails'
+
 # the default op fname if not specified
 the_op_fname = '/media/teddyxu/WD-4TB/hybridvs_data/YOLO-RES-720P/exp/chaweng/models/chaweng-a3d16c61813043a2711ed3f5a646e4eb.hdf5'
-
 
 CHUNK_SIZE = 1024 * 100
 OP_BATCH_SZ = 16
@@ -1319,7 +1321,7 @@ def build_thumbnail_lib():
 the_instance_lock = None
 
 def serve():
-    global the_instance_lock, the_img_dirprefix
+    global the_instance_lock, the_img_dirprefix, the_thumbnail_dirprefix
 
     logger.info('Init camera service')
     try:
@@ -1331,7 +1333,8 @@ def serve():
 
     # guess the local img path
     if platform.uname().machine.startswith('arm'):
-        the_img_dirprefix = '/local/jpg'
+        the_img_dirprefix = the_img_dirprefix_rpi
+        the_thumbnail_dirprefix = the_thumbnail_dirprefix_rpi
 
     logger.critical(f"the_img_dirprefix set to {the_img_dirprefix}")
 
