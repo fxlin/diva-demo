@@ -87,10 +87,10 @@ the_op_dir = './ops'
 #FORMAT = '%(levelname)8s %(thread)d %(threadName)s %(lineno)d %(message)s'
 FORMAT = '%(levelname)8s {%(module)s:%(lineno)d} %(threadName)s %(message)s'
 #FORMAT = '{%(module)s:%(lineno)d} %(thread)d %(threadName)s %(message)s'
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG, format=FORMAT)
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, format=FORMAT)
 logger = logging.getLogger(__name__)
 
-coloredlogs.install(fmt=FORMAT, level='DEBUG', logger=logger)
+coloredlogs.install(fmt=FORMAT, level='INFO', logger=logger)
 #coloredlogs.install(level='DEBUG', logger=logger)
 
 # FIXME (xzl: unused?)
@@ -255,20 +255,22 @@ class OP_WORKER(threading.Thread):
 
         if op_index == 0: # init keras once...
             # xzl: tf1 only
+            '''
             config = tf.ConfigProto()
             config.gpu_options.per_process_gpu_memory_fraction = 0.3
             # global tf session XXX TODO: only once
             keras.backend.set_session(tf.Session(config=config))
-            logger.critical("op worker: keras init done")
+            '''
 
-        # xzl: workaround in tf2. however, Keras=2.2.4 + TF 2
-        # will cause the following issue.
-        # https://github.com/keras-team/keras/issues/13336
-        # workaround: using tf1 as of now...
-        '''
-        config = tf.compat.v1.ConfigProto() 
-        tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
-        '''
+            # xzl: workaround in tf2. however, Keras=2.2.4 + TF 2
+            # will cause the following issue.
+            # https://github.com/keras-team/keras/issues/13336
+            # workaround: using tf1 as of now...
+            config = tf.compat.v1.ConfigProto()
+            config.gpu_options.per_process_gpu_memory_fraction = 0.3
+            tf.compat.v1.keras.backend.set_session(tf.compat.v1.Session(config=config))
+
+            logger.critical("op worker: keras init done")
 
         self.op = keras.models.load_model(op_fname)
         in_h, in_w = self.op.layers[0].input_shape[1:3]
@@ -315,7 +317,7 @@ class OP_WORKER(threading.Thread):
                 # XXX move the following out of this loop... do it only when we reload op
                 vs = the_thumbnail_lib.GetVideoStore(vn.split('_')[0], x=in_w, y=in_h) #scene-seg
                 if vs:
-                    logger.warning(f"op input {in_w}x{in_h} get video {vs.x}x{vs.y}")
+                    logger.debug(f"op input {in_w}x{in_h} get video {vs.x}x{vs.y}")
                 else:
                     vs = the_video_stores[vn]
                     logger.warning(f"no thumbnail found. load from the original video")

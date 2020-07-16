@@ -77,6 +77,8 @@ source ./venv/bin/activate
 pip3 list
 ```
 
+Update: camera now can run tensorflow 2 + Keras 2.4.3
+
 **Install Tensorflow1 etc on camera**
 
 If using Rpi, use rapsbian 9. On debian/rpi64 - pip has no tf package

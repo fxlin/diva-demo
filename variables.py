@@ -41,23 +41,20 @@ CFG_PREVIEW_PATH = 'server/static/preview'
 # FIXME
 FAKE_IMAGE_DIRECTOR_PATH = '/media/YOLO-RES-720P/jpg/lausanne-1'
 
+'''
 # POSTGRES
 DEFAULT_POSTGRES_USER = "postgres"
 DEFAULT_POSTGRES_PASSWORD = "xsel_postgres"
 DEFAULT_POSTGRES_DB = "xsel_test"
 DEFAULT_POSTGRES_PORT = 5432
 DEFAULT_POSTGRES_HOST = "mypgdb"
+'''
 
 # CAMERA
 VIDEO_FOLDER='/data'
 
-# JPG_ROOT_PATH = '/host/4TB_hybridvs_data/YOLO-RES-720P/jpg'
-# CSV_ROOT_PATH = '/host/4TB_hybridvs_data/YOLO-RES-720P/out'
-# RES_ROOT_PATH = '/host/4TB_hybridvs_data/YOLO-RES-720P/exp'
-
 # xzl
 CFG_QUERY_CMDS = ["PAUSE", "ABORT", "RESUME", "RESET"]
-
 
 class NO_DESIRED_OBJECT(Exception):
     """does not contain desired object"""
