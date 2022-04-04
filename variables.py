@@ -2,15 +2,14 @@ import os, threading
 import typing
 from videostore import VideoLib
 
-# xzl: fix this to be camera's valid IP addr??
-#CAMERA_CHANNEL_ADDRESS = '10.10.10.10:10086'
-CAMERA_CHANNEL_ADDRESS = '127.0.0.1:10086'
+CAMERA_CHANNEL_ADDRESS = '10.10.10.10:10086'  # rpi
+#CAMERA_CHANNEL_ADDRESS = '127.0.0.1:10086' # the same machine
 CAMERA_CHANNEL_PORT = '10086'
 
-# xzl: the following addrs seem fine as they are containers on the same machine?
 #YOLO_CHANNEL_ADDRESS = 'yolo:10088'
 #YOLO_CHANNEL_ADDRESS = '127.0.0.1:10088'
 YOLO_CHANNEL_ADDRESS = '128.46.76.161:10088'
+
 # set this to '' for testing
 # YOLO_CHANNEL_ADDRESS = ''
 

@@ -4,28 +4,69 @@
 
 The whole system has three modules: 
 
-1. the web server. e.g. a server machine. GPU not needed.
+1. the web server & controller, e.g. on an x86 server. GPU not needed.
 2. the YOLO service. A machine with GPU is preferred. 
-3. the cam module. e.g. Rpi3. An x86 server is okay. GPU not required. 
+3. the cam module. e.g. Rpi3/4. An x86 server is okay. GPU not required. 
 
 1 & 2 can run on the same machine. 
 
 ## How to run
 
-### The web server + controller (on local prevision2)
+### The web server + controller (on local precision2)
 ```
 source venv3.7/bin/activate
 # launch the web + backend
-./run-web.py
+./run-web.sh
+    INFO {control:150} 140317936367424 MainThread ----------------the queries init-----------------
+    INFO {server:342} 140317936367424 MainThread Starting Bokeh server version 2.0.2 (running on Tornado 6.0.4)
+    INFO {tornado:292} 140317936367424 MainThread User authentication hooks NOT provided (default user enabled)
+   DEBUG {selector_events:53} 140317936367424 MainThread Using selector: EpollSelector
+    INFO {serve:897} 140317936367424 MainThread Bokeh app running at: http://localhost:5006/server
+    INFO {serve:899} 140317936367424 MainThread Starting Bokeh server with process id: 8827
+   ERROR {app_hooks:15} 140317936367424 MainThread --------- flask server running --------------------
+   DEBUG {control:811} 140317936367424 MainThread grabbed diva lock
+    INFO {control:822} 140317936367424 MainThread --------- cloud GRPC server is runing --------------------
+    ...
+
 # or, launch the console mode, for debugging the backend only
 ./run-console.py
 ```
 
 ### The camera service 
 ```
-# on rpi3
+# on rpi3/4
 source ~/venv/bin/activate
 ./run-cam.sh
+
+    INFO {main_camera:1328} MainThread Init camera service
+CRITICAL {main_camera:1341} MainThread the_img_dirprefix set to hybridvs_data/YOLO-RES-720P/jpg
+    INFO {main_camera:1299} MainThread build videostore... chaweng-1_10FPS-2
+    INFO {main_camera:1301} MainThread done. 10000 frames found
+    INFO {main_camera:1299} MainThread build videostore... ashland-1_10FPS
+    INFO {main_camera:1301} MainThread done. 216102 frames found
+    INFO {main_camera:1299} MainThread build videostore... chaweng-1_10FPS
+    INFO {main_camera:1301} MainThread done. 20000 frames found
+    INFO {main_camera:1299} MainThread build videostore... shibuyapark-1_10FPS
+    INFO {main_camera:1301} MainThread done. 0 frames found
+    INFO {main_camera:1299} MainThread build videostore... chaweng-1_10FPS-186k
+    INFO {main_camera:1301} MainThread done. 186153 frames found
+    INFO {main_camera:1299} MainThread build videostore... banff-9_10FPS
+    INFO {main_camera:1301} MainThread done. 169483 frames found
+    INFO {main_camera:1299} MainThread build videostore... oxford-1_10FPS
+    INFO {main_camera:1301} MainThread done. 215630 frames found
+    INFO {main_camera:1299} MainThread build videostore... purdue-10fps
+    INFO {main_camera:1301} MainThread done. 36001 frames found
+    INFO {main_camera:1299} MainThread build videostore... banff-1_10FPS
+    INFO {main_camera:1301} MainThread done. 216103 frames found
+CRITICAL {main_camera:1316} MainThread build thumbnail video store ... ashland-1_10FPS-50x50
+    INFO {main_camera:1318} MainThread done. frames: 1 -- 216102, 50x50 fps 10
+CRITICAL {main_camera:1316} MainThread build thumbnail video store ... banff-1_10FPS-50x50
+    INFO {main_camera:1318} MainThread done. frames: 1 -- 216103, 50x50 fps 10
+CRITICAL {main_camera:1316} MainThread build thumbnail video store ... oxford-1_10FPS-50x50
+    INFO {main_camera:1318} MainThread done. frames: 1 -- 215630, 50x50 fps 10
+CRITICAL {main_camera:1316} MainThread build thumbnail video store ... chaweng-1_10FPS-50x50
+    INFO {main_camera:1318} MainThread done. frames: 80000 -- 99999, 50x50 fps 10
+...    
 ```
 
 ### The YOLO service (on precision, TITAN V)
@@ -36,7 +77,7 @@ python ./YOLOv3_grpc.py
 
 Then point the browser to: http://10.10.10.3:5006/server
 
-## How to build
+## How to build from source
 
 Grab the source code 
 
@@ -79,7 +120,7 @@ pip3 list
 
 Update: camera now can run tensorflow 2 + Keras 2.4.3
 
-**Install Tensorflow1 etc on camera**
+**Install Tensorflow1 etc on the "camera" machine**
 
 If using Rpi, use rapsbian 9. On debian/rpi64 - pip has no tf package
 
@@ -187,7 +228,7 @@ sudo apt install python3.7
 ```
 
 
-# troubleshooting
+# Troubleshooting
 
 ## complains because no python alternatives are  installed
 
