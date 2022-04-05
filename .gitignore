@@ -40,7 +40,7 @@ venv-yolo/
 .project
 results/
 result/
-preview
+/preview
 
 .pydevproject
 *.weights

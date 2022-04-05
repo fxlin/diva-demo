@@ -35,7 +35,7 @@ source venv3.7/bin/activate
 ### The camera service 
 ```
 # on rpi3/4
-source ~/venv/bin/activate
+source venv/bin/activate
 ./run-cam.sh
 
     INFO {main_camera:1328} MainThread Init camera service
@@ -69,7 +69,7 @@ CRITICAL {main_camera:1316} MainThread build thumbnail video store ... chaweng-1
 ...    
 ```
 
-### The YOLO service (on precision, TITAN V)
+### The YOLO service (can use GPU; on precision, TITAN V)
 ```
 source venv-yolo/bin/activate
 python ./YOLOv3_grpc.py
@@ -134,10 +134,8 @@ See comments in main_camera.py and https://github.com/keras-team/keras/issues/13
 #  pip3 install tensorflow==
   
 pip3 install tensorflow==1.13.1df -
-pip3 install pandas
 # pip3 install opencv-python # no longer needed ... introduced too much dep. bad. 
-pip3 install numpy \
-pandas keras sklearn 
+pip3 install numpy pandas keras sklearn 
 
 # need a specific opencv version for rpi
 # https://github.com/EdjeElectronics/TensorFlow-Object-Detection-on-the-Raspberry-Pi/issues/67
