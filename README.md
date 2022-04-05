@@ -81,7 +81,7 @@ python ./YOLOv3_grpc.py
 
 Then point the browser to: http://10.10.10.3:5006/server
 
-## How to build from source
+## How to deploy
 
 Grab the source code 
 
@@ -111,7 +111,7 @@ sudo apt install libatlas-base-dev libjasper-dev libqtgui4 python3-pyqt5 libqt4-
 libgstreamer1.0-0/stable
 ```
 
-**Create virtualenv**
+### **Create virtualenv**
 
 ```
 # per tf's official instructions: virtual env for tf in order to  
@@ -122,9 +122,9 @@ source ./venv/bin/activate
 pip3 list
 ```
 
-**Prep venv for ``camera''**
+### **Prep venv for ``camera''**
 
-Update: camera now can run tensorflow 2 + Keras 2.4.3
+Update: camera now can run tensorflow 2 + Keras 2.4.3. Just follow ``prep venv for sever''
 
 (Old contents)
 
@@ -160,7 +160,7 @@ pip3 install grpcio-tools
 pip install zc.lockfile # to avoid multiple running instances
 ```
 
-**Prepare venv for ``server''**
+### **Prepare venv for ``server''**
 
 ```
 pip3 install tensorflow
@@ -180,6 +180,8 @@ pip3 install bokeh
 pip3 install coloredlogs # easy tracing
 pip3 install easydict # needed by tf-yolov3
 pip3 install opencv-python 
+pip3 install zc.lockfile # to avoid multiple running instances
+pip3 install psutil # for getting camera realtime resource usage (spurious dep??)
 
 # gen grpc code
 python3 -m grpc_tools.protoc -I protos --python_out=. --grpc_python_out=. protos/*
@@ -201,20 +203,51 @@ python3 -m grpc_tools.protoc -I protos --python_out=. --grpc_python_out=. protos
 
 ```
 
+### **Prepare venv for yolomou backend (yolo)**
+
+Test tf and its backend...
+```
+python -c "import tensorflow as tf; print(tf.reduce_sum(tf.random.normal([1000, 1000])))"
+```
+
+Check GPU devices
+```
+from tensorflow.python.client import device_lib
+print(device_lib.list_local_devices())
+```
+
+### **Copy video frames**
+
+hybridvs_data/YOLO-RES-720P/jpg/XXXX. e.g. copy to UVA servers
+
+```rsync -avxP hybridvs_data portal:/u/xl6yq/workspace-cam/diva-demo```
+
+Also see hybridvs_data/YOLO-RES-720P/jpg/README-xzl.md
+
+### Copy model weights
+
+```scp yolov3.weights portal:/u/xl6yq/workspace-cam/diva-demo```
+
+MD5: c84e5b99d0e52cd466ae710cadf6d84c
+
+### Copy models (small operators)
+
+```rsync -avxP ops portal:/u/xl6yq/workspace-cam/diva-demo```
+
 ## Important paths
 
 **Video frames** 
 
-hybridvs_data/YOLO-RES-720P/jpg/XXXX
-where XXX is the video name. 
+hybridvs_data/YOLO-RES-720P/jpg/XXXX, where XXX is the video name. 
 
 ### assumption:
 
 video naming: video is named as `${scene}-${seg}_XXfps-AAxBB`
-${scene}, e.g.  "purdue", "chaweng", ...
-${seg}, optional, video segment id. 
-XXXfps is an optional hint, used to determine FPS
-AAxBB is an optional hint, used to determine resolution
+
+* ${scene}, e.g.  "purdue", "chaweng", ...
+* ${seg}, optional, video segment id. 
+* XXXfps is an optional hint, used to determine FPS
+* AAxBB is an optional hint, used to determine resolution
 
 **Cam models (ops)**
 

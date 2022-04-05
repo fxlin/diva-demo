@@ -1052,9 +1052,10 @@ def test_list_videos():
 def console():
     while True:
         msg = f'''
-        l:list_videos_cam L:list_queries_cloud q:send a sample query
+        lv:list_videos_cam 
+        lq \tlist_queries_cloud q:send a sample query
         R: reset
-        pX - query_progress for qid X
+        progress X\t\tquery_progress for qid X
         aX - pause query qid X
         rX - resume query qid X
         '''
@@ -1122,7 +1123,7 @@ def console():
             print(resp)
         elif s[0] == 'query':
             resp = query_submit(video_name='chaweng-1_10FPS',
-                                op_names=['random','random'],
+                                op_names=['chaweng-0','chaweng-1'],
                                 crop='-1,-1,-1,-1',
                                 target_class='motorbike', frameskip=10)
             print('qid:', resp)
