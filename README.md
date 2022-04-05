@@ -5,12 +5,16 @@
 The whole system has three modules: 
 
 1. the web server & controller, e.g. on an x86 server. GPU not needed.
-2. the YOLO service. A machine with GPU is preferred. 
-3. the cam module. e.g. Rpi3/4. An x86 server is okay. GPU not required. 
+2. the YOLO service. It can use CUDA; if CUDA GPU is absent, tf falls back to CPU (SIMD instructions). 
+3. the cam module. e.g. Rpi3/4. Can also run on x86. GPU not required. 
 
-1 & 2 can run on the same machine. 
+1 & 2 can run on the same machine.  1 & 3 can use the same venv (python3.7). 3 needs a separate venv due to tensorflow1 quirks
 
 ## How to run
+
+### Configure service addresses
+
+See variables.py
 
 ### The web server + controller (on local precision2)
 ```
