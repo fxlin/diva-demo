@@ -74,7 +74,8 @@ FORMAT = '%(levelname)8s {%(module)s:%(lineno)d} %(thread)d %(threadName)s %(mes
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format=FORMAT)
 logger = logging.getLogger(__name__)
 
-coloredlogs.install(fmt=FORMAT, level='DEBUG', logger=logger)
+# coloredlogs.install(fmt=FORMAT, level='DEBUG', logger=logger)
+coloredlogs.install(fmt=FORMAT, level='INFO', logger=logger)
 
 class ImageDoesNotExistException(Exception):
     """Image does not exist"""
@@ -247,21 +248,24 @@ def download_video_preview_frames_0(v:cam_cloud_pb2.VideoMetadata, n_frames:int)
 # not cleaning existing local cache
 # using VideoStore interface
 def download_video_preview_frames(v:cam_cloud_pb2.VideoMetadata, n_frames:int, res=[128,128]) -> typing.List[int]:
+    fl = []
+
     delta = int((v.frame_id_max - v.frame_id_min) / n_frames)
-    assert(delta > 10)
+    if delta < 10:
+        #raise NameError("too fewer frames. valid video?")
+        logger.error("too fewer frames. valid video?")
+        return fl
 
     vs = the_videolib_preview.GetVideoStore(v.video_name)
-
-    fl = []
 
     for i in range(n_frames):
         frameid = v.frame_id_min + delta * i
         try:
-            print(f"get preview frame id {frameid}")
+            logger.debug(f"get preview frame id {frameid}")
             img = get_video_frame(v.video_name, frameid)
-            print(f"got preview frame id {frameid}")
+            logger.info(f"got preview frame id {frameid}")
             vs.StoreFrame(frameid, img, res)
-            logger.info(f'saved preview frame size is {len(img.data)}')
+            logger.debug(f'saved preview frame size is {len(img.data)}')
             fl.append(frameid)
         except Exception as err:
             logger.error(err)

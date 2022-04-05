@@ -1296,9 +1296,9 @@ def build_video_stores():
 
     try:
         for vn in video_name_list:
-            logger.info(f"build videostore... {vn}")
+            logger.debug(f"build videostore... {vn}")
             the_video_stores[vn] = VideoStore(video_name = vn, prefix=the_img_dirprefix)
-            logger.info(f"done. {the_video_stores[vn].GetNumFrames()} frames found")
+            logger.info(f"\t\t built {vn}. {the_video_stores[vn].GetNumFrames()} frames found")
 
     except Exception as err:
         logger.error(err)
@@ -1311,14 +1311,16 @@ def build_thumbnail_lib():
     video_name_list = [o for o in os.listdir(the_thumbnail_dirprefix)
                        if os.path.isdir(os.path.join(the_thumbnail_dirprefix, o))]
 
+    logger.debug(f"start to build thumbnail stores, total {len(video_name_list)}...")
+
     #try:
     for vn in video_name_list:
-        logger.critical(f"build thumbnail video store ... {vn}")
+        logger.debug(f"to build thumbnail video store ... {vn}")
         v = the_thumbnail_lib.AddVideoStore(vn)
-        logger.info(f"done. frames: {v.minid} -- {v.maxid}, {v.x}x{v.y} fps {v.fps}")
+        logger.info(f"\t\t thumbnails done for {vn}. frames: {v.minid} -- {v.maxid}, {v.x}x{v.y} fps {v.fps}")
     #except Exception as err:
     #    logger.error(err)
-
+    
 # https://raspberrypi.stackexchange.com/questions/22005/how-to-prevent-python-script-from-running-more-than-once
 the_instance_lock = None
 
@@ -1338,10 +1340,13 @@ def serve():
         the_img_dirprefix = the_img_dirprefix_rpi
         the_thumbnail_dirprefix = the_thumbnail_dirprefix_rpi
 
-    logger.critical(f"the_img_dirprefix set to {the_img_dirprefix}")
+    logger.info(f"the_img_dirprefix set to {the_img_dirprefix}")
 
+    logger.info(f"start to build video stores...")
     build_video_stores()
+    logger.info(f"done building video stores")
     build_thumbnail_lib()
+    logger.info(f"done building thumbnail stores. service starting...")
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=8))
     diva_cam_servicer = DivaCameraServicer()
