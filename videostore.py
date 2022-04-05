@@ -195,7 +195,7 @@ class VideoLib():
         self.videos: typing.Dict[str, VideoStore] = {}
 
         if not os.path.isdir(self.prefix):
-            raise
+            raise NameError('cannot find path: ' + self.prefix)
 
     # return: ref to the video store
     # if the video store exists, do nothing.
