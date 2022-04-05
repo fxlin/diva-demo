@@ -86,7 +86,7 @@ Then point the browser to: http://10.10.10.3:5006/server
 Grab the source code 
 
 ```{shell}
-git clone ${this_repo}
+git clone git@github.com:fxlin/diva-demo.git
 
 # grab tf-yolov3 as a submodule
 git submodule update --init --recursive
@@ -111,7 +111,7 @@ sudo apt install libatlas-base-dev libjasper-dev libqtgui4 python3-pyqt5 libqt4-
 libgstreamer1.0-0/stable
 ```
 
-**Prep virtualenv, which is needed for Tensorflow installation**
+**Create virtualenv**
 
 ```
 # per tf's official instructions: virtual env for tf in order to  
@@ -122,9 +122,11 @@ source ./venv/bin/activate
 pip3 list
 ```
 
+**Prep venv for ``camera''**
+
 Update: camera now can run tensorflow 2 + Keras 2.4.3
 
-**Install Tensorflow1 etc on the "camera" machine**
+(Old contents)
 
 If using Rpi, use rapsbian 9. On debian/rpi64 - pip has no tf package
 
@@ -158,21 +160,24 @@ pip3 install grpcio-tools
 pip install zc.lockfile # to avoid multiple running instances
 ```
 
-**On server**
+**Prepare venv for ``server''**
 
 ```
 pip3 install tensorflow
 
-ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3_backbone.py
-ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3_common.py
-ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3_config.py
-ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3_dataset.py
-ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3.py
-ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3_utils.py
+## --- no longer needed, already commit in git repo --- 
+# ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3_backbone.py
+# ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3_common.py
+# ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3_config.py
+# ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3_dataset.py
+# ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3.py
+# ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3_utils.py
 
 # NB: tf v2.2 has CPU/GPU branches unified
 # need to create a separate env for python-yolov3, which depends on resize() func absent in tf-1
 # 		the func is tf.image.resize(input_layer...
+pip3 install bokeh
+pip3 install coloredlogs # easy tracing
 pip3 install easydict # needed by tf-yolov3
 pip3 install opencv-python 
 
@@ -219,6 +224,10 @@ opname: ops on the camera side are named as ${scene}-0, ${scene}-1, ${scene}-2..
 op num: 0, 1, 2. .. up to 5
 
 with symbolic links
+
+** Cache ** 
+preview/
+result/ 
 
 ## host env
 
