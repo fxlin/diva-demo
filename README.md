@@ -240,8 +240,6 @@ MD5: c84e5b99d0e52cd466ae710cadf6d84c
 
 hybridvs_data/YOLO-RES-720P/jpg/XXXX, where XXX is the video name. 
 
-### assumption:
-
 video naming: video is named as `${scene}-${seg}_XXfps-AAxBB`
 
 * ${scene}, e.g.  "purdue", "chaweng", ...
@@ -249,7 +247,7 @@ video naming: video is named as `${scene}-${seg}_XXfps-AAxBB`
 * XXXfps is an optional hint, used to determine FPS
 * AAxBB is an optional hint, used to determine resolution
 
-**Cam models (ops)**
+### **Cam models (ops)**
 
 ./ops/
 
@@ -258,7 +256,8 @@ op num: 0, 1, 2. .. up to 5
 
 with symbolic links
 
-** Cache ** 
+### Cache
+
 preview/
 result/ 
 
@@ -300,6 +299,12 @@ virtualenv --system-site-packages -p python3.7 ./venv3.7
 sudo apt install python3.7-venv
 python -m venv --upgrade YOUR_VENV_DIRECTORY
 ```
+
+## tf complains: dnn lib is not found
+
+It could be that cudnn is not installed, or it is installed but not on the lib path. Or, cudnn failed to initialize. 
+
+To diagnose better, run `tests/test-tf-cudnn.py`. e.g. it could be insufficient GPU memory. In that case, let tf use another GPU, e.g. `export CUDA_VISIBLE_DEVICES=3`
 
 ## tensorflow GPU config (for yolov3)
 
