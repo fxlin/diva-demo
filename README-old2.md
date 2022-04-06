@@ -1,71 +1,95 @@
 # Quickstart
-[TOC]
+
 ## Overview
+
 The whole system has three modules: 
 
-1. **run-web.sh** the web server & controller. render web UI and control cam/yolo. 
-2. **run-yolo.sh** the YOLO service for object detection. Simple code. Stateless.
-3. **run-cam.sh** the cam module. e.g. Rpi3/4. 
+1. **run-web.sh** the web server & controller, e.g. on an x86 server. GPU not needed.
+2. **run-yolo.sh** the YOLO service. It can use CUDA; if CUDA GPU is absent, tf falls back to CPU (SIMD instructions). 
+3. **run-cam.sh** the cam module. e.g. Rpi3/4. Can also run on x86. GPU not required. 
 
-yolo/cam can use CUDA (see issues below); if CUDA GPU is absent, tf falls back to CPU (SIMD instructions). 
+1 & 2 can run on the same machine.  1 & 3 can use the same venv (python3.7). 3 needs a separate venv due to tensorflow1 quirks
 
 ## Known issues
 
-### YOLO misbehaves on CUDA
-
 The YOLO service, when using the CUDA backend, can only do inference *once* correctly. All subsequent inferences return NULL results (no bboxes). See [yolo-quirks.txt](). 
-
-This is seen on CS gpusrv. It used to work on minibox (Titan V), which is yet to be validated.
 
 Workaround (4/5/22): run-yolo.sh forces using CPU only. 
 
-### Limited Ops
-
-Operators are to be trained per class per video. At this time only available: 
-
-ashland: train	
-
-banff: bus
-
-chaweng: bicycle
-
-See [ops/README-xzl.txt](ops/README-xzl.txt)
-
-For demo: banff - buscd /
-
 ## How to run
 
-1. Configure service addresses. Change variables.py
+### Configure service addresses
 
-2. On three terminals: 
+See variables.py
 
-source venv/bin/activate; run-web.sh
+### The web server + controller (on local precision2)
+```
+source venv3.7/bin/activate
+# launch the web + backend
+./run-web.sh
+    INFO {control:150} 140317936367424 MainThread ----------------the queries init-----------------
+    INFO {server:342} 140317936367424 MainThread Starting Bokeh server version 2.0.2 (running on Tornado 6.0.4)
+    INFO {tornado:292} 140317936367424 MainThread User authentication hooks NOT provided (default user enabled)
+   DEBUG {selector_events:53} 140317936367424 MainThread Using selector: EpollSelector
+    INFO {serve:897} 140317936367424 MainThread Bokeh app running at: http://localhost:5006/server
+    INFO {serve:899} 140317936367424 MainThread Starting Bokeh server with process id: 8827
+   ERROR {app_hooks:15} 140317936367424 MainThread --------- flask server running --------------------
+   DEBUG {control:811} 140317936367424 MainThread grabbed diva lock
+    INFO {control:822} 140317936367424 MainThread --------- cloud GRPC server is runing --------------------
+    ...
 
-source venv/bin/activate; run-cam.sh
+# or, launch the console mode, for debugging the backend only
+./run-console.py
+```
 
-source venv/bin/activate; run-yolo.sh
+### The camera service 
+```
+# on rpi3/4
+source venv/bin/activate
+./run-cam.sh
 
-**Sample setup 1**: On the same x86 machine: web/cam/yolo
+    INFO {main_camera:1328} MainThread Init camera service
+CRITICAL {main_camera:1341} MainThread the_img_dirprefix set to hybridvs_data/YOLO-RES-720P/jpg
+    INFO {main_camera:1299} MainThread build videostore... chaweng-1_10FPS-2
+    INFO {main_camera:1301} MainThread done. 10000 frames found
+    INFO {main_camera:1299} MainThread build videostore... ashland-1_10FPS
+    INFO {main_camera:1301} MainThread done. 216102 frames found
+    INFO {main_camera:1299} MainThread build videostore... chaweng-1_10FPS
+    INFO {main_camera:1301} MainThread done. 20000 frames found
+    INFO {main_camera:1299} MainThread build videostore... shibuyapark-1_10FPS
+    INFO {main_camera:1301} MainThread done. 0 frames found
+    INFO {main_camera:1299} MainThread build videostore... chaweng-1_10FPS-186k
+    INFO {main_camera:1301} MainThread done. 186153 frames found
+    INFO {main_camera:1299} MainThread build videostore... banff-9_10FPS
+    INFO {main_camera:1301} MainThread done. 169483 frames found
+    INFO {main_camera:1299} MainThread build videostore... oxford-1_10FPS
+    INFO {main_camera:1301} MainThread done. 215630 frames found
+    INFO {main_camera:1299} MainThread build videostore... purdue-10fps
+    INFO {main_camera:1301} MainThread done. 36001 frames found
+    INFO {main_camera:1299} MainThread build videostore... banff-1_10FPS
+    INFO {main_camera:1301} MainThread done. 216103 frames found
+CRITICAL {main_camera:1316} MainThread build thumbnail video store ... ashland-1_10FPS-50x50
+    INFO {main_camera:1318} MainThread done. frames: 1 -- 216102, 50x50 fps 10
+CRITICAL {main_camera:1316} MainThread build thumbnail video store ... banff-1_10FPS-50x50
+    INFO {main_camera:1318} MainThread done. frames: 1 -- 216103, 50x50 fps 10
+CRITICAL {main_camera:1316} MainThread build thumbnail video store ... oxford-1_10FPS-50x50
+    INFO {main_camera:1318} MainThread done. frames: 1 -- 215630, 50x50 fps 10
+CRITICAL {main_camera:1316} MainThread build thumbnail video store ... chaweng-1_10FPS-50x50
+    INFO {main_camera:1318} MainThread done. frames: 80000 -- 99999, 50x50 fps 10
+...    
+```
 
-**Sample setup 2**: On an x86 machine: web/yolo; Rpi3/4: cam
+### The YOLO service (can use GPU; on precision, TITAN V)
+```
+source venv-yolo/bin/activate
+python ./YOLOv3_grpc.py
+```
 
-**Sample setup 3:** web/yolo/cam all on separate x86 machines
-
-Point browser to: http://10.10.10.3:5006/server (addr is subject to configuration in variables.py)
+Then point the browser to: http://10.10.10.3:5006/server
 
 ## How to test
 
-### Test without web UI (fast launch): 
-
-Run `run-console.sh` in lieu of  `run-web.sh`
-
-"**lv**" for list videos, "**query**" to run sample query, etc. 
-
-See control.py: console() for a full list of commands.
-
-### Unit tests: 
-
-see tests/
+From 
 
 ## How to deploy
 
@@ -78,22 +102,7 @@ git clone git@github.com:fxlin/diva-demo.git
 git submodule update --init --recursive
 ```
 
-### Install OS packages
-
-#### CentOS 
-
-(UVA CS servers)
-
-```
-module load nvtop
-module load cuda-toolkit-11.1
-module load python3-3.9.9
-module load gcc-7.1.0
-```
-
-#### Ubuntu 18.04 
-
-minibox
+Python. We need 3.7 which is not default in older Ubuntu (e.g. 18.04)
 
 ```
 # prep... last digit means priority 
@@ -112,11 +121,7 @@ sudo apt install libatlas-base-dev libjasper-dev libqtgui4 python3-pyqt5 libqt4-
 libgstreamer1.0-0/stable
 ```
 
-### **virtualenv**
-
-Apr 2022: all three can use the same venv. tensorflow 2 + Keras 2.4.3
-
-**pay attention to pip3 version**
+### **Create virtualenv**
 
 ```
 # per tf's official instructions: virtual env for tf in order to  
@@ -124,32 +129,93 @@ pip3 install -U pip virtualenv
 
 virtualenv --system-site-packages -p python3 ./venv
 source ./venv/bin/activate
+pip3 list
 ```
 
-Install packages
+### **Prep venv for ``camera''**
+
+Update: camera now can run tensorflow 2 + Keras 2.4.3. Just follow ``prep venv for sever''
+
+(Old contents)
+
+If using Rpi, use rapsbian 9. On debian/rpi64 - pip has no tf package
+
+The camera needs its own **venv** (on local storage, better not on NFS). Make one. 
+
+As of now, our cam code works with tf1. It has some compat issue with the latest tf2. 
+See comments in main_camera.py and https://github.com/keras-team/keras/issues/13336
 
 ```
+# to check available tf versions, 
+#  pip3 install tensorflow==
+  
+pip3 install tensorflow==1.13.1df -
+# pip3 install opencv-python # no longer needed ... introduced too much dep. bad. 
 pip3 install numpy pandas keras sklearn 
-pip3 install psutil # for getting camera realtime resource usage
-pip3 install pillow  # python image library
-pip3 install coloredlogs # easy tracing
-pip3 install grpcio-tools
-pip3 install zc.lockfile # to avoid multiple running instances
 
-# NB: tf v2.2 has CPU/GPU branches unified
-pip3 install tensorflow
-
-pip3 install bokeh
-pip3 install easydict # needed by tf-yolov3
-
-pip3 install opencv-python 
 # need a specific opencv version for rpi
 # https://github.com/EdjeElectronics/TensorFlow-Object-Detection-on-the-Raspberry-Pi/issues/67
-# pip3 install opencv-python==3.4.6.27
+pip3 install opencv-python==3.4.6.27
+
+# for getting camera realtime resource usage
+pip install psutil
+# for getting extra OS info
+# pip install py-cpuinfo
+
+pip3 install pillow  # python image library
+#pip install flask flask_table # for webserver to gen table
+#pip install WTForms # for webserver to render forms
+pip install coloredlogs # easy tracing
+pip3 install grpcio-tools
+pip install zc.lockfile # to avoid multiple running instances
 ```
 
-**Test tf version, GPU backends**
+### **Prepare venv for ``server''**
 
+```
+pip3 install tensorflow
+
+## --- no longer needed, already commit in git repo --- 
+# ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3_backbone.py
+# ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3_common.py
+# ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3_config.py
+# ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3_dataset.py
+# ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3.py
+# ln -sf third_party/TensorFlow2_0_Examples/Object_Detection/YOLOV3/core/tensorflow_yolov3_utils.py
+
+# NB: tf v2.2 has CPU/GPU branches unified
+# need to create a separate env for python-yolov3, which depends on resize() func absent in tf-1
+# 		the func is tf.image.resize(input_layer...
+pip3 install bokeh
+pip3 install coloredlogs # easy tracing
+pip3 install easydict # needed by tf-yolov3
+pip3 install opencv-python 
+pip3 install zc.lockfile # to avoid multiple running instances
+pip3 install psutil # for getting camera realtime resource usage (spurious dep??)
+
+# gen grpc code
+python3 -m grpc_tools.protoc -I protos --python_out=. --grpc_python_out=. protos/*
+
+# Init DB
+# docker stop mypgdb && docker rm mypgdb && make run-postgres && sleep 10 && make init-postgres && make fixture-postgres
+
+# xzl: on the camera side. 
+# pip3 install flask
+
+# a.	Go to project directory (keep the codebase up to date) && configure variables in camera/camera_constants.py
+# b.	env FLASK_ENV=production python3 -m camera.app &
+# c.	python3 -m camera.main_camera
+
+
+#make setup-env
+#make run-yolo
+#make run-cloud
+
+```
+
+### **Prepare venv for yolomou backend (yolo)**
+
+Test tf and its backend...
 ```
 python -c "import tensorflow as tf; print(tf.reduce_sum(tf.random.normal([1000, 1000])))"
 ```
@@ -159,9 +225,6 @@ Check GPU devices
 from tensorflow.python.client import device_lib
 print(device_lib.list_local_devices())
 ```
-
-### Gen grpc code
-python3 -m grpc_tools.protoc -I protos --python_out=. --grpc_python_out=. protos/*
 
 ### **Copy video frames**
 
@@ -177,7 +240,7 @@ Also see hybridvs_data/YOLO-RES-720P/jpg/README-xzl.md
 
 MD5: c84e5b99d0e52cd466ae710cadf6d84c
 
-### Copy ops (small models)
+### Copy models (small operators)
 
 ```rsync -avxP ops portal:/u/xl6yq/workspace-cam/diva-demo```
 
@@ -207,6 +270,16 @@ with symbolic links
 
 preview/
 result/ 
+
+## host env
+
+https://unix.stackexchange.com/questions/410579/change-the-python3-default-version-in-ubuntu
+
+
+```
+sudo apt install python3.7
+```
+
 
 # Troubleshooting
 
@@ -243,7 +316,7 @@ It could be that cudnn is not installed, or it is installed but not on the lib p
 
 To diagnose better, run `tests/test-tf-cudnn.py`. e.g. it could be insufficient GPU memory. In that case, let tf use another GPU, e.g. `export CUDA_VISIBLE_DEVICES=3`
 
-## (old) tensorflow GPU config (for yolov3)
+## tensorflow GPU config (for yolov3)
 
 libcudnn shall be 7.6.4 or 7.6.5
 are we using cuda9 or cuda10??
