@@ -31,7 +31,13 @@ chaweng: bicycle
 
 See [ops/README-xzl.txt](ops/README-xzl.txt)
 
-For demo: banff - buscd /
+For demo: banff - buscd 
+
+### Bokeh version
+
+On Bokeh 2.4.2, failed to trigger result view update (cf: main.py, cb_update_res()). 
+
+Workaround: force using Bokeh 2.1.1
 
 ## How to run
 
@@ -39,9 +45,9 @@ For demo: banff - buscd /
 
 2. On three terminals: 
 
-source venv/bin/activate; run-web.sh
+source venv/bin/activate; run-cam.sh    # has to launch first, until see "service starting...."; storage start sometimes take a while
 
-source venv/bin/activate; run-cam.sh
+source venv/bin/activate; run-web.sh
 
 source venv/bin/activate; run-yolo.sh
 
@@ -139,7 +145,7 @@ pip3 install zc.lockfile # to avoid multiple running instances
 # NB: tf v2.2 has CPU/GPU branches unified
 pip3 install tensorflow
 
-pip3 install bokeh
+pip3 install bokeh==2.1.1 # higher version may break, see issues abo
 pip3 install easydict # needed by tf-yolov3
 
 pip3 install opencv-python 
