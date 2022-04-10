@@ -228,6 +228,7 @@ class DetYOLOv3Servicer(det_yolov3_pb2_grpc.DetYOLOv3Servicer):
 
         return det_yolov3_pb2.DetectionOutput(elements=element_list)
 
+    # xzl: in use
     def Detect(self, request, context):
         """
         Search all or certain objects in the given image.
@@ -239,7 +240,7 @@ class DetYOLOv3Servicer(det_yolov3_pb2_grpc.DetYOLOv3Servicer):
         name = request.name
         targets = request.targets
 
-        msg = f'Processing {name}, expecting to have score above {threshold}'
+        msg = f'Processing {name}, expecting to have score above {threshold}. {len(img_data)} bytes'
         logger.info(msg)
 
         raw_img = cv2.imdecode(np.fromstring(img_data, dtype=np.uint8), -1)
@@ -259,7 +260,7 @@ class DetYOLOv3Servicer(det_yolov3_pb2_grpc.DetYOLOv3Servicer):
             bboxes = filter_bbox(bboxes=bboxes, target_class=targets)
 
         element_list = bboxes_to_grpc_elements(bboxes)
-
+        
         return det_yolov3_pb2.DetectionOutput(elements=element_list)
     
 def test_draw_bb(raw_img, bboxes):

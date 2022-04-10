@@ -723,7 +723,7 @@ image1 = ImageURL(url="url", x="x1", y="y1", w = 'w1', h='h1', anchor="bottom_le
 
 # text1 = LabelSet(text="frame_ids", x="x1", y="y1", x_offset=0, y_offset=-50, level='glyph', source=sourceimg)
 text1 = Text(text="frame_ids", x="x1", y="y1", x_offset=0, y_offset=-PLOT_PREVIEW_HEIGHT,
-             text_color="magenta", text_font='helvetica', text_font_size='10px', text_baseline='bottom')
+             text_color="magenta", text_font_size='10px', text_baseline='bottom')
 
 ppreview.add_glyph(sourceimg, image1) # feed the data
 ppreview.add_glyph(sourceimg, text1) # feed the data
@@ -880,8 +880,9 @@ def cb_update_res(res):
             h1=[PLOT_IMG_HEIGHT] * n
         )
 
-        #print('---------> update results:', new_data)
+        # print('---------> update results:', new_data)
         source_results.data = new_data # commit
+        # Works for Bokeh 2.1.1; strangely, won't trigger view update (presult) w Bokeh 2.4.2. API changed? 
 
     '''
     t2 = time.time()
@@ -1276,7 +1277,7 @@ doc.add_root(column(
 
 
 # curdoc().add_periodic_callback(update, 500)
-doc.title = "📷⚙️"
+doc.title = "Demo: City cam analytics"
 
 logger.info("main execed!")
 
