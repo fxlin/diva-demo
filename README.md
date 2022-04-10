@@ -31,7 +31,7 @@ chaweng: bicycle
 
 See [ops/README-xzl.txt](ops/README-xzl.txt)
 
-For demo: banff - buscd 
+For demo: banff - bus
 
 ### Bokeh version
 
@@ -45,7 +45,7 @@ Workaround: force using Bokeh 2.1.1
 
 2. On three terminals: 
 
-source venv/bin/activate; run-cam.sh    # has to launch first, until see "service starting...."; storage start sometimes take a while
+source venv/bin/activate; run-cam.sh    # has to launch first, until see "service starting...."; storage start sometimes takes a while
 
 source venv/bin/activate; run-web.sh
 
@@ -59,9 +59,9 @@ source venv/bin/activate; run-yolo.sh
 
 Point browser to: http://10.10.10.3:5006/server (addr is subject to configuration in variables.py)
 
-## How to test
+## How to debug
 
-### Test without web UI (fast launch): 
+### Test without web UI (faster launch): 
 
 Run `run-console.sh` in lieu of  `run-web.sh`
 
@@ -186,6 +186,15 @@ MD5: c84e5b99d0e52cd466ae710cadf6d84c
 ### Copy ops (small models)
 
 ```rsync -avxP ops portal:/u/xl6yq/workspace-cam/diva-demo```
+
+## How to demo
+
+4/9/2022: demo to high school students at LL
+
+- set up environment on gpusrv14.cs
+- prepare a few slides as motivations
+- show an rpi, a NV jetson Xavier, and a desktop GPU
+- Use video recording as backup -- in case of hw/sw failures
 
 ## Important paths
 
