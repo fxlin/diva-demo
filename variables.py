@@ -7,8 +7,9 @@ CAMERA_CHANNEL_ADDRESS = '127.0.0.1:10086' # the same machine
 CAMERA_CHANNEL_PORT = '10086'
 
 #YOLO_CHANNEL_ADDRESS = 'yolo:10088'
-YOLO_CHANNEL_ADDRESS = '127.0.0.1:10088'
+#YOLO_CHANNEL_ADDRESS = '127.0.0.1:10088'
 # YOLO_CHANNEL_ADDRESS = '128.46.76.161:10088'
+YOLO_CHANNEL_ADDRESS = 'gpusrv14.cs.virginia.edu:10088'
 
 # set this to '' for testing
 # YOLO_CHANNEL_ADDRESS = ''
@@ -19,7 +20,7 @@ DIVA_CHANNEL_ADDRESS = '127.0.0.1:10090'
 #DIVA_CHANNEL_ADDRESS = '10.10.10.3:10090'
 DIVA_CHANNEL_PORT = '10090'
 
-# xzl: below unused? 
+# xzl: below unused?
 IMAGE_PATH = '/media/YOLO-RES-720P/jpg/chaweng-1_10FPS/'
 CSV_PATH = '/media/YOLO-RES-720P/out/chaweng-1_10FPS.csv'
 OP_FNAME_PATH = '/media/YOLO-RES-720P/exp/chaweng/models/chaweng-a3d16c61813043a2711ed3f5a646e4eb.hdf5'
